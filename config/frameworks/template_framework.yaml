@@ -1,0 +1,16 @@
+id: framework_template
+name: Replace with framework name
+analysis_mode: deductive
+domains:
+  - Domain 1
+  - Domain 2
+parent_construct_regex: '^[A-Z]\\.'
+subconstruct_regex: '^\\d+\\.'
+network_labels: []
+valence_labels:
+  network: []
+  overall: []
+qa_rules:
+  - required_columns_present
+special_rollups: {}
+prompt_set: config/prompt_sets/replace_me.yaml

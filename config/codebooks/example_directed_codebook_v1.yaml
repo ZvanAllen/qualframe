@@ -1,0 +1,24 @@
+id: example_directed_codebook
+version: 1.0.0
+name: Synthetic service experience codebook
+codes:
+  - id: access
+    label: Access
+    definition: Factors affecting whether a person can reach or use the service.
+    inclusion_guidance: Include availability, scheduling, travel, and affordability barriers or supports.
+    exclusion_guidance: Exclude judgments about the quality of an encounter after access.
+  - id: access_availability
+    label: Availability
+    parent_id: access
+    definition: Whether an appropriate service or appointment is available.
+  - id: access_affordability
+    label: Affordability
+    parent_id: access
+    definition: Direct or indirect financial effects on service access.
+  - id: experience
+    label: Service experience
+    definition: The participant's experience during or after a service encounter.
+  - id: experience_communication
+    label: Communication
+    parent_id: experience
+    definition: Clarity, responsiveness, or respect in communication during an encounter.

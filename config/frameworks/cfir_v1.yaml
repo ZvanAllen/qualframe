@@ -1,0 +1,69 @@
+id: cfir_v1
+name: CFIR 2.0 + Outcomes Addendum
+analysis_mode: deductive
+domains:
+  - Innovation
+  - Outer Setting
+  - Inner Setting
+  - Individuals
+  - Implementation Process
+  - Outcomes Addendum
+parent_construct_regex: '^[A-Z]\\.'
+subconstruct_regex: '^\\d+\\.'
+network_labels:
+  - ON AMN
+  - BC AMN
+  - AB AMN
+  - NS AMN
+  - NB AMN
+  - NL AMN
+  - PEI AMN
+  - HE AMN
+valence_labels:
+  network:
+    - Facilitator
+    - Barrier
+    - Mixed
+    - Neutral/Unclear
+  overall:
+    - Facilitator
+    - Barrier
+    - Mixed
+    - Neutral
+qa_rules:
+  - required_columns_present
+  - allowed_network_labels_only
+  - one_network_one_valence
+  - source_files_covered_by_valence_columns
+  - prompt_version_required
+special_rollups:
+  Individuals:
+    - parent_hint: role parent
+      members:
+        - "1. Need"
+        - "2. Capability"
+        - "3. Opportunity"
+        - "4. Motivation"
+  Outer Setting:
+    - parent: "G. External Pressure"
+      members: "*"
+  Inner Setting:
+    - parent: "A. Structural Characteristics"
+      members: "*"
+    - parent: "D. Culture"
+      members: "*"
+    - parent: "J. Available Resources"
+      members: "*"
+  Implementation Process:
+    - parent: "B. Assessing Needs"
+      members: "*"
+    - parent: "F. Engaging"
+      members: "*"
+    - parent: "H. Reflecting & Evaluating"
+      members: "*"
+  Outcomes Addendum:
+    - parent: "A. Anticipated Implementation Outcomes"
+      members: "*"
+    - parent: "B. Actual Implementation Outcomes"
+      members: "*"
+prompt_set: config/prompt_sets/cfir_final_prompts_v1.yaml

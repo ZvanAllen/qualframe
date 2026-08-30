@@ -1,0 +1,25 @@
+id: cfir_directed_content_analysis_v1
+version: 1.0.0
+name: CFIR directed content analysis
+analysis_family: directed_content_analysis
+
+segmentation:
+  strategy: model_proposed
+  editable: true
+  allow_overlapping_units: false
+
+context:
+  unit: sentences
+  before: 2
+  after: 2
+
+coding:
+  cardinality: multi_label
+  allow_overlapping_spans: true
+
+partitioning:
+  strategy: per_top_level_category
+
+calibration:
+  complete_review_required: true
+  reference_status: human_adjudicated

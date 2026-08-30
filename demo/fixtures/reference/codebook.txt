@@ -1,0 +1,6 @@
+SYNTHETIC DEMO REFERENCE - NOT A COMPLETE CFIR CODEBOOK
+
+Domain: Implementation Process
+Construct: H. Reflecting and Evaluating
+Demo definition: A fictional construct entry included only to exercise prompt injection,
+artifact capture, and provenance in the offline interview demonstration.

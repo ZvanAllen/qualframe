@@ -1,0 +1,26 @@
+id: cfir_stage_outputs_v1
+stages:
+  transcript_to_cfir:
+    required_columns: [CFIR Domain, CFIR Construct, Quote, Explanation]
+    require_rows: true
+  participant_parent_construct_rollup:
+    required_columns: [CFIR Domain, CFIR Construct, Quote, Explanation]
+    require_rows: true
+  quote_context_enrichment:
+    required_columns: [CFIR Domain, CFIR Construct, Quote, Explanation]
+    require_rows: true
+  participant_to_network_synthesis:
+    required_columns: [CFIR Domain, CFIR Construct, Quote, Explanation, Source File(s)]
+    require_rows: true
+  cross_network_synthesis:
+    required_columns:
+      - CFIR Domain
+      - CFIR Construct
+      - Quote
+      - Explanation
+      - Source File(s)
+      - Facilitator Networks
+      - Barrier Networks
+      - Mixed Networks
+      - Neutral/Unclear Networks
+    require_rows: true

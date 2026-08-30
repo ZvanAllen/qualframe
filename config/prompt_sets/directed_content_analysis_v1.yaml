@@ -1,0 +1,6 @@
+id: directed_content_analysis_v1
+description: Experimental generic directed-analysis prompt mapping for synthetic contract tests.
+stages:
+  directed_coding:
+    file: prompts/directed/v1/directed_coding.md
+    notes: Not yet promoted for research analysis use.

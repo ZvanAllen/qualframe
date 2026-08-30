@@ -1,0 +1,68 @@
+{
+  "transcript_level": {
+    "structural": [
+      "row_count",
+      "unique_construct_count",
+      "rows_per_domain",
+      "construct_presence_matrix"
+    ],
+    "agreement": [
+      "pairwise_jaccard_construct_presence",
+      "pairwise_cohens_kappa_construct_presence",
+      "fleiss_kappa_construct_presence_optional"
+    ],
+    "evidence_density": [
+      "rows_per_1000_words",
+      "mean_quote_length",
+      "median_quote_length",
+      "unique_quote_count",
+      "source_span_coverage_optional"
+    ],
+    "redundancy": [
+      "duplicate_quote_ratio",
+      "repeated_quote_within_construct",
+      "repeated_quote_across_constructs",
+      "near_duplicate_explanation_rate_optional"
+    ],
+    "review_burden": [
+      "accept_rate",
+      "edit_rate",
+      "reject_rate",
+      "construct_label_revision_rate",
+      "explanation_rewrite_rate",
+      "median_review_time_minutes"
+    ]
+  },
+  "network_level": {
+    "structure": [
+      "constructs_retained",
+      "evidence_compression_ratio",
+      "mean_explanation_length",
+      "mean_source_quotes_per_construct"
+    ],
+    "valence": [
+      "pairwise_percent_agreement",
+      "pairwise_cohens_kappa",
+      "full_three_model_agreement_rate",
+      "barrier_facilitator_reversal_count"
+    ]
+  },
+  "cross_network_level": {
+    "structure": [
+      "constructs_retained",
+      "networks_per_construct",
+      "source_quotes_retained"
+    ],
+    "network_sets": [
+      "jaccard_facilitator_set",
+      "jaccard_barrier_set",
+      "jaccard_mixed_set",
+      "jaccard_neutral_set"
+    ],
+    "valence": [
+      "overall_valence_percent_agreement",
+      "overall_valence_kappa",
+      "directional_instability_rate"
+    ]
+  }
+}

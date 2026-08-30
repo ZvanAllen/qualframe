@@ -1,0 +1,21 @@
+id: cfir_final_prompts_v1
+description: Final prompts extracted from CFIR Prompts.xlsx using the rightmost colored prompt cell per task row.
+stages:
+  transcript_to_cfir_domain:
+    file: prompts/cfir/final/01_code_to_domain.md
+    notes: Transcript-to-CFIR coding. Runs once per CFIR domain per transcript. Prompt uses {CFIR_DOMAIN} placeholder substituted at runtime.
+  participant_parent_construct_rollup:
+    file: prompts/cfir/final/02_subconstruct_rollup.md
+    notes: Default roll-up stage for workbook-first CFIR processing.
+  quote_context_enrichment:
+    file: prompts/cfir/final/03_add_context.md
+    notes: Adds two participant sentences before/after each quote. Requires the original transcript alongside the rollup output.
+  participant_to_network_synthesis:
+    file: prompts/cfir/final/04_group_level_synthesis.md
+    notes: Default participant-to-network synthesis stage.
+  cross_network_synthesis:
+    file: prompts/cfir/final/05_final_synthesis.md
+    notes: Default domain-bounded AMN cross-network synthesis stage.
+  construct_rating:
+    file: prompts/cfir/final/06_rate_constructs.md
+    notes: Optional rating stage; requires separate rubric workbook.

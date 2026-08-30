@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use QualFrame in your research, please cite this software using the metadata below. Citation is requested, not an additional condition of the MIT license."
+type: software
+title: "QualFrame: Evidence-linked, human-supervised qualitative analysis"
+authors:
+  - family-names: "van Allen"
+    given-names: "Zack"
+version: 0.1.0
+date-released: "2026-08-30"
+license: MIT
+repository-code: "https://github.com/ZvanAllen/qualframe"
+url: "https://github.com/ZvanAllen/qualframe"
+abstract: "A local-first research prototype for reproducible, evidence-linked, AI-assisted directed qualitative content analysis, with versioned workflows, exact-evidence review, human decisions, and traceable exports."
+keywords:
+  - qualitative analysis
+  - directed content analysis
+  - human-in-the-loop
+  - research software
+  - reproducibility
+  - CFIR

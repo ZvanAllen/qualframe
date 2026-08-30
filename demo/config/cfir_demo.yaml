@@ -1,0 +1,25 @@
+id: cfir_synthetic_demo_v1
+name: CFIR 2.0 synthetic demonstration specification
+analysis_mode: deductive
+domains:
+  - Innovation
+  - Outer Setting
+  - Inner Setting
+  - Individuals
+  - Implementation Process
+  - Outcomes Addendum
+parent_construct_regex: '^[A-Z]\\.'
+subconstruct_regex: '^\\d+\\.'
+network_labels:
+  - Synthetic Network Alpha
+  - Synthetic Network Beta
+valence_labels:
+  network: [Facilitator, Barrier, Mixed, Neutral/Unclear]
+  overall: [Facilitator, Barrier, Mixed, Neutral]
+qa_rules:
+  - required_columns_present
+  - allowed_network_labels_only
+  - one_network_one_valence
+  - source_files_covered_by_valence_columns
+  - prompt_version_required
+prompt_set: config/prompt_sets/cfir_final_prompts_v1.yaml

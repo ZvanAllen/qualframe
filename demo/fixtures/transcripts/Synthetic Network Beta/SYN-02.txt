@@ -1,0 +1,6 @@
+SYNTHETIC DEMO FIXTURE - NOT RESEARCH EVIDENCE
+
+INTERVIEWER: Please describe the fictional team's reflection practice.
+PARTICIPANT: Before the shared statement, the fictional team reviewed its practice.
+PARTICIPANT: This synthetic statement exists only to demonstrate the QualFrame workflow.
+PARTICIPANT: After the shared statement, the fictional team documented a follow-up.

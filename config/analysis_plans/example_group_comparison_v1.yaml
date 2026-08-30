@@ -1,0 +1,11 @@
+id: example_group_comparison_v1
+version: 1.0.0
+metadata_dimensions:
+  - study_group
+  - time_point
+outputs:
+  - evidence_table
+  - code_by_group_matrix
+  - co_occurrence
+  - negative_cases
+  - methods_appendix

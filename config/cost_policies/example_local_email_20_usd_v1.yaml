@@ -1,0 +1,7 @@
+id: example_local_email_20_usd_v1
+version: 1.0.0
+currency: USD
+approval_increment_usd: 20
+absolute_limit_usd: 100
+notification_adapter: email
+notification_recipient_env: QUALFRAME_ALERT_EMAIL

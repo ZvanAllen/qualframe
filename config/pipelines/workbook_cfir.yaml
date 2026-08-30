@@ -1,0 +1,63 @@
+id: workbook_cfir_v0_1
+description: Default workbook-first CFIR pipeline for the AMN workflow.
+framework: config/frameworks/cfir_v1.yaml
+mode: workbook_first
+stages:
+  - id: quote_context_enrichment
+    description: Optional transcript-context enrichment prior to workbook synthesis.
+    prompt_ref: quote_context_enrichment
+    enabled: false
+    input_kind: transcript_plus_workbook
+    output_kind: enriched_workbook
+    review_gate: false
+    input_grouping: per_file
+    input_source: raw_workbooks
+
+  - id: participant_parent_construct_rollup
+    description: Roll subconstruct rows up into parent constructs per participant workbook.
+    prompt_ref: participant_parent_construct_rollup
+    enabled: true
+    input_kind: participant_workbook
+    output_kind: parent_construct_workbook
+    review_gate: false
+    input_grouping: per_file
+    input_source: raw_workbooks
+
+  - id: participant_to_network_synthesis
+    description: Combine participant workbooks into a network-level construct synthesis workbook.
+    prompt_ref: participant_to_network_synthesis
+    enabled: true
+    input_kind: participant_pair_or_network_bundle
+    output_kind: network_synthesis_workbook
+    review_gate: true
+    input_grouping: bundle_all
+    input_source: previous_stage
+
+  - id: cross_network_synthesis
+    description: Run one domain at a time across network workbooks.
+    prompt_ref: cross_network_synthesis
+    enabled: true
+    input_kind: network_workbook_bundle
+    output_kind: cross_network_domain_table
+    review_gate: true
+    input_grouping: bundle_all
+    input_source: previous_stage
+
+  - id: construct_rating
+    description: Optional rating stage using a separate rubric workbook.
+    prompt_ref: construct_rating
+    enabled: false
+    input_kind: coded_workbook_plus_rubric
+    output_kind: rated_workbook
+    review_gate: true
+    input_grouping: per_file
+    input_source: raw_workbooks
+
+  - id: qa_validate
+    description: Run deterministic QA checks and prepare review queue items.
+    enabled: true
+    input_kind: generated_artifacts
+    output_kind: qa_report
+    review_gate: false
+    input_grouping: bundle_all
+    input_source: previous_stage

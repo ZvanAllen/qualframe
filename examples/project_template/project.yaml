@@ -1,0 +1,30 @@
+project_id: amn_cfir_pilot
+framework: config/frameworks/cfir_v1.yaml
+pipeline: config/pipelines/workbook_cfir.yaml
+method: config/methods/cfir_directed_content_analysis_v1.yaml
+mode: workbook_first
+
+paths:
+  raw_transcripts: data/raw/transcripts
+  raw_workbooks: data/raw/workbooks
+  reference: data/reference
+  working: data/working
+  artifacts: artifacts
+  review_queue: review_queue
+  exports: exports
+  logs: logs
+
+provider:
+  name: anthropic
+  model: claude-opus-4-6
+  api_key_env: ANTHROPIC_API_KEY
+  temperature: 0.0
+  max_tokens: 32000
+
+governance:
+  enforce_review_gates: false
+  require_release_for_export: true
+
+structured_output:
+  enforce: false
+  spec: config/schemas/cfir_stage_outputs_v1.yaml

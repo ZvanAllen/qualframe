@@ -1,0 +1,11 @@
+id: calibration_then_risk_v1
+version: 1.0.0
+calibration_review: complete
+post_calibration: combined
+random_sample_percent: 10
+risk_rules:
+  - invalid_evidence_span
+  - structured_output_failure
+  - rare_code
+  - codebook_boundary_ambiguity
+  - disagreement

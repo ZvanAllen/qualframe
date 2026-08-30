@@ -1,0 +1,18 @@
+id: directed_content_analysis_contracts_v1
+description: >
+  Mock-only contract-validation pipeline for the generic directed-analysis data model.
+  This pipeline is not yet a validated provider-backed qualitative method.
+framework: config/frameworks/example_directed_v1.yaml
+mode: transcript_first
+stages:
+  - id: directed_coding
+    description: Apply the configured codebook to exact evidence spans.
+    prompt_ref: directed_coding
+    enabled: true
+    input_kind: transcript
+    output_kind: evidence_assignments
+    review_gate: true
+    input_grouping: per_file
+    input_source: raw_transcripts
+    domain_iterations: false
+    use_codebook: true

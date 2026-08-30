@@ -1,0 +1,39 @@
+rubrics:
+  transcript_and_network:
+    framework_fidelity:
+      1: "Major construct misfit; frequent misuse of CFIR categories."
+      3: "Mostly plausible fits, but several borderline or weakly justified assignments."
+      5: "Construct assignments strongly align with CFIR definitions."
+    evidence_faithfulness:
+      1: "Explanations often unsupported or contradicted by source evidence."
+      3: "Most claims supported, but some overreach or weak linkage."
+      5: "Claims are tightly supported by source quotes and context."
+    completeness:
+      1: "Misses several major determinant themes."
+      3: "Captures main themes but omits some important content."
+      5: "Captures the major determinant content present in the source."
+    parsimony_nonredundancy:
+      1: "Excessively repetitive or fragmented."
+      3: "Some duplication or avoidable fragmentation."
+      5: "Efficient and non-redundant without losing important content."
+    boundary_handling:
+      1: "Frequently assigns content to poor-fitting adjacent constructs."
+      3: "Some boundary ambiguity remains unresolved."
+      5: "Handles adjacent constructs thoughtfully and defensibly."
+    traceability:
+      1: "Difficult to follow from evidence to output."
+      3: "Generally traceable but with some opaque steps."
+      5: "Clear chain from source evidence to coded output."
+    downstream_usefulness:
+      1: "Requires major repair for roll-up or synthesis."
+      3: "Usable with moderate human repair."
+      5: "Directly usable with minimal repair."
+  cross_network_additions:
+    valence_defensibility:
+      1: "Valence is poorly justified or inconsistent with evidence."
+      3: "Valence is mostly plausible with some weak cases."
+      5: "Valence is consistently well supported."
+    network_grouping_defensibility:
+      1: "Network groupings frequently misplace or omit networks."
+      3: "Some grouping issues are present."
+      5: "Network groupings are coherent and evidence-grounded."

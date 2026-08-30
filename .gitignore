@@ -1,0 +1,41 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+artifacts/*
+!artifacts/.gitkeep
+review_queue/*
+!review_queue/.gitkeep
+exports/*
+!exports/.gitkeep
+logs/*
+!logs/.gitkeep
+.playwright-cli/
+output/playwright/
+studies/*
+!studies/.gitkeep
+data/working/*
+!data/working/.gitkeep
+demo/presentation/
+demo/working/
+.env
+.env.*
+!.env.example
+
+# Sensitive research data — never commit
+data/raw/
+data/raw/transcripts/
+data/reference/
+
+# Local review/build outputs and optional environment files
+output/
+build/
+dist/
+*.zip
+*.log
+
+# Downloaded update packages — contents integrated into repo
+qualframe_evaluation_update_for_claude/

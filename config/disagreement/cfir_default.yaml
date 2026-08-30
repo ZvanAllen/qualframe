@@ -1,0 +1,12 @@
+id: cfir_disagreement_v1
+identity_columns:
+  - CFIR Domain
+  - CFIR Construct
+compare_columns:
+  - Quote
+  - Explanation
+  - Facilitator Networks
+  - Barrier Networks
+  - Mixed Networks
+  - Neutral/Unclear Networks
+case_sensitive: false

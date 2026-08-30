@@ -1,0 +1,28 @@
+project_id: qualframe_interview_demo
+framework: demo/config/cfir_demo.yaml
+pipeline: config/pipelines/transcript_cfir.yaml
+mode: transcript_first
+
+paths:
+  raw_transcripts: demo/fixtures/transcripts
+  raw_workbooks: demo/fixtures/workbooks
+  reference: demo/fixtures/reference
+  working: demo/working
+  artifacts: artifacts
+  review_queue: review_queue
+  exports: exports
+  logs: logs
+
+provider:
+  name: cached_demo
+  model: qualframe-synthetic-cache-v1
+  temperature: 0.0
+  max_tokens: 4000
+
+governance:
+  enforce_review_gates: false
+  require_release_for_export: true
+
+structured_output:
+  enforce: false
+  spec: config/schemas/cfir_stage_outputs_v1.yaml

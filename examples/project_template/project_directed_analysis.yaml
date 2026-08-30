@@ -1,0 +1,34 @@
+project_id: synthetic_directed_analysis_contracts
+framework: config/frameworks/example_directed_v1.yaml
+pipeline: config/pipelines/directed_content_analysis_contracts_v1.yaml
+method: config/methods/directed_content_analysis_v1.yaml
+codebook: config/codebooks/example_directed_codebook_v1.yaml
+review_policy: config/review_policies/calibration_then_risk_v1.yaml
+analysis_plan: config/analysis_plans/example_group_comparison_v1.yaml
+cost_policy: config/cost_policies/example_local_email_20_usd_v1.yaml
+pricing_snapshot: config/pricing/mock_pricing_v1.yaml
+mode: transcript_first
+
+paths:
+  raw_transcripts: demo/fixtures/transcripts
+  raw_workbooks: data/raw/workbooks
+  reference: demo/fixtures/reference
+  working: data/working
+  artifacts: artifacts
+  review_queue: review_queue
+  exports: exports
+  logs: logs
+
+provider:
+  name: mock
+  model: synthetic-contract-fixture
+  temperature: 0.0
+  max_tokens: 4000
+
+governance:
+  enforce_review_gates: false
+  require_release_for_export: false
+
+structured_output:
+  enforce: false
+  spec: config/schemas/cfir_stage_outputs_v1.yaml

@@ -1,0 +1,12 @@
+id: mock_pricing_v1
+version: 1.0.0
+effective_date: "2026-08-02"
+currency: USD
+source_urls: []
+models:
+  - provider: mock
+    model: synthetic-contract-fixture
+    input_per_million_usd: 0
+    cached_input_per_million_usd: 0
+    cache_write_per_million_usd: 0
+    output_per_million_usd: 0

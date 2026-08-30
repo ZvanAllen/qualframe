@@ -1,0 +1,22 @@
+project_id: amn_cfir_transcript_openai
+framework: config/frameworks/cfir_v1.yaml
+pipeline: config/pipelines/transcript_cfir.yaml
+method: config/methods/cfir_directed_content_analysis_v1.yaml
+mode: transcript_first
+
+paths:
+  raw_transcripts: data/raw/transcripts
+  raw_workbooks: data/raw/workbooks
+  reference: data/reference
+  working: data/working
+  artifacts: artifacts
+  review_queue: review_queue
+  exports: exports
+  logs: logs
+
+provider:
+  name: openai
+  model: gpt-4o
+  api_key_env: OPENAI_API_KEY
+  temperature: 0.0
+  max_tokens: 16000

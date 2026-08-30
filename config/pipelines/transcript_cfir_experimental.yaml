@@ -1,0 +1,28 @@
+id: transcript_cfir_experimental
+description: Experimental transcript-first CFIR pipeline. Keep disabled until the final transcript-coding prompt is confirmed.
+framework: config/frameworks/cfir_v1.yaml
+mode: transcript_first
+stages:
+  - id: quote_context_enrichment
+    description: Transcript sentence-context enrichment.
+    prompt_ref: quote_context_enrichment
+    enabled: true
+    input_kind: transcript_plus_workbook
+    output_kind: enriched_workbook
+    review_gate: false
+
+  - id: transcript_coding
+    description: Placeholder for final transcript-to-CFIR coding prompt once confirmed by the research team.
+    prompt_ref: archived_ambiguous_variant
+    enabled: false
+    input_kind: transcript
+    output_kind: cfir_coded_workbook
+    review_gate: true
+
+  - id: participant_parent_construct_rollup
+    description: Roll subconstruct rows up into parent constructs.
+    prompt_ref: participant_parent_construct_rollup
+    enabled: true
+    input_kind: participant_workbook
+    output_kind: parent_construct_workbook
+    review_gate: false
