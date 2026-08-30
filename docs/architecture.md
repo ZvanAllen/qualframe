@@ -37,6 +37,8 @@ The diagram shows component relationships, not a claim that all paths are availa
 
 Imported sources are copied, hashed, and registered. A generic evidence record connects source identity and exact offsets to a code assignment, context, raw artifact, prompt hash, run, and configuration fingerprint. Source text and context are distinct.
 
+Original-file hashes protect imported bytes; evidence-span hashes validate the extracted text addressed by character offsets. These are separate identities for Windows-line-ending text and Word documents. Both hashes are retained in reviewed exports.
+
 An accept, edit, reject, or defer action appends reviewer identity, rationale, and decision. Edits create derived span/assignment records; they do not rewrite the transcript, provider output, or prior actions. Reviewed-evidence export requires a non-deferred action for every record. It packages evidence, review history, hashes, and bounded methods metadata—not findings.
 
 Legacy CFIR tables do not supply canonical offsets. The generic evidence reviewer therefore must not be described as validated across the complete CFIR pathway.

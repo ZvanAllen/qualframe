@@ -115,6 +115,7 @@ def build_evidence_review_records(
         if not source_path.exists() or source_path.suffix.lower() not in {".txt", ".docx"}:
             continue
         source_text = transcript_to_text(source_path)
+        source_text_hash = sha256_for_text(source_text)
         source_id, registered_hash = _source_identity(repo_root, source_path, records)
         current_hash = sha256_for_file(source_path)
         for sheet_name, rows in artifact.parsed_output.items():
@@ -157,7 +158,7 @@ def build_evidence_review_records(
                             id=f"span-{sha256_for_text(f'{artifact_rel}:{sheet_name}:{row_index}')[:20]}",
                             meaning_unit_id=meaning_unit_id,
                             source_id=source_id,
-                            source_sha256=current_hash,
+                            source_sha256=source_text_hash,
                             start_offset=start,
                             end_offset=end,
                             exact_text=exact_text,
@@ -301,7 +302,7 @@ def append_evidence_review_action(
             id=f"span-{uuid4().hex}",
             meaning_unit_id=record.meaning_unit_id,
             source_id=record.source_id,
-            source_sha256=record.source_sha256,
+            source_sha256=sha256_for_text(source_text),
             start_offset=edited_start,
             end_offset=edited_end,
             exact_text=exact_text,
@@ -407,6 +408,7 @@ def export_evidence_review_package(
                 "Source ID": record.source_id,
                 "Source path": record.source_path,
                 "Source SHA-256": record.source_sha256,
+                "Source text SHA-256": span.source_sha256 if span else "",
                 "Start offset": span.start_offset if span else record.proposed_start_offset,
                 "End offset": span.end_offset if span else record.proposed_end_offset,
                 "Exact evidence": span.exact_text if span else record.proposed_exact_text,

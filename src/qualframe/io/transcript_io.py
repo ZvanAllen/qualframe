@@ -19,7 +19,9 @@ def transcript_to_text(path: Path) -> str:
 
     Supported formats:
     - .docx  — Word document (paragraphs joined by newlines)
-    - .txt   — plain text (read as-is)
+    - .txt   — UTF-8 plain text (universal newlines normalized to LF)
+
+    Evidence offsets address the returned text, not bytes in the original file.
     """
     suffix = path.suffix.lower()
     if suffix == ".docx":

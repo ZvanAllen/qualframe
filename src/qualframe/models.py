@@ -327,7 +327,10 @@ class EvidenceSpan(BaseModel):
     id: str
     meaning_unit_id: str
     source_id: str
-    source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    source_sha256: str = Field(
+        pattern=r"^[0-9a-f]{64}$",
+        description="SHA-256 of UTF-8 extracted source text; offsets address this text.",
+    )
     start_offset: int = Field(ge=0)
     end_offset: int = Field(gt=0)
     exact_text: str
@@ -388,7 +391,10 @@ class EvidenceReviewRecord(BaseModel):
     row_index: int = Field(ge=1)
     source_id: str
     source_path: str
-    source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    source_sha256: str = Field(
+        pattern=r"^[0-9a-f]{64}$",
+        description="SHA-256 of original source file bytes, checked before review actions.",
+    )
     meaning_unit_id: str
     proposed_start_offset: int
     proposed_end_offset: int

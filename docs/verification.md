@@ -4,7 +4,8 @@ Checked on 2026-08-30 using Windows and Python 3.11.7. This is software verifica
 
 | Check | Observed result |
 | --- | --- |
-| Automated tests | 91 passed; 1 optional private-workbook test skipped |
+| Automated tests | 97 passed; 1 optional private-workbook test skipped |
+| Evidence portability | LF, Windows CRLF, and synthetic Word inputs covered through index, accept/edit, and export; changed source bytes remain blocked even when extracted text is unchanged |
 | Python compilation | Source and scripts compiled successfully |
 | Synthetic workspace launcher | Two fictional transcripts; four offset/hash-validated evidence records; no external model calls |
 | Browser review | Three accepts and one edit recorded; 4/4 records resolved |
@@ -38,6 +39,7 @@ The release packager selects source/configuration/documentation and synthetic fi
 - Model coding quality, calibration accuracy, clinical utility, or research findings.
 - Hosted deployment, authenticated users, or production security.
 - A full accessibility audit or performance/load benchmark.
-- The GitHub Actions matrix: it is configured for Windows/Linux and Python 3.11/3.12 but has not run remotely before publication.
+
+The [GitHub Actions workflow](https://github.com/ZvanAllen/qualframe/actions/workflows/tests.yml) checks Windows/Linux with Python 3.11/3.12 on every push and pull request. Its latest run is the authoritative remote verification status. The initial Windows run exposed a file-versus-extracted-text hash mismatch; the portability regression cases above cover the correction.
 
 The two README screenshots are unaltered captures of the functioning local interface using synthetic content. The evidence-review image shows the completed synthetic review state reached through actual browser actions.

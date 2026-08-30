@@ -114,6 +114,14 @@ Required fields:
 
 The exact span, surrounding context, and model rationale are distinct fields.
 
+In the current implementation, `EvidenceSpan.source_sha256` hashes the complete
+extracted source text encoded as UTF-8, and its offsets are Python character
+indices into that text. Text-file newlines are normalized to LF; Word files are
+converted by the transcript extractor. `EvidenceReviewRecord.source_sha256`
+separately hashes the original file bytes and is checked before recording review
+actions. These hashes can differ without indicating a source change. Reviewed
+exports retain both hashes; importing and reviewing never rewrite source files.
+
 ### Code assignment
 
 The application of one codebook code to one meaning unit or evidence span.
