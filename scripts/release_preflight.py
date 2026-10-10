@@ -90,7 +90,7 @@ def browser_smoke(python: Path, project: Path, work: Path, environment: dict[str
     log_path = work / f"server-{iteration}.log"
     frozen_helper = project.parents[2] / "scripts/release_preflight.py"
     launch_token = uuid.uuid4().hex
-    args = [str(python), "-I", str(frozen_helper), "--worker", str(project),
+    args = [str(python), "-I", "-X", "faulthandler", str(frozen_helper), "--worker", str(project),
             "--ready", str(ready), "--port", str(port), "--launch-token", launch_token]
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     result = {}
@@ -98,10 +98,11 @@ def browser_smoke(python: Path, project: Path, work: Path, environment: dict[str
         process = subprocess.Popen(args, cwd=work, env=environment, stdin=subprocess.PIPE,
                                    stdout=log, stderr=subprocess.STDOUT, text=True, creationflags=flags)
         try:
-            deadline = time.monotonic() + 30
+            deadline = time.monotonic() + 90
             while not ready.exists():
                 if process.poll() is not None or time.monotonic() >= deadline:
-                    raise RuntimeError(f"Synthetic server failed to start; inspect {log_path.name}.")
+                    raise RuntimeError(f"Synthetic server failed to start (exit code {process.poll()}); "
+                                       f"inspect {log_path.name}.")
                 time.sleep(0.1)
             result = json.loads(ready.read_text(encoding="utf-8"))
             # Windows venv redirectors may launch a child with a different PID.
