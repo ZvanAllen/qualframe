@@ -28,3 +28,15 @@ jobs:
         run: python -m pip wheel --wheel-dir artifacts/ci-wheelhouse .
       - name: Verify isolated installation and local restart without network access
         run: python scripts/release_preflight.py --archive artifacts/ci-release.zip --wheelhouse artifacts/ci-wheelhouse --work-dir artifacts/ci-install
+      - name: Report installation check logs
+        if: failure()
+        shell: bash
+        run: |
+          # Surface the end of each offline-installation log as an annotation, so a failure
+          # can be diagnosed from the run summary.
+          cd artifacts/ci-install 2>/dev/null || exit 0
+          for f in preflight_receipt.json server-*.log workspace-demo.log cfir-demo.log cli.log qualframe-entrypoint.log install.log build.log; do
+            [ -f "$f" ] || continue
+            msg=$(tail -c 2000 "$f" | tr '\r\n' '  ' | sed -e 's/%/%25/g')
+            echo "::error title=$(basename "$f")::$msg"
+          done
