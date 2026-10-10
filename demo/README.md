@@ -1,15 +1,11 @@
-# QualFrame synthetic interview demo
+# Demo material
 
-This is a deterministic, network-free demonstration of the real QualFrame runner. It uses only the fictional transcripts and reference file under `demo/fixtures/` and replays checked-in stage responses from `demo/cached_responses/`.
+Everything here is fictional and safe to share.
 
-Run from the repository root:
+| Folder | What it is |
+| --- | --- |
+| `datasets/ai-scribe/` | The demo study opened by **Open the demo study** in the app: six fictional interviews about adopting an AI documentation assistant, a 15-code codebook (YAML and Excel) and participant information. See its README. |
+| `recordings/` | Coding responses replayed by the demo study so it works without a model or an API key. Each recording's `recording.json` names the model, its settings, the prompt hash, token usage and cost. The `demo-illustrative-*` recordings are hand-written codings used by the tests and are not offered in the app. To make a new one, see `scripts/record_demo.py` and [docs/development.md](../docs/development.md). |
+| `fixtures/`, `cached_responses/`, `config/`, `project/`, `presentation/` | The September 2026 CFIR interview demo, kept for the engine's tests. Run it with `python scripts/run_interview_demo.py`; see [docs/reference/interview_demo_handover.md](../docs/reference/interview_demo_handover.md). |
 
-```powershell
-python scripts\run_interview_demo.py
-```
-
-The command prints stage progress, verifies that exactly one deliberately seeded QA conflict reached the review queue, exports every parsed artifact to Excel, and writes the presentation page to `demo/presentation/index.html`.
-
-The page is a read-only summary for an interview. It is not a general-purpose QualFrame UI, and its synthetic rows are not research evidence.
-
-See `docs/interview_demo_handover.md` for the presenter script, smoke test, capability boundaries, and planned product increments.
+To try QualFrame, you don't need any of these files directly: run `qualframe start` and choose **Open the demo study**.

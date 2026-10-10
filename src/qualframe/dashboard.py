@@ -5,6 +5,7 @@ import json
 import mimetypes
 import threading
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -33,13 +34,19 @@ from qualframe.models import (
     StudyCreationRequest,
 )
 from qualframe.pipeline.project_runner import ProjectRunner
+from qualframe.qa.inventory import review_item_paths
 from qualframe.study_setup import StudyWorkspace
 from qualframe.web_forms import UploadedFile, parse_multipart_form
+from qualframe.excel_import_workflow import ExcelImportWorkflow
+from qualframe.codebook_import_ui import mapping_view, confirmation_view
+from qualframe.provider_setup import ProviderSetup, save_provider_setup
+from qualframe.provider_setup_ui import provider_setup_form
 from qualframe.workspace_ui import render_workspace
 
 
 _MAX_HTTP_BODY = 26 * 1024 * 1024
-_LOCAL_EXECUTION_PROVIDERS = {"mock", "cached_demo"}
+_LOCAL_EXECUTION_PROVIDERS = {"mock", "cached_demo", "recorded"}
+_PAID_EXECUTION_PROVIDERS = {"openai", "anthropic", "openai_compatible"}
 
 
 @dataclass
@@ -53,15 +60,38 @@ class ExecutionJob:
 class DashboardApp:
     """Loopback-only controller for run inspection and human review actions."""
 
-    def __init__(self, runner: ProjectRunner) -> None:
-        self.repo_root = runner.repo_root
+    def __init__(self, runner: ProjectRunner | None = None, workspace_root: Path | None = None) -> None:
+        if runner is None and workspace_root is None:
+            raise ValueError("Give a study or a workspace folder.")
+        self.repo_root = (workspace_root or runner.repo_root).resolve()
         self.study_workspace = StudyWorkspace(self.repo_root)
         self._jobs: dict[str, ExecutionJob] = {}
         self._job_lock = threading.Lock()
-        self._activate_runner(runner)
+        self.runner: ProjectRunner | None = None
+        if runner is not None:
+            self._activate_runner(runner)
+
+    @property
+    def researcher(self) -> str:
+        from qualframe.app_workspace import researcher_name
+        return researcher_name(self.repo_root)
+
+    def fill_identity(self, form: dict[str, list[str]], default_reason: str) -> dict[str, list[str]]:
+        """Use the remembered researcher name and a default note when the form leaves them blank."""
+        from qualframe.app_workspace import write_settings
+        supplied = (form.get("actor", [""])[0] or form.get("reviewer", [""])[0]).strip()
+        name = supplied or self.researcher
+        if supplied and not self.researcher:
+            write_settings(self.repo_root, researcher_name=supplied)
+        name = name or "Unnamed researcher"
+        form["actor"] = [name]
+        form["reviewer"] = [name]
+        if not form.get("rationale", [""])[0].strip():
+            form["rationale"] = [default_reason]
+        return form
 
     def _activate_runner(self, runner: ProjectRunner) -> None:
-        if runner.repo_root != self.repo_root:
+        if runner.repo_root.resolve() != self.repo_root:
             raise ValueError("Created study must remain inside the QualFrame workspace.")
         self.runner = runner
         self.artifacts_dir = resolve_repo_path(self.repo_root, runner.project.paths["artifacts"])
@@ -107,6 +137,10 @@ class DashboardApp:
                     or (path / "run_plan.json").exists()
                 )
             ),
+            key=lambda name: (
+                max((self.artifacts_dir / name / filename).stat().st_mtime_ns
+                    for filename in ("run_manifest.json", "cost_pause.json", "run_plan.json")
+                    if (self.artifacts_dir / name / filename).exists()), name),
             reverse=True,
         )
 
@@ -148,8 +182,16 @@ class DashboardApp:
         return candidate
 
     def render(self, run_id: str | None = None, message: str = "") -> str:
+        if not run_id:
+            from qualframe.overview_ui import render_overview
+            return render_overview(self, message)
+        return self.render_run_page(run_id, message)
+
+    def render_run_page(self, run_id: str | None = None, message: str = "") -> str:
         runs = self.list_runs()
-        selected = run_id if run_id in runs else (runs[0] if runs else None)
+        preferred = run_id or getattr(self, '_selected_run', None)
+        selected = preferred if preferred in runs else (runs[0] if runs else None)
+        self._selected_run = selected
         run_links = "".join(
             f"<option value='{html.escape(item)}' {'selected' if item == selected else ''}>"
             f"{html.escape(item)}</option>"
@@ -173,16 +215,39 @@ class DashboardApp:
             f'<label>Recorded run<select name="run_id">{run_links}</select></label>'
             '<button type="submit">Open run</button></form></div>' if runs else ""
         )
+        from qualframe.study_progress import render_study_progress
+        study_progress = render_study_progress(self, selected)
         presentation = (
             '<p class="muted"><a href="/presentation">Open the cached CFIR evidence report</a></p>'
-            if (self.repo_root / "demo/presentation/index.html").exists() else ""
+            if self.runner.project.provider.name == 'cached_demo' and (self.repo_root / "demo/presentation/index.html").exists() else ""
         )
+        from qualframe.ui_kit import provider_display, run_model
+        provider, model = run_model(self.artifacts_dir / selected) if selected else (None, None)
+        title = f"Run: {provider_display(provider, model)}" if provider else "Run details"
+        back = '<p><a href="/">Back to study overview</a></p>'
         return self._render_workspace_page(
-            title="Study workspace",
-            intro="A reproducible path from source material to reviewed evidence. Your study, methods, and decisions in one place.",
-            body=selector + message_html + detail + presentation,
-            head=refresh,
+            title=title,
+            intro="Progress, review status, and the full record of this coding run.",
+            body=back + message_html + self._run_next_step(selected) + study_progress + detail + presentation,
+            head=refresh, active="overview",
         )
+
+    def _run_next_step(self, run_id: str | None) -> str:
+        if not run_id:
+            return ""
+        job = self._job_snapshot(run_id)
+        if job is not None and job.status == "running":
+            return ('<div class="next-up"><div><h2>Coding in progress</h2><p>This page updates every two seconds. '
+                    'You can leave it and come back; coding continues in the background.</p></div></div>')
+        index = self.artifacts_dir / run_id / "evidence_review/index.json"
+        if index.exists():
+            from qualframe.study_status import review_counts
+            counts = review_counts(self, run_id)
+            url = "/evidence?" + urlencode({"run_id": run_id})
+            if counts.total and counts.remaining:
+                return (f'<div class="next-up"><div><h2>Ready for review</h2><p>{counts.remaining} of {counts.total} '
+                        f'proposals need your decision.</p></div><a class="button" href="{html.escape(url)}">Review proposals</a></div>')
+        return ""
 
     def _render_study_overview(self) -> str:
         plan = self.runner.build_run_plan()
@@ -214,142 +279,90 @@ class DashboardApp:
 <form method="post" action="/plan"><button type="submit">Create dry-run plan</button></form></section>"""
 
     def render_setup(self, message: str = "", error: str = "") -> str:
-        message_html = f"<div class='message'>{html.escape(message)}</div>" if message else ""
-        error_html = f"<div class='error'>{html.escape(error)}</div>" if error else ""
-        body = f"""<div class="banner"><strong>No model request is made during setup.</strong> Source files are copied and hashed; originals are never modified.</div>
-{message_html}{error_html}
+        from qualframe.ui_kit import notices
+        body = f"""{notices(message, error)}
 <section><form method="post" action="/study/create">
-<div class="grid">
-<label>Study title<input name="title" maxlength="120" required placeholder="Example: Community service experience study"></label>
-<label>Study ID <span class="muted">(optional)</span><input name="study_id" pattern="[a-z0-9][a-z0-9-]{{1,62}}[a-z0-9]" placeholder="created-from-title"></label>
-<label>Analysis method<select name="template"><option value="generic_directed">Directed content analysis</option><option value="cfir">CFIR reference workflow</option></select></label>
-<label>Data classification<select name="data_classification"><option value="synthetic">Synthetic</option><option value="deidentified">Deidentified research data</option><option value="sensitive">Sensitive research data</option></select></label>
-</div>
-<p><label class="check"><input type="checkbox" name="include_synthetic_fixtures" value="yes" checked><span>Include the two checked-in synthetic transcripts and starter codebook. Available only when classification is Synthetic.</span></label></p>
-<p class="muted">Directed content analysis uses a configurable example codebook and mock provider. CFIR preserves the six domain-by-domain coding passes and uses cached synthetic responses by default. Both choices can be revised through versioned configuration later.</p>
-<button type="submit">Create local study</button></form></section>
+<label>Study name<input name="title" maxlength="120" required placeholder="For example: Clinician experiences of virtual care"></label>
+<fieldset><legend>Approach</legend><div class="choices">
+<label class="choice"><input type="radio" name="template" value="generic_directed" checked><span><strong>Directed content analysis</strong><small>Apply your own codebook, imported from Excel. Works for any deductive framework.</small></span></label>
+<label class="choice"><input type="radio" name="template" value="cfir"><span><strong>CFIR reference workflow</strong><small>The staged CFIR pipeline from the AMN study: one request per CFIR domain, with roll-up and synthesis steps.</small></span></label>
+</div></fieldset>
+<fieldset><legend>What kind of data will this study hold?</legend><div class="choices">
+<label class="choice"><input type="radio" name="data_classification" value="deidentified" required><span><strong>De-identified research data</strong><small>Interviews with identifying details removed.</small></span></label>
+<label class="choice"><input type="radio" name="data_classification" value="sensitive"><span><strong>Sensitive research data</strong><small>May still contain identifying or sensitive details. Prefer a local model.</small></span></label>
+<label class="choice"><input type="radio" name="data_classification" value="synthetic"><span><strong>Test or synthetic data</strong><small>Made-up material for trying things out. Enables the offline test models.</small></span></label>
+</div></fieldset>
+<p class="muted">Creating a study makes a folder on this computer. Nothing is sent anywhere until you start a coding run.</p>
+<details><summary>Optional: choose the study folder name</summary><label>Folder name<input name="study_id" pattern="[a-z0-9][a-z0-9-]{{1,62}}[a-z0-9]" placeholder="made from the study name"><small>Lowercase letters, numbers and hyphens.</small></label></details>
+<div class="actions"><button class="big">Create study</button></div></form></section>
 """
         return self._render_workspace_page(
-            title="Create a study",
-            intro="Start with a question, a codebook, and your sources. Create a local workspace with a reproducible analysis method.",
-            body=body,
+            title="New study",
+            intro="Name your study and say what kind of data it will hold. You'll add transcripts and a codebook next.",
+            body=body, active="setup",
         )
+
+    def _unmanaged_page(self, title: str, active: str, exc: Exception) -> str:
+        body = (f"<section><h2>Read-only study</h2><p>{html.escape(str(exc))}</p>"
+                "<p>This study was opened from a project file rather than your studies folder, so imports and "
+                "settings can't be changed here. <a href='/setup'>Create a study</a> to work with your own files.</p></section>")
+        return self._render_workspace_page(title=title, intro="", body=body, active=active)
 
     def render_imports(self, message: str = "", error: str = "") -> str:
-        message_html = f"<div class='message'>{html.escape(message)}</div>" if message else ""
-        error_html = f"<div class='error'>{html.escape(error)}</div>" if error else ""
-        try:
-            project_path = self._managed_project_path()
-            records = self.study_workspace.source_records(project_path)
-        except ValueError as exc:
-            forms = (
-                f"<section><h2>Managed study required</h2><p>{html.escape(str(exc))}</p>"
-                "<p><a href='/setup'>Create a local study first</a>.</p></section>"
-            )
-        else:
-            counts = {
-                kind: sum(record.source_kind == kind for record in records)
-                for kind in ("transcript", "codebook", "metadata")
-            }
-            forms = f"""
-<div class="cards"><div class="card"><span>Transcripts</span><strong>{counts['transcript']}</strong></div><div class="card"><span>Codebooks</span><strong>{counts['codebook']}</strong></div><div class="card"><span>Metadata files</span><strong>{counts['metadata']}</strong></div></div>
-<section><h2>Import transcript</h2><p>Accepted formats: UTF-8 text and Word DOCX, up to 25 MB. Filenames must be unique across the study.</p>
-<form method="post" action="/import/transcript" enctype="multipart/form-data" class="grid">
-<label>Transcript file<input type="file" name="upload" accept=".txt,.docx" required></label>
-<label>Study group or site<input name="group_label" maxlength="80" value="Ungrouped" required></label>
-<label>Researcher name<input name="actor" required></label><label>Reason for import<input name="rationale" required></label>
-<button type="submit">Import transcript</button></form></section>
-<section><h2>Import codebook version</h2><p>Accepted format: QualFrame YAML. IDs, hierarchy, definitions, and version are validated before the project reference changes. The previous codebook remains on disk.</p>
-<form method="post" action="/import/codebook" enctype="multipart/form-data" class="grid">
-<label>Codebook YAML<input type="file" name="upload" accept=".yaml,.yml" required></label>
-<label>Researcher name<input name="actor" required></label><label>Reason for change<input name="rationale" required></label>
-<button type="submit">Import codebook version</button></form></section>
-<section><h2>Import metadata</h2><p>Accepted format: UTF-8 CSV with a unique <code>source_filename</code> column. Every filename must already be registered as a transcript.</p>
-<form method="post" action="/import/metadata" enctype="multipart/form-data" class="grid">
-<label>Metadata CSV<input type="file" name="upload" accept=".csv" required></label>
-<label>Researcher name<input name="actor" required></label><label>Reason for import<input name="rationale" required></label>
-<button type="submit">Import metadata version</button></form></section>"""
-        return self._render_workspace_page(
-            title="Import study files",
-            intro=(
-                "Files are copied into the managed study, validated, hashed, and recorded. "
-                "Existing study files are never overwritten."
-            ),
-            body=message_html + error_html + forms,
-        )
-
-    def render_configure(self, message: str = "", error: str = "") -> str:
-        message_html = f"<div class='message'>{html.escape(message)}</div>" if message else ""
-        error_html = f"<div class='error'>{html.escape(error)}</div>" if error else ""
+        from qualframe.sources_ui import render_sources
         try:
             self._managed_project_path()
         except ValueError as exc:
-            body = (
-                error_html
-                + f"<section><h2>Managed study required</h2><p>{html.escape(str(exc))}</p>"
-                "<p><a href='/setup'>Create a local study first</a>.</p></section>"
-            )
-        else:
-            method = self.runner.method
-            if method is None:
-                body = error_html + "<section><p>No method is configured.</p></section>"
-            else:
-                def selected(value: str, current: str) -> str:
-                    return " selected" if value == current else ""
+            return self._unmanaged_page("Sources", "imports", exc)
+        return render_sources(self, message, error)
 
-                cfir_partition = self.runner.pipeline.id.startswith("transcript_cfir")
-                if cfir_partition:
-                    partition_control = (
-                        "<input type='hidden' name='partition_strategy' value='per_top_level_category'>"
-                        "<p><strong>Codebook partitioning:</strong> one call per CFIR domain. "
-                        "This reference-workflow setting is shown read-only because the active CFIR pipeline enforces domain iterations.</p>"
-                    )
-                else:
-                    partition_control = f"""<label>Codebook partitioning<select name="partition_strategy">
-<option value="full_codebook"{selected('full_codebook', method.partitioning.strategy)}>One call with the full codebook</option>
-<option value="per_top_level_category"{selected('per_top_level_category', method.partitioning.strategy)}>One call per top-level category</option>
-</select></label>"""
-                overlap_checked = " checked" if method.coding.allow_overlapping_spans else ""
-                body = message_html + error_html + f"""
-<section><h2>Method version {html.escape(method.version)}</h2>
-<form method="post" action="/method/update">
-<div class="grid">
-<label>Meaning-unit segmentation<select name="segmentation_strategy">
-<option value="model_proposed"{selected('model_proposed', method.segmentation.strategy)}>Model proposes meaning units</option>
-<option value="researcher_presegmented"{selected('researcher_presegmented', method.segmentation.strategy)}>Researcher-presegmented input</option>
-<option value="sentence"{selected('sentence', method.segmentation.strategy)}>Sentence units</option>
-<option value="paragraph"{selected('paragraph', method.segmentation.strategy)}>Paragraph units</option></select></label>
-<label>Context before (sentences)<input type="number" min="0" max="10" name="context_before" value="{method.context.before}" required></label>
-<label>Context after (sentences)<input type="number" min="0" max="10" name="context_after" value="{method.context.after}" required></label>
-<label>Coding cardinality<select name="coding_cardinality"><option value="single_label"{selected('single_label', method.coding.cardinality)}>One code per meaning unit</option><option value="multi_label"{selected('multi_label', method.coding.cardinality)}>Multiple codes permitted</option></select></label>
-{partition_control}
-</div>
-<p><label class="check"><input type="checkbox" name="allow_overlapping_spans" value="yes"{overlap_checked}><span>Allow overlapping evidence spans</span></label></p>
-<div class="grid"><label>Researcher name<input name="actor" required></label><label>Reason for new method version<input name="rationale" required></label></div>
-<button type="submit">Create new method version</button></form></section>
-<section><h2>What is enforced now</h2><ul><li>The selected policy is versioned and included in the configuration fingerprint.</li><li>Generic coding requests receive the segmentation, context, cardinality, overlap, and partition instructions.</li><li>Generic top-level partitioning changes the actual request plan and execution fan-out.</li><li>Returned code IDs and single/multi-label limits are checked and routed to review.</li></ul><p class="muted">Provider-native schema constraints and complete evidence-offset enforcement remain experimental and are not implied by this editor.</p></section>"""
-        return self._render_workspace_page(
-            title="Configure analysis method",
-            intro="Revisions create a new method file and append-only change record; prior run configurations remain intact.",
-            body=body,
-        )
+    def render_codebook(self, message: str = "", error: str = "") -> str:
+        from qualframe.sources_ui import render_codebook
+        try:
+            self._managed_project_path()
+        except ValueError as exc:
+            return self._unmanaged_page("Codebook", "codebook", exc)
+        return render_codebook(self, message, error)
+
+    def render_configure(self, message: str = "", error: str = "") -> str:
+        from qualframe.coding_ui import render_coding
+        try:
+            self._managed_project_path()
+        except ValueError as exc:
+            return self._unmanaged_page("Run coding", "configure", exc)
+        return render_coding(self, message, error)
+
+    def render_home(self, message: str = "", error: str = "") -> str:
+        from qualframe.home_ui import render_home
+        return render_home(self, message, error)
 
     def _render_workspace_page(
-        self, *, title: str, intro: str, body: str, head: str = "",
+        self, *, title: str, intro: str, body: str, head: str = "", active: str | None = None,
+        page_title: str | None = None, wide: bool = False,
     ) -> str:
-        active = {"Create a study": "setup", "Import study files": "imports",
-                  "Configure analysis method": "configure",
-                  "Review exact evidence": "evidence"}.get(title, "overview")
-        evidence_run = next(
-            (run for run in self.list_runs()
-             if (self.artifacts_dir / run / "evidence_review/index.json").exists()), None
-        )
+        if active is None:
+            active = {"Create a study": "setup", "Import study files": "imports",
+                      "Import Excel codebook": "codebook", "Review Excel codebook": "codebook", "Check codebook mapping": "codebook",
+                      "Configure analysis method": "configure",
+                      "Review exact evidence": "evidence", "Analyze reviewed evidence": "analysis", "Review proposed summaries": "analysis",
+                      "Compare coding runs": "compare", "Detailed span benchmark": "compare", "Evaluate repeat runs": "repeats",
+                      "Repeat coding": "repeats", "Review empty coding output": "evidence"}.get(title, "overview")
+        if self.runner is None or active in {"home"}:
+            page = render_workspace(title=title, intro=intro, body=body, head=head, active=active, study=None)
+            return page.replace("<title> · QualFrame</title>", f"<title>{html.escape(page_title or 'QualFrame')}</title>")
+        from qualframe.study_status import study_steps
+        from qualframe.ui_kit import name_prompt
+        body = name_prompt(self.researcher, getattr(self, "_current_path", "/")) + body
+        project = self.runner.project
+        tools = [("compare", "/compare", "Compare runs"), ("repeats", "/repeats", "Repeat runs"),
+                 ("history", "/?" + urlencode({"run_id": self.list_runs()[0]}) if self.list_runs() else "/", "Run details")]
         return render_workspace(
             title=title, intro=intro, body=body, head=head, active=active,
-            study=self.runner.project.title or self.runner.project.project_id,
-            classification=self.runner.project.data_classification or "not declared",
-            provider=self.runner.project.provider.name,
-            evidence_url=f"/evidence?{urlencode({'run_id': evidence_run})}" if evidence_run else None,
+            study=project.title or project.project_id,
+            classification=project.data_classification or "",
+            provider=project.provider.name, model=project.provider.model,
+            steps=study_steps(self), tools=tools, wide=wide,
+            study_detail="Synthetic demo data" if project.data_classification == "synthetic" else "",
         )
 
     def handle_upload(
@@ -359,10 +372,25 @@ class DashboardApp:
         files: dict[str, UploadedFile],
     ) -> str:
         project_path = self._managed_project_path()
-        upload = files.get("upload")
-        if upload is None:
+        uploads = files.get("upload") or []
+        if not isinstance(uploads, list):
+            uploads = [uploads]
+        if not uploads:
             raise ValueError("Choose a file to import.")
+        defaults = {"/import/transcript": "Added transcript", "/import/codebook": "Imported codebook",
+                    "/import/cfir": "Imported CFIR reference workbook", "/import/metadata": "Imported participant information"}
+        self.fill_identity(fields, defaults.get(path, "Imported file"))
+        if len(uploads) > 1:
+            if path != "/import/transcript":
+                raise ValueError("Choose one file.")
+            added = [self._import_one(path, fields, item, project_path) for item in uploads]
+            self._refresh_runner()
+            return f"Added {len(added)} transcripts."
+        record = self._import_one(path, fields, uploads[0], project_path)
+        self._refresh_runner()
+        return f"Imported {record.original_filename}."
 
+    def _import_one(self, path: str, fields: dict[str, list[str]], upload: UploadedFile, project_path: Path):
         def field(name: str, default: str = "") -> str:
             return fields.get(name, [default])[0]
 
@@ -376,18 +404,23 @@ class DashboardApp:
         if path == "/import/transcript":
             record = self.study_workspace.import_transcript(
                 **common,
-                group_label=field("group_label", "Ungrouped"),
+                group_label=field("group_label", "") or "Ungrouped",
             )
         elif path == "/import/codebook":
             record = self.study_workspace.import_codebook(**common)
+        elif path == '/import/cfir':
+            from qualframe.cfir_import import import_reference
+            record = import_reference(self.study_workspace, project_path, upload.filename, upload.content,
+                field('actor'), field('rationale'))
         elif path == "/import/metadata":
             record = self.study_workspace.import_metadata(**common)
         else:
             raise ValueError("Unknown import action.")
-        self._refresh_runner()
-        return f"Imported {record.original_filename}; SHA-256 {record.sha256}."
+        return record
 
     def handle_method_update(self, form: dict[str, list[str]]) -> str:
+        self.fill_identity(form, "Changed coding options")
+
         def required(name: str) -> str:
             value = form.get(name, [""])[0].strip()
             if not value:
@@ -400,6 +433,7 @@ class DashboardApp:
         update = MethodPolicyUpdate(
             segmentation_strategy=required("segmentation_strategy"),
             context_before=int(required("context_before")),
+            context_unit=form.get("context_unit", ["sentences"])[0],
             context_after=int(required("context_after")),
             coding_cardinality=required("coding_cardinality"),
             allow_overlapping_spans=(
@@ -407,14 +441,14 @@ class DashboardApp:
             ),
             partition_strategy=partition_strategy,
         )
-        path = self.study_workspace.update_method_policy(
+        self.study_workspace.update_method_policy(
             project_manifest_path=self._managed_project_path(),
             update=update,
             actor=required("actor"),
             rationale=required("rationale"),
         )
         self._refresh_runner()
-        return f"Created method version {path.stem.replace('_', ' ')}."
+        return "Saved coding options as a new method version."
 
     def render_evidence(
         self,
@@ -424,109 +458,8 @@ class DashboardApp:
         message: str = "",
         error: str = "",
     ) -> str:
-        self._managed_project_path()
-        artifact_root = self._run_root(self.artifacts_dir, run_id)
-        index_path = artifact_root / "evidence_review" / "index.json"
-        if not index_path.exists():
-            raise FileNotFoundError("Prepare the evidence review index first.")
-        records = load_evidence_review_records(index_path)
-        if not records:
-            body = "<section><p>No offset-bearing directed-coding rows were found.</p></section>"
-            return self._render_workspace_page(
-                title="Review exact evidence",
-                intro="No reviewable evidence records are available for this run.",
-                body=body,
-            )
-        selected = next((record for record in records if record.record_id == item_id), records[0])
-        selected_index = records.index(selected)
-        review_dir = self.review_dir / run_id
-        actions = latest_evidence_action_by_record(review_dir)
-        action = actions.get(selected.record_id)
-        resolved = sum(
-            1
-            for record in records
-            if record.record_id in actions and actions[record.record_id].decision != "defer"
-        )
-        previous_link = (
-            f"<a href='/evidence?{urlencode({'run_id': run_id, 'item': records[selected_index - 1].record_id})}'>Previous</a>"
-            if selected_index > 0
-            else "Previous"
-        )
-        next_link = (
-            f"<a href='/evidence?{urlencode({'run_id': run_id, 'item': records[selected_index + 1].record_id})}'>Next</a>"
-            if selected_index + 1 < len(records)
-            else "Next"
-        )
-        span = selected.evidence_span
-        exact_text = span.exact_text if span else selected.proposed_exact_text
-        context = selected.context_text or exact_text
-        position = context.find(exact_text)
-        if position >= 0:
-            evidence_html = (
-                html.escape(context[:position])
-                + f"<mark>{html.escape(exact_text)}</mark>"
-                + html.escape(context[position + len(exact_text) :])
-            )
-        else:
-            evidence_html = f"<mark>{html.escape(exact_text)}</mark>"
-        issue_html = (
-            "<div class='error'><strong>Validation issues</strong><ul>"
-            + "".join(f"<li>{html.escape(issue)}</li>" for issue in selected.validation_issues)
-            + "</ul></div>"
-            if selected.validation_issues
-            else "<div class='message'>Exact text, offsets, source hash, and code ID validated.</div>"
-        )
-        status = action.decision if action else "unreviewed"
-        code_options = ""
-        if self.runner.codebook:
-            for code in self.runner.codebook.codes:
-                chosen = selected.assignment and code.id == selected.assignment.code_id
-                code_options += (
-                    f"<option value='{html.escape(code.id)}'{' selected' if chosen else ''}>"
-                    f"{html.escape(code.label)} ({html.escape(code.id)})</option>"
-                )
-        start = span.start_offset if span else selected.proposed_start_offset
-        end = span.end_offset if span else selected.proposed_end_offset
-        message_html = f"<div class='message'>{html.escape(message)}</div>" if message else ""
-        error_html = f"<div class='error'>{html.escape(error)}</div>" if error else ""
-        export_paths = [
-            path
-            for path in (self.exports_dir / run_id).glob("reviewed_evidence_package.*")
-        ] if (self.exports_dir / run_id).exists() else []
-        export_links = "".join(
-            f"<li>{self._file_link(path, path.name)}</li>" for path in sorted(export_paths)
-        )
-        export_control = (
-            f"<form method='post' action='/export-evidence'><input type='hidden' name='run_id' value='{html.escape(run_id)}'><input type='hidden' name='item' value='{html.escape(selected.record_id)}'><button type='submit'>Export reviewed evidence package</button></form>"
-            if resolved == len(records)
-            else f"<p>Resolve all items before export. {len(records) - resolved} remain unreviewed or deferred.</p>"
-        )
-        queue_links = ""
-        for index, record in enumerate(records):
-            latest = actions.get(record.record_id)
-            decision = latest.decision if latest else "unreviewed"
-            target = "/evidence?" + urlencode({"run_id": run_id, "item": record.record_id})
-            queue_links += (
-                f'<li><a href="{html.escape(target)}" aria-current="{str(record == selected).lower()}">'
-                f'<span>{index + 1:02d} &nbsp; {html.escape(Path(record.source_path).name)}'
-                f' · {html.escape(record.code_label or "Unresolved")}</span>'
-                f'<span class="queue-status">{html.escape(decision)}</span></a></li>'
-            )
-        assignment_heading = "Mock assignment" if self.runner.project.provider.name == "mock" else "AI-assisted assignment"
-        body = message_html + error_html + f"""
-<div class="review-summary"><div><span class="kicker">HUMAN REVIEW</span><br><strong>{resolved} / {len(records)} resolved</strong><div class="progress-track"><div class="progress-fill" style="width:{100 * resolved / len(records):.1f}%"></div></div></div><div><span class="kicker">CURRENT DECISION</span><br><strong>{html.escape(status.title())}</strong></div><div class="record-navigation">{previous_link}<span class="muted">Item {selected_index + 1} of {len(records)}</span>{next_link}</div></div>
-<div class="review-layout"><div><section><div class="section-top"><h2>Exact evidence</h2><span class="mini-tag">SOURCE-LINKED</span></div><div class="source-meta"><strong>{html.escape(Path(selected.source_path).name)}</strong> &nbsp; / &nbsp; Source context with coded span highlighted</div><p class="evidence">{evidence_html}</p>{issue_html}<p><strong>Code:</strong> {html.escape(selected.code_label or (selected.assignment.code_id if selected.assignment else 'Unresolved'))}</p><p>{html.escape(selected.code_definition or 'No code definition is available.')}</p></section>
-<section><h2>{assignment_heading}</h2><p>{html.escape(selected.assignment.rationale if selected.assignment and selected.assignment.rationale else 'No model rationale was supplied.')}</p><p class="muted">This is an AI-assisted coding proposal, not a research finding or human interpretation.</p></section>
-
-<section><div class="section-top"><h2>Evidence queue</h2><span class="muted">{len(records)} items</span></div><ul class="queue-list">{queue_links}</ul></section>
-<section><h2>Provenance</h2><details><summary>Show technical record</summary><dl><dt>Source</dt><dd>{html.escape(selected.source_path)}</dd><dt>Source SHA-256</dt><dd><code>{selected.source_sha256}</code></dd><dt>Offsets</dt><dd>{selected.proposed_start_offset}–{selected.proposed_end_offset}</dd><dt>Run / stage</dt><dd>{html.escape(run_id)} / {html.escape(selected.stage_id)}</dd><dt>Artifact SHA-256</dt><dd><code>{selected.artifact_sha256}</code></dd><dt>Prompt SHA-256</dt><dd><code>{selected.prompt_sha256}</code></dd><dt>Configuration</dt><dd><code>{html.escape(selected.configuration_fingerprint or 'Unavailable')}</code></dd><dt>Provider / model</dt><dd>{html.escape(selected.provider or 'Unavailable')} / {html.escape(selected.model or 'Unavailable')}</dd></dl></details></section>
-</div><div><section class="review-form"><div class="kicker">YOUR INTERPRETATION</div><h2>Record review decision</h2><form method="post" action="/evidence-action"><input type="hidden" name="run_id" value="{html.escape(run_id)}"><input type="hidden" name="item" value="{html.escape(selected.record_id)}"><div class="grid"><label>Decision<select name="decision"><option value="accept">Accept</option><option value="edit">Edit</option><option value="reject">Reject</option><option value="defer">Defer</option></select></label><label>Researcher name<input name="reviewer" required></label></div><details><summary>Edit span or code</summary><div class="grid"><label>Evidence start offset<input type="number" min="0" name="edited_start" value="{start}"></label><label>Evidence end offset<input type="number" min="1" name="edited_end" value="{end}"></label><label>Code for an edit<select name="edited_code_id">{code_options}</select></label></div></details><label>Rationale<textarea name="rationale" required></textarea></label><button type="submit">Append review action</button></form><p class="muted">Offset and code fields are used only for Edit. Original model output and prior actions remain unchanged.</p></section>
-<section><h2>Traceable export</h2>{export_control}<ul>{export_links}</ul><p class="muted">The package contains reviewed evidence and methods provenance. It is not an automatic findings report.</p></section></div></div>"""
-        return self._render_workspace_page(
-            title="Review exact evidence",
-            intro="Read the source. Weigh the code. Keep the interpretation yours.",
-            body=body,
-        )
+        from qualframe.review_ui import render_review
+        return render_review(self, run_id=run_id, item_id=item_id, message=message, error=error)
 
     def _render_run(self, run_id: str) -> str:
         artifact_root = self._run_root(self.artifacts_dir, run_id)
@@ -539,14 +472,19 @@ class DashboardApp:
             ) or "<li>Preparing the local run.</li>"
             return f"""
 <div class="cards"><div class="card"><div class="label">Run</div><div class="value">{html.escape(run_id)}</div></div><div class="card"><div class="label">Status</div><div class="value">Running locally</div></div><div class="card"><div class="label">Provider</div><div class="value">{html.escape(self.runner.project.provider.name)}</div></div></div>
-<section><h2>Execution progress</h2><p>This page refreshes every two seconds. Closing it does not stop the local background job.</p><ul>{progress}</ul><p class="muted">Only mock or checked-in cached execution can be started from this interface.</p></section>"""
+<section><h2>Execution progress</h2><p>This page refreshes every two seconds. Closing it does not stop the local background job.</p><ul>{progress}</ul><p class="muted">Provider requests follow the approved configuration and study budget.</p></section>"""
         if job is not None and job.status == "failed" and not manifest_path.exists():
-            return f"""<section><h2>Execution failed</h2><p>{html.escape(job.error or 'Unknown local execution error.')}</p><form method="post" action="/execute"><input type="hidden" name="run_id" value="{html.escape(run_id)}"><button type="submit">Resume this local run</button></form></section>"""
+            return f"""<section><h2>Execution failed</h2><p>{html.escape(job.error or 'Unknown local execution error.')}</p>{self._local_execution_control(run_id, "Resume this run")}</section>"""
         if not manifest_path.exists() and pause_path.exists():
             pause = CostPauseRecord.model_validate_json(
                 pause_path.read_text(encoding="utf-8")
             )
             return self._render_cost_pause(run_id, pause, pause_path)
+        if not manifest_path.exists() and any((artifact_root / "requests").glob("*.json")):
+            return ("<section><h2>Coding incomplete</h2><p>This run has recorded request "
+                    "attempts but no completed run manifest. Request records and charges are preserved. "
+                    "Resolve any uncertain usage before resuming.</p>"
+                    + self._local_execution_control(run_id, "Resume this run") + "</section>")
         if not manifest_path.exists() and (artifact_root / "run_plan.json").exists():
             plan = RunPlan.model_validate_json(
                 (artifact_root / "run_plan.json").read_text(encoding="utf-8")
@@ -555,7 +493,7 @@ class DashboardApp:
         manifest = RunManifest.model_validate_json(manifest_path.read_text(encoding="utf-8"))
         review_root = self.review_dir / run_id
         export_root = self.exports_dir / run_id
-        review_items = sorted(review_root.glob("*.json")) if review_root.exists() else []
+        review_items = review_item_paths(artifact_root, review_root, manifest.model_dump())
         adjudications = latest_adjudication_by_item(review_root) if review_root.exists() else {}
         evidence_index = artifact_root / "evidence_review" / "index.json"
         if evidence_index.exists():
@@ -587,7 +525,7 @@ class DashboardApp:
         for item_path in review_items:
             payload = json.loads(item_path.read_text(encoding="utf-8"))
             item_rel = item_path.relative_to(review_root).as_posix()
-            action = adjudications.get(item_rel)
+            action = adjudications.get(item_rel) or adjudications.get(str(item_path.relative_to(review_root)))
             issue = payload.get("rule_id") or payload.get("field") or payload.get("kind", "review")
             reason = payload.get("reason") or (
                 f"{payload.get('left_value')} versus {payload.get('right_value')}"
@@ -608,7 +546,7 @@ class DashboardApp:
 <label>Edited row JSON<textarea name="edited_row_json" placeholder='Required only for edit'></textarea></label>
 <button type="submit">Record review action</button></form></td></tr>"""
         if not review_rows:
-            review_rows = "<tr><td colspan='4'>No queued review items.</td></tr>"
+            review_rows = "<tr><td colspan='4'>No automated QA flags. Human evidence review is tracked separately.</td></tr>"
 
         gate_form = ""
         if self.runner.project.governance.enforce_review_gates and manifest.pending_gate:
@@ -636,25 +574,31 @@ class DashboardApp:
         exports = sorted(export_root.glob("*.xlsx")) if export_root.exists() else []
         export_links = "".join(f"<li>{self._file_link(path, path.name)}</li>" for path in exports)
         if not export_links:
-            export_links = "<li>No exports created yet.</li>"
-        export_form = f"""<form method="post" action="/export" class="inline">
-<input type="hidden" name="run_id" value="{html.escape(run_id)}"><button type="submit">Create or refresh exports</button></form>"""
-
+            export_links = "<li>No exports yet.</li>"
+        export_form = f"""<form method="post" action="/export" class="inline-link">
+<input type="hidden" name="run_id" value="{html.escape(run_id)}"><button type="submit" class="secondary">Export the model's raw output (unreviewed)</button></form>"""
+        status_word = {'completed': 'Coding finished', 'awaiting_review': 'Coding finished, waiting at a review gate',
+                       'blocked_validation': 'Stopped: some output did not match the expected format'}.get(manifest.status, manifest.status)
+        cost = (f'USD {manifest.run_cost_usd:.4f} (study total USD {manifest.project_cost_usd or 0:.4f})'
+                if manifest.run_cost_usd is not None else 'Not tracked (offline model)')
+        from qualframe.ui_kit import friendly_time
+        facts = (f'<dl class="run-facts"><dt>Status</dt><dd>{html.escape(status_word)}</dd>'
+                 f'<dt>Finished</dt><dd>{html.escape(friendly_time(manifest.completed_at_utc))}</dd>'
+                 f'<dt>Recorded cost</dt><dd>{html.escape(cost)}</dd>'
+                 f'<dt>Automated checks</dt><dd>{manifest.qa_failure_count} format flag(s), {manifest.structured_output_failure_count} validation failure(s)</dd>'
+                 f'<dt>Run ID</dt><dd><code>{html.escape(run_id)}</code></dd>'
+                 f'<dt>Configuration fingerprint</dt><dd><code>{html.escape(manifest.configuration_fingerprint or "not recorded")}</code></dd></dl>')
+        qa_section = (f'<section><h2>Automated checks to review</h2><p>These flags come from format checks on the model output, separate from your evidence review.</p>'
+                      f'<table><thead><tr><th>Item</th><th>Issue</th><th>Reason</th><th>Latest action</th></tr></thead><tbody>{review_rows}</tbody></table></section>'
+                      if review_items else "")
         return f"""
-<div class="cards">
-<div class="card"><div class="label">Project</div><div class="value">{html.escape(self.runner.project.project_id.replace('_', ' ').title())}</div></div>
-<div class="card"><div class="label">Run</div><div class="value">{html.escape(run_id.replace('_', ' '))}</div></div>
-<div class="card"><div class="label">Status</div><div class="value">{html.escape(manifest.status)}</div></div>
-<div class="card"><div class="label">QA / structured failures</div><div class="value">{manifest.qa_failure_count} / {manifest.structured_output_failure_count}</div></div>
-<div class="card"><div class="label">Release</div><div class="value">{html.escape(manifest.release_status)}</div></div>
-<div class="card"><div class="label">This run cost</div><div class="value">{f'USD {manifest.run_cost_usd:.4f}' if manifest.run_cost_usd is not None else 'Not tracked'}</div></div>
-<div class="card"><div class="label">Project cost</div><div class="value">{f'USD {manifest.project_cost_usd:.4f}' if manifest.project_cost_usd is not None else 'Not tracked'}</div></div>
-</div>
-{gate_form}{release_form}{evidence_section}
-<section><h2>Pipeline artifacts</h2><table><thead><tr><th>Stage</th><th>Artifacts</th></tr></thead><tbody>{stage_rows}</tbody></table>
-<p>{self._file_link(manifest_path, "Run manifest")}</p><details><summary>Artifact files</summary><ul>{''.join(artifact_links)}</ul></details></section>
-<section><h2>Review queue and adjudication</h2><table><thead><tr><th>Item</th><th>Issue</th><th>Reason</th><th>Latest action</th></tr></thead><tbody>{review_rows}</tbody></table></section>
-<section><h2>Exports</h2>{export_form}<ul>{export_links}</ul></section>"""
+<section><h2>About this run</h2>{facts}</section>
+{gate_form}{release_form}{evidence_section if not evidence_index.exists() else ""}{qa_section}
+<section><h2>Files</h2><p>Everything this run produced is kept in the study folder. The run record lists every input and prompt with its hash.</p>
+<ul><li>{self._file_link(manifest_path, "Run record (JSON)")}</li></ul>
+<details><summary>Model output files ({len(artifact_links)})</summary><ul>{''.join(artifact_links)}</ul></details>
+<details><summary>Raw output export</summary><p>Raw output is the model's proposals before your review. For your findings, use the reviewed export on the Results page.</p>{export_form}<ul>{export_links}</ul></details>
+<table class="compact"><thead><tr><th>Stage</th><th>Output files</th></tr></thead><tbody>{stage_rows}</tbody></table></section>"""
 
     def _render_planned_run(
         self,
@@ -688,15 +632,34 @@ class DashboardApp:
 <table><thead><tr><th>Stage</th><th>Planned calls</th></tr></thead><tbody>{stage_rows}</tbody></table>
 <p><strong>Configuration:</strong> <code>{html.escape(plan.configuration_fingerprint or 'Not available')}</code></p>
 <p>{self._file_link(plan_path, "Open machine-readable run plan")}</p>
-{execution_control}<p class="muted">External-provider execution and advanced filters remain command-line operations in the current increment.</p></section>"""
+{execution_control}<p class="muted">Paid execution requires explicit approval of the current plan; advanced filters remain command-line operations.</p></section>"""
 
     def _local_execution_control(self, run_id: str, label: str) -> str:
-        if self.runner.project.provider.name not in _LOCAL_EXECUTION_PROVIDERS:
-            return ""
         try:
             self._managed_project_path()
         except ValueError:
             return ""
+        if self.runner.project.provider.name not in _LOCAL_EXECUTION_PROVIDERS:
+            if self.runner.project.provider.name not in _PAID_EXECUTION_PROVIDERS:
+                return ""
+            plan_path = self._run_root(self.artifacts_dir, run_id) / "run_plan.json"
+            if not plan_path.exists():
+                return ""
+            plan = RunPlan.model_validate_json(plan_path.read_text(encoding="utf-8"))
+            cost = self.runner._build_cost_controller(run_id=run_id, artifact_root=plan_path.parent)
+            if cost is None:
+                return "<p>Configure a provider, verified prices, and a study ceiling first.</p>"
+            if cost.unresolved_requests():
+                return "<p>Prior request usage is unresolved. Reconcile the preserved request record before starting another paid run.</p>"
+            return f'''<form method="post" action="/execute">
+<input type="hidden" name="run_id" value="{html.escape(run_id)}">
+<input type="hidden" name="fingerprint" value="{html.escape(plan.configuration_fingerprint or '')}">
+<p>Paid coding: {html.escape(self.runner.project.provider.name)} / {html.escape(self.runner.project.provider.model or '')}. Study ceiling: USD {cost.policy.absolute_limit_usd:.2f}. Recorded usage cost: USD {cost.project_cost_usd():.4f}.</p>
+<p>Selected source text and codebook will be sent to this provider. Local token estimates are not a provider billing guarantee. Uncertain requests pause for reconciliation.</p>
+<label>Researcher name<input name="actor" required></label>
+<label>Reason for this run<input name="rationale" required></label>
+<label class="check"><input name="live_confirmed" type="checkbox" value="yes" required>I approve sending this study material and spending up to the displayed study ceiling.</label>
+<button type="submit">Approve and start paid coding</button></form>'''
         return f"""<form method="post" action="/execute"><input type="hidden" name="run_id" value="{html.escape(run_id)}"><button type="submit">{html.escape(label)}</button></form><p class="muted">This uses only the configured local mock or checked-in cache. It does not contact an external model API.</p>"""
 
     def _job_snapshot(self, run_id: str | None) -> ExecutionJob | None:
@@ -713,13 +676,9 @@ class DashboardApp:
                 error=job.error,
             )
 
-    def start_local_execution(self, run_id: str) -> None:
+    def start_local_execution(self, run_id: str, *, approval: dict[str, str] | None = None) -> None:
         project_path = self._managed_project_path()
         provider_name = self.runner.project.provider.name
-        if provider_name not in _LOCAL_EXECUTION_PROVIDERS:
-            raise PermissionError(
-                "Browser execution is limited to mock and checked-in cached providers."
-            )
         artifact_root = self._run_root(self.artifacts_dir, run_id)
         plan_path = artifact_root / "run_plan.json"
         if not plan_path.exists():
@@ -727,7 +686,49 @@ class DashboardApp:
         plan = RunPlan.model_validate_json(plan_path.read_text(encoding="utf-8"))
         if plan.project_id != self.runner.project.project_id:
             raise ValueError("Run plan belongs to a different study.")
+        if not plan.discovered_inputs:
+            raise ValueError('Import a transcript before starting coding.')
+        if any(stage.domain_iterations for stage in self.runner.pipeline.stages) and self.runner.project.data_classification != 'synthetic':
+            reference = resolve_repo_path(self.repo_root, self.runner.project.paths['reference']) / 'codebook.xlsx'
+            if not reference.exists():
+                raise ValueError('Import the CFIR reference workbook before starting coding.')
+        live = provider_name not in _LOCAL_EXECUTION_PROVIDERS
+        if not live and self.runner.project.data_classification != "synthetic":
+            raise PermissionError("Offline test models only run on test-data studies. Choose a model on the Run coding page.")
+        if live:
+            import os
+            from qualframe.configuration_lock import create_configuration_lock
+            if provider_name not in _PAID_EXECUTION_PROVIDERS:
+                raise PermissionError("This provider is not enabled for browser execution.")
+            approval = approval or {}
+            if approval.get("live_confirmed") != "yes":
+                raise PermissionError("Paid execution requires explicit study-data and spending approval.")
+            actor, rationale = self.study_workspace._validate_action_fields(
+                approval.get("actor", ""), approval.get("rationale", ""))
+            fingerprint = create_configuration_lock(project_path).fingerprint_sha256
+            if not plan.configuration_fingerprint or approval.get("fingerprint") != plan.configuration_fingerprint or fingerprint != plan.configuration_fingerprint:
+                raise ValueError("Configuration changed; create and approve a new preflight plan.")
+            cost = self.runner._build_cost_controller(run_id=run_id, artifact_root=artifact_root)
+            if cost is None:
+                raise ValueError("Paid execution requires pricing and an absolute study ceiling.")
+            if cost.unresolved_requests():
+                raise ValueError("Prior request usage is unresolved. Reconcile it before starting another paid run.")
+            from qualframe.coding_ui import is_local_endpoint
+            local_endpoint = provider_name == "openai_compatible" and is_local_endpoint(self.runner.project.provider.base_url)
+            if not local_endpoint and not os.getenv(self.runner.project.provider.api_key_env or ""):
+                raise ValueError("Enter your API key in provider settings for this app session.")
         with self._job_lock:
+            if any(job.status == "running" for job in self._jobs.values()):
+                raise ValueError("A study run is already in progress.")
+            if live:
+                import uuid
+                (artifact_root / f"execution-approval-{uuid.uuid4().hex}.json").write_text(
+                    json.dumps({"actor": actor, "rationale": rationale,
+                                "configuration_fingerprint": fingerprint,
+                                "absolute_limit_usd": cost.policy.absolute_limit_usd,
+                                "governance_confirmed": True,
+                                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+                                "run_id": run_id}, indent=2), encoding="utf-8")
             prior = self._jobs.get(run_id)
             if prior is not None and prior.status == "running":
                 raise ValueError("This local run is already in progress.")
@@ -755,6 +756,8 @@ class DashboardApp:
             manifest = RunManifest.model_validate_json(
                 manifest_path.read_text(encoding="utf-8")
             )
+            if manifest.status in {'completed', 'awaiting_review'}:
+                write_evidence_review_index(project_manifest_path=project_path, run_id=run_id)
         except CostApprovalRequired as exc:
             with self._job_lock:
                 self._jobs[run_id].status = "paused"
@@ -808,6 +811,68 @@ class DashboardApp:
 {resume_control}<p class="muted">The runner rechecks the append-only approval record before submitting any request.</p>
 <p>{self._file_link(pause_path, "Open cost pause record")}</p></section>"""
 
+    def handle_app_action(self, path: str, form: dict[str, list[str]]) -> str:
+        """Application-level actions; returns the redirect location."""
+        if path == "/settings/name":
+            from qualframe.app_workspace import write_settings
+            name = form.get("researcher_name", [""])[0].strip()
+            if not name:
+                raise ValueError("Enter your name.")
+            write_settings(self.repo_root, researcher_name=name[:120])
+            back = form.get("back", ["/home"])[0]
+            if not back.startswith("/") or back.startswith("//"):
+                back = "/home"
+            joiner = "&" if "?" in back else "?"
+            return back + joiner + urlencode({"message": f"Decisions will be recorded as {name}."})
+        if path == "/demo":
+            with self._job_lock:
+                if any(job.status == "running" for job in self._jobs.values()):
+                    raise ValueError("Wait for the current run to finish before opening the demo.")
+            from qualframe.demo_study import create_demo_study
+            created, project_path, run_id = create_demo_study(self.repo_root)
+            self._activate_runner(ProjectRunner(project_path))
+            self._selected_run = run_id
+            return "/?" + urlencode({"message": "Demo study ready: six fictional interviews, coded with recorded responses. Nothing was sent anywhere."})
+        if path == "/provider/offline":
+            choice = form.get("preset", [""])[0]
+            project_path = self._managed_project_path()
+            if self.runner.project.data_classification != "synthetic":
+                raise ValueError("Offline test models are available only for synthetic studies.")
+            import yaml
+            data = yaml.safe_load(project_path.read_text(encoding="utf-8"))
+            if choice == "mock":
+                data["provider"] = {"name": "mock", "model": "synthetic-contract-fixture", "temperature": 0.0, "max_tokens": 4000}
+            elif choice.startswith("recorded:"):
+                from qualframe.providers.recorded_provider import load_recording_info
+                recording = choice.removeprefix("recorded:")
+                load_recording_info(recording)
+                data["provider"] = {"name": "recorded", "model": recording, "temperature": None, "max_tokens": 16000}
+            else:
+                raise ValueError("Choose a model.")
+            data.pop("cost_policy", None)
+            data.pop("pricing_snapshot", None)
+            temporary = project_path.with_name(".project-offline.yaml")
+            temporary.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+            temporary.replace(project_path)
+            self._refresh_runner()
+            return "/configure?" + urlencode({"message": "Offline model selected. Nothing will be sent anywhere."})
+        if path == "/coding/start":
+            self._managed_project_path()
+            from qualframe.coding_ui import coding_blockers
+            blockers = coding_blockers(self)
+            if blockers:
+                raise ValueError("Finish setting up the run first.")
+            self.fill_identity(form, "Started coding run")
+            run_id = self.runner._make_run_id()
+            plan = self.runner.build_run_plan()
+            self.runner.save_run_plan(plan, run_id)
+            approval = {k: v[0] for k, v in form.items()}
+            approval["fingerprint"] = plan.configuration_fingerprint or ""
+            self.start_local_execution(run_id, approval=approval)
+            self._selected_run = run_id
+            return "/?" + urlencode({"run_id": run_id})
+        raise ValueError("Unknown action.")
+
     def handle_action(self, path: str, form: dict[str, list[str]]) -> tuple[str, str]:
         def required(name: str) -> str:
             value = form.get(name, [""])[0].strip()
@@ -821,12 +886,52 @@ class DashboardApp:
             self.runner.save_run_plan(plan, run_id)
             return run_id, "Created a dry-run plan. No model request was sent."
 
+        if path == '/study/open':
+            with self._job_lock:
+                if any(job.status == 'running' for job in self._jobs.values()):
+                    raise ValueError('Wait for the current run before opening another study.')
+                name = required('study_id')
+                project_path = (self.repo_root / 'studies' / name / 'project.yaml').resolve()
+                self.study_workspace.managed_study_root(project_path)
+                self._activate_runner(ProjectRunner(project_path))
+            return '', 'Opened study.'
+
+        if path in {'/repeats/prepare', '/repeats/start', '/repeats/resume'}:
+            from qualframe.repeat_ui import prepare_repeat_form, start_repeat_job
+            if path == '/repeats/prepare':
+                form['experiment'] = [prepare_repeat_form(self, form)]
+                return '', 'Prepared repeated coding. No model requests sent.'
+            form['experiment'] = [start_repeat_job(self, form)]
+            return '', 'Started sequential repeated coding.'
+
+        if path == '/benchmark/save':
+            from qualframe.benchmark_ui import save_benchmark_form
+            return save_benchmark_form(self, form)
+        if path == '/stability/save':
+            if required('study_identity') != self.runner.project.project_id:
+                raise ValueError('This tab belongs to another study.')
+            self._managed_project_path()
+            from qualframe.repeat_comparison import write_repeat_report, experiment_report_scope
+            experiment_context = None
+            if form.get('experiment', [''])[0]:
+                ids, experiment_context = experiment_report_scope(self._managed_project_path(), required('experiment'))
+                roots = [self.artifacts_dir / r for r in ids]
+            else:
+                roots = [self._run_root(self.artifacts_dir, r) for r in form.get('run', [])]
+            written = write_repeat_report(self.repo_root, self.artifacts_dir, roots,
+                expected_report_id=required('report_id'), experiment_context=experiment_context)
+            return '', f'Saved frozen evaluation {written.stem[10:22]}.'
+
+        if path == '/empty-output/review':
+            from qualframe.empty_output_ui import handle_empty_output_action
+            return handle_empty_output_action(self, form)
+
         run_id = required("run_id")
         artifact_root = self._run_root(self.artifacts_dir, run_id)
         review_root = self.review_dir / run_id
 
         if path == "/execute":
-            self.start_local_execution(run_id)
+            self.start_local_execution(run_id, approval={k: v[0] for k, v in form.items()})
             return run_id, "Started local background execution."
 
         if path == "/prepare-evidence":
@@ -838,16 +943,31 @@ class DashboardApp:
             return run_id, f"Prepared {count} exact-evidence review item(s)."
 
         if path == "/evidence-action":
+            self.fill_identity(form, "")
             item_id = required("item")
             index_path = artifact_root / "evidence_review" / "index.json"
             records = load_evidence_review_records(index_path)
             record = next((item for item in records if item.record_id == item_id), None)
             if record is None:
                 raise ValueError("Evidence review item was not found in this run.")
+            if form.get('study_identity', [self.runner.project.project_id])[0] != self.runner.project.project_id:
+                raise ValueError('This tab belongs to another study. Reopen it before recording a decision.')
             decision = required("decision")
+            prior = latest_evidence_action_by_record(review_root).get(item_id)
+            if decision == 'accept' and prior and prior.derived_artifact_path:
+                derived = json.loads((artifact_root / prior.derived_artifact_path).read_text(encoding='utf-8'))
+                decision = 'edit'
+                form['edited_start'] = [str(derived['evidence_span']['start_offset'])]
+                form['edited_end'] = [str(derived['evidence_span']['end_offset'])]
+                form['edited_code_id'] = [derived['assignment']['code_id']]
             edited_start = int(required("edited_start")) if decision == "edit" else None
             edited_end = int(required("edited_end")) if decision == "edit" else None
             edited_code_id = required("edited_code_id") if decision == "edit" else None
+            catalog = json.loads(index_path.read_text(encoding='utf-8')).get('codebook') or {}
+            codes = catalog.get('codes') or ([c.model_dump() for c in self.runner.codebook.codes] if self.runner.codebook else [])
+            if decision == 'edit' and edited_code_id not in {c['id'] for c in codes}:
+                raise ValueError('Choose a code from this review codebook.')
+            rationale = form.get('rationale', [''])[0].strip() or {'accept': 'Accepted proposal.', 'reject': 'Rejected proposal.', 'edit': 'Changed code or source passage.', 'defer': 'Deferred for later review.'}.get(decision, 'Recorded decision.')
             action = append_evidence_review_action(
                 record=record,
                 source_path=resolve_repo_path(self.repo_root, record.source_path),
@@ -855,12 +975,76 @@ class DashboardApp:
                 artifact_root=artifact_root,
                 decision=decision,
                 reviewer=required("reviewer"),
-                rationale=required("rationale"),
+                rationale=rationale,
                 edited_start=edited_start,
                 edited_end=edited_end,
                 edited_code_id=edited_code_id,
+                codebook_id=catalog.get("id"), codebook_version=catalog.get("version"),
             )
+            self.review_dir.mkdir(parents=True, exist_ok=True)
+            (self.review_dir / 'reviewer.json').write_text(json.dumps({'name': required('reviewer')}), encoding='utf-8')
+            if form.get('advance', [''])[0] == 'yes':
+                latest = latest_evidence_action_by_record(review_root)
+                position = records.index(record)
+                ordered = records[position+1:] + records[:position]
+                next_record = next((r for r in ordered if r.record_id not in latest or latest[r.record_id].decision == 'defer'), None)
+                form['item'] = [next_record.record_id if next_record else record.record_id]
             return run_id, f"Recorded evidence decision {action.decision}."
+
+        if path == '/synthesis/start':
+            from qualframe.synthesis_workspace import start_synthesis_job
+            form['job'] = [start_synthesis_job(self, run_id, form)]
+            return run_id, 'Started synthesis. Review the proposed summaries when ready.'
+
+        if path in {'/synthesis/review', '/synthesis/export'}:
+            if required('study_identity') != self.runner.project.project_id:
+                raise ValueError('This tab belongs to another study.')
+            from qualframe.synthesis_review import job_root, read_job, review_statement, latest_summary_actions, export_synthesis
+            from qualframe.synthesis_execution import current_plan
+            target = job_root(artifact_root, required('job'))
+            status, plan, records = read_job(target)
+            current_plan(ProjectRunner(self._managed_project_path()), artifact_root, status['plan_id'])
+            if path == '/synthesis/export':
+                output = export_synthesis(target, inputs_current=True)
+                return run_id, f'Exported reviewed synthesis {output.stem[-12:]}.'
+            review_statement(target, required('item'), decision=required('decision'),
+                reviewer=required('reviewer'), rationale=form.get('rationale',[''])[0],
+                edited_text=form.get('edited_text',[''])[0], evidence_ids=form.get('evidence_id',[]))
+            (self.review_dir/'reviewer.json').write_text(json.dumps({'name':required('reviewer')}),encoding='utf-8')
+            actions=latest_summary_actions(target)
+            position=next(i for i,r in enumerate(records) if r['statement_id']==required('item'))
+            next_item=next((r for r in records[position+1:]+records[:position+1] if actions.get(r['statement_id'],{}).get('decision') not in {'accept','edit','reject'}),None)
+            form['item']=[next_item['statement_id'] if next_item else '']
+            return run_id, 'Recorded summary decision.'
+
+        if path == '/comparison/save':
+            if required('study_identity') != self.runner.project.project_id:
+                raise ValueError('This tab belongs to another study.')
+            from qualframe.run_comparison import write_comparison
+            path = write_comparison(self.repo_root, artifact_root, self._run_root(self.artifacts_dir, required('right_id')))
+            return run_id, f'Saved comparison {path.stem[11:23]}.'
+
+        if path == '/analysis/prepare-synthesis':
+            if required('study_identity') != self.runner.project.project_id:
+                raise ValueError('This tab belongs to another study.')
+            identity = required('snapshot')
+            if len(identity) != 64 or any(c not in '0123456789abcdef' for c in identity):
+                raise ValueError('Select a frozen evidence snapshot.')
+            from qualframe.synthesis_plan import write_synthesis_plan
+            written = write_synthesis_plan(self.repo_root, artifact_root, review_root,
+                artifact_root/'analysis'/f'snapshot-{identity}.json', required('grouping'),
+                project_path=self._managed_project_path(),
+                metadata_field=form.get('metadata_field', [''])[0],
+                metadata_values=form.get('metadata_value'),
+                missing_policy=form.get('missing_policy', ['error'])[0])
+            return run_id, f'Prepared synthesis plan {written.stem[15:27]}. No model requests sent.'
+
+        if path == "/analysis/freeze":
+            if required('study_identity') != self.runner.project.project_id:
+                raise ValueError('This tab belongs to another study. Reopen analysis before freezing.')
+            from qualframe.reviewed_analysis import freeze_reviewed_snapshot
+            freeze_reviewed_snapshot(self.repo_root, artifact_root, review_root, required('reviewer'), selected_sources=form.get('source', []))
+            return run_id, 'Results saved as a snapshot.'
 
         if path == "/export-evidence":
             written = export_evidence_review_package(
@@ -871,7 +1055,7 @@ class DashboardApp:
                     and self.runner.project.governance.require_release_for_export
                 ),
             )
-            return run_id, f"Exported {len(written)} reviewed evidence file(s)."
+            return run_id, "Exported the reviewed coding (Excel and JSON). Download links are below." if form.get("return_to", [""])[0] == "analysis" else "Exported the reviewed coding (Excel and JSON)."
 
         if path == "/cost":
             pause_path = artifact_root / "cost_pause.json"
@@ -921,6 +1105,11 @@ class DashboardApp:
 
         if path == "/gate":
             stage_id = required("stage_id")
+            index = artifact_root / 'evidence_review/index.json'
+            if index.exists() and required('decision') == 'approve':
+                latest = latest_evidence_action_by_record(review_root)
+                if any(r.stage_id == stage_id and (r.record_id not in latest or latest[r.record_id].decision == 'defer') for r in load_evidence_review_records(index)):
+                    raise ValueError('Resolve every coding proposal before approving this review gate.')
             manifest = RunManifest.model_validate_json(
                 (artifact_root / "run_manifest.json").read_text(encoding="utf-8")
             )
@@ -973,9 +1162,82 @@ class DashboardApp:
 
 def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
     class DashboardHandler(BaseHTTPRequestHandler):
+        def _local_request_allowed(self) -> bool:
+            host = self.headers.get("Host", "")
+            allowed = {f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}"}
+            origin = self.headers.get("Origin")
+            if host not in allowed or (origin is not None and origin != f"http://{host}"):
+                self.send_error(HTTPStatus.FORBIDDEN, "Use the local QualFrame browser address.")
+                return False
+            return True
+
         def do_GET(self) -> None:
+            if not self._local_request_allowed():
+                return
             parsed = urlparse(self.path)
             query = parse_qs(parsed.query)
+            kept = {k: v[0] for k, v in query.items() if k not in {"message", "error"}}
+            app._current_path = parsed.path + ("?" + urlencode(kept) if kept else "")
+            if parsed.path.startswith("/static/"):
+                self._send_static(parsed.path.removeprefix("/static/"))
+                return
+            if parsed.path == "/download/example-codebook.xlsx":
+                from qualframe.app_workspace import APP_ROOT
+                data = (APP_ROOT / "demo/datasets/ai-scribe/codebook.xlsx").read_bytes()
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                self.send_header("Content-Disposition", 'attachment; filename="example-codebook.xlsx"')
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            message = query.get("message", [""])[0]
+            error = query.get("error", [""])[0]
+            if parsed.path == "/home" or (app.runner is None and parsed.path not in {"/setup"}):
+                self._send_html(app.render_home(message, error).encode("utf-8"))
+                return
+            if parsed.path in {"/review", "/results"}:
+                from qualframe.study_status import review_run
+                run = review_run(app)
+                if run is None:
+                    self._redirect("/?" + urlencode({"message": "Run coding first; review opens when proposals are ready."}))
+                else:
+                    target = "/evidence?" if parsed.path == "/review" else "/analysis?"
+                    self._redirect(target + urlencode({"run_id": run}))
+                return
+            if parsed.path == "/methods":
+                from qualframe.methods_record import build_methods_record, methods_markdown, render_methods_page
+                run = query.get("run_id", [""])[0]
+                try:
+                    fmt = query.get("format", [""])[0]
+                    if fmt in {"md", "json"}:
+                        record = build_methods_record(app, run)
+                        data = (methods_markdown(record) if fmt == "md" else json.dumps(record, indent=2)).encode("utf-8")
+                        self.send_response(HTTPStatus.OK)
+                        self.send_header("Content-Type", "text/markdown; charset=utf-8" if fmt == "md" else "application/json")
+                        self.send_header("Content-Disposition", f'attachment; filename="methods-record-{run}.{fmt}"')
+                        self.send_header("Content-Length", str(len(data)))
+                        self.end_headers()
+                        self.wfile.write(data)
+                        return
+                    content = render_methods_page(app, run)
+                except (ValueError, OSError) as exc:
+                    content = app._render_workspace_page(title="Methods record", intro="", body=f"<div class='error'>{html.escape(str(exc))}</div>", active="analysis")
+                self._send_html(content.encode("utf-8"))
+                return
+            if parsed.path in {"/codebook", "/sources"}:
+                content = app.render_codebook(message, error) if parsed.path == "/codebook" else app.render_imports(message, error)
+                self._send_html(content.encode("utf-8"))
+                return
+            if parsed.path == "/codebook/excel":
+                try:
+                    workflow = ExcelImportWorkflow(app.study_workspace, app._managed_project_path())
+                    body = mapping_view(workflow, {k: v[0] for k, v in query.items()})
+                    content = app._render_workspace_page(title="Import Excel codebook", intro="Preview, map, and validate your codebook.", body=body)
+                except ValueError as exc:
+                    content = app.render_imports(error=str(exc))
+                self._send_html(content.encode("utf-8"))
+                return
             if parsed.path == "/setup":
                 content = app.render_setup(
                     message=query.get("message", [""])[0],
@@ -1002,6 +1264,56 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
                     error=query.get("error", [""])[0],
                 ).encode("utf-8")
                 self._send_html(content)
+                return
+            if parsed.path in {'/stability', '/repeats', '/empty-output'}:
+                try:
+                    if parsed.path == '/stability':
+                        from qualframe.stability_ui import render_stability
+                        content = render_stability(app, query.get('run', []), query.get('message', [''])[0], query.get('experiment', [''])[0])
+                    elif parsed.path == '/repeats':
+                        from qualframe.repeat_ui import render_repeats
+                        content = render_repeats(app, query.get('experiment', [''])[0], query.get('message', [''])[0])
+                    else:
+                        from qualframe.empty_output_ui import render_empty_output_review
+                        content = render_empty_output_review(app, query.get('run_id', [''])[0], query.get('source', [''])[0], query.get('message', [''])[0])
+                except (ValueError, OSError, RuntimeError) as exc:
+                    content = app._render_workspace_page(title='Review and evaluation', intro='The requested view could not be prepared.', body=f'<p>{html.escape(str(exc))}</p><a href="/compare">Compare runs</a>')
+                self._send_html(content.encode('utf-8'))
+                return
+            if parsed.path == '/benchmark':
+                from qualframe.benchmark_ui import render_benchmark
+                try:
+                    content = render_benchmark(app, query.get('left', [''])[0], query.get('right', [''])[0], query.get('message', [''])[0])
+                except (ValueError, OSError, RuntimeError) as exc:
+                    content = app._render_workspace_page(title='Detailed span benchmark', intro='The selected runs cannot be benchmarked.', body=f'<p>{html.escape(str(exc))}</p><a href="/compare">Choose runs</a>')
+                self._send_html(content.encode('utf-8'))
+                return
+            if parsed.path == '/compare':
+                from qualframe.comparison_ui import render_comparison
+                try:
+                    content = render_comparison(app, query.get('left',[''])[0], query.get('right',[''])[0], query.get('message',[''])[0])
+                except (ValueError, OSError) as exc:
+                    content = app._render_workspace_page(title='Compare coding runs', intro='The selected runs cannot be compared.', body=f'<p>{html.escape(str(exc))}</p><a href="/compare">Choose runs</a>')
+                self._send_html(content.encode('utf-8'))
+                return
+            if parsed.path == '/synthesis':
+                from qualframe.synthesis_workspace import render_synthesis_review
+                try:
+                    content=render_synthesis_review(app, query.get('run_id',[''])[0], query.get('job',[''])[0], query.get('item',[''])[0], query.get('message',[''])[0])
+                except (ValueError,OSError,RuntimeError) as exc:
+                    content=app._render_workspace_page(title='Review proposed summaries',intro='Open a synthesis job from Analyze evidence.',body=f'<p>{html.escape(str(exc))}</p>')
+                self._send_html(content.encode("utf-8"))
+                return
+            if parsed.path == "/analysis":
+                from qualframe.analysis_ui import render_analysis
+                try:
+                    content = render_analysis(app, query.get('run_id', [''])[0],
+                        query.get('snapshot', [''])[0], query.get('code', [''])[0],
+                        query.get('source', [''])[0], query.get('message', [''])[0])
+                except (ValueError, OSError) as exc:
+                    content = app._render_workspace_page(title='Analyze reviewed evidence',
+                        intro='Select a reviewed run to begin.', body=f'<p>{html.escape(str(exc))}</p>')
+                self._send_html(content.encode('utf-8'))
                 return
             if parsed.path == "/evidence":
                 try:
@@ -1062,22 +1374,54 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
             self.wfile.write(content)
 
         def do_POST(self) -> None:
+            if not self._local_request_allowed():
+                return
             length = int(self.headers.get("Content-Length", "0"))
             if length > _MAX_HTTP_BODY:
                 self.send_error(HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
                 return
             body = self.rfile.read(length)
             request_path = urlparse(self.path).path
+            if app.runner is None and request_path not in {"/demo", "/study/open", "/study/create", "/settings/name"}:
+                self._redirect("/home")
+                return
             if request_path.startswith("/import/"):
+                back = "/codebook" if request_path in {"/import/codebook", "/import/cfir", "/import/excel"} else "/imports"
+                fetch = self.headers.get("X-Requested-With") == "fetch"
                 try:
                     fields, files = parse_multipart_form(
-                        self.headers.get("Content-Type", ""), body
+                        self.headers.get("Content-Type", ""), body, allow_multiple=True,
                     )
+                    if request_path == "/import/excel":
+                        uploads = files.get("upload") or []
+                        if not uploads:
+                            raise ValueError("Choose an Excel workbook.")
+                        app.fill_identity(fields, "Imported codebook from Excel")
+                        workflow = ExcelImportWorkflow(app.study_workspace, app._managed_project_path())
+                        token = workflow.stage(uploads[0].filename, uploads[0].content,
+                            fields.get("actor", [""])[0], fields.get("rationale", [""])[0])
+                        self._redirect("/codebook/excel?" + urlencode({"token": token}))
+                        return
                     message = app.handle_upload(request_path, fields, files)
                 except (ValueError, FileExistsError) as exc:
-                    location = "/imports?" + urlencode({"error": str(exc)})
+                    if fetch:
+                        self._send_text("ERROR " + str(exc))
+                        return
+                    location = back + "?" + urlencode({"error": str(exc)})
                 else:
-                    location = "/imports?" + urlencode({"message": message})
+                    if fetch:
+                        self._send_text("OK " + message)
+                        return
+                    location = back + "?" + urlencode({"message": message})
+                self._redirect(location)
+                return
+            if request_path in {"/demo", "/settings/name", "/provider/offline", "/coding/start"}:
+                try:
+                    form = parse_qs(body.decode("utf-8"))
+                    location = app.handle_app_action(request_path, form)
+                except (ValueError, OSError, RuntimeError, PermissionError, FileExistsError) as exc:
+                    fallback = {"/demo": "/home", "/settings/name": "/home"}.get(request_path, "/configure")
+                    location = fallback + "?" + urlencode({"error": str(exc)})
                 self._redirect(location)
                 return
 
@@ -1085,6 +1429,45 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
                 form = parse_qs(body.decode("utf-8"))
             except UnicodeDecodeError:
                 self.send_error(HTTPStatus.BAD_REQUEST, "Invalid form encoding")
+                return
+            if request_path in {"/codebook/preview", "/codebook/commit"}:
+                options = {k: v[0] for k, v in form.items()}
+                try:
+                    workflow = ExcelImportWorkflow(app.study_workspace, app._managed_project_path())
+                    if request_path == "/codebook/commit":
+                        record = workflow.commit(options.get("token", ""), options)
+                        app._refresh_runner()
+                        self._redirect("/imports?" + urlencode({"message": f"Imported {record.original_filename}. Original workbook and mapping preserved."}))
+                        return
+                    content = app._render_workspace_page(title="Review Excel codebook", intro="Check the codes before changing the active version.", body=confirmation_view(workflow, options))
+                except (ValueError, FileExistsError) as exc:
+                    back = "/codebook/excel?" + urlencode({k: options[k] for k in ("token", "sheet", "header_row") if k in options})
+                    content = app._render_workspace_page(title="Check codebook mapping", intro="Your active codebook has not changed.", body=f'<section><p class="error">{html.escape(str(exc))}</p><a href="{html.escape(back)}">Return to mapping</a></section>')
+                self._send_html(content.encode("utf-8"))
+                return
+            if request_path == "/provider/save":
+                try:
+                    with app._job_lock:
+                        if any(job.status == "running" for job in app._jobs.values()):
+                            raise ValueError("Wait for the active run to finish before changing provider settings.")
+                        app.fill_identity(form, "Chose model for coding")
+                        values = {k: v[0] for k, v in form.items()}
+                        settings = ProviderSetup.model_validate({
+                            k: (values.get(k) == "yes" if k == "governance_confirmed" else (values.get(k) or None))
+                            for k in ProviderSetup.model_fields if k in values})
+                        save_provider_setup(app.study_workspace, app._managed_project_path(), settings,
+                            actor=values.get("actor", ""), rationale=values.get("rationale", ""),
+                            api_key=values.get("api_key", ""),
+                            use_environment_key=values.get("use_environment_key") == "yes")
+                        app._refresh_runner()
+                except ValueError as exc:
+                    message = str(exc)
+                    if "validation error" in message:
+                        message = "Check the model settings: " + "; ".join(
+                            line.strip() for line in message.splitlines()[1:] if line.strip() and not line.strip().startswith("For further"))
+                    self._redirect("/configure?" + urlencode({"error": message}))
+                else:
+                    self._redirect("/configure?" + urlencode({"message": "Model saved. No request has been sent."}))
                 return
             if request_path == "/method/update":
                 try:
@@ -1102,20 +1485,39 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
                     location = "/setup?" + urlencode({"error": str(exc)})
                 else:
                     location = "/?" + urlencode(
-                        {
-                            "message": (
-                                f"Created {created.title} with "
-                                f"{created.imported_source_count} imported source file(s)."
-                            )
-                        }
+                        {"message": f"Created {created.title}. Next, add your transcripts and codebook."}
                     )
                 self._redirect(location)
                 return
             try:
                 run_id, message = app.handle_action(request_path, form)
-            except (ValueError, PermissionError, json.JSONDecodeError) as exc:
+            except (ValueError, OSError, RuntimeError, json.JSONDecodeError) as exc:
                 run_id = form.get("run_id", [""])[0]
                 message = f"Action failed: {exc}"
+            if request_path.startswith('/repeats/'):
+                self._redirect('/repeats?' + urlencode({'experiment':form.get('experiment',[''])[0], 'message':message}))
+                return
+            if request_path == '/benchmark/save':
+                self._redirect('/benchmark?' + urlencode({'left':run_id, 'right':form.get('right_id', [''])[0], 'message':message}))
+                return
+            if request_path == '/stability/save':
+                self._redirect('/stability?' + urlencode({'run':form.get('run', []), 'experiment':form.get('experiment', [''])[0], 'message':message}, doseq=True))
+                return
+            if request_path == '/empty-output/review':
+                self._redirect('/empty-output?' + urlencode({'run_id':run_id, 'source':form.get('source',[''])[0], 'message':message}))
+                return
+            if request_path.startswith('/synthesis/'):
+                self._redirect('/synthesis?' + urlencode({'run_id':run_id,'job':form.get('job',[''])[0],'item':form.get('item',[''])[0],'message':message}))
+                return
+            if request_path == '/comparison/save':
+                self._redirect('/compare?' + urlencode({'left':run_id, 'right':form.get('right_id',[''])[0], 'message':message}))
+                return
+            if request_path in {'/analysis/freeze', '/analysis/prepare-synthesis'}:
+                self._redirect('/analysis?' + urlencode({'run_id':run_id, 'snapshot':form.get('snapshot',[''])[0], 'message':message}))
+                return
+            if request_path == "/export-evidence" and form.get("return_to", [""])[0] == "analysis":
+                self._redirect("/analysis?" + urlencode({"run_id": run_id, "message": message}))
+                return
             if request_path in {"/prepare-evidence", "/evidence-action", "/export-evidence"}:
                 params = {
                     "run_id": run_id,
@@ -1126,6 +1528,29 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
             else:
                 location = "/?" + urlencode({"run_id": run_id, "message": message})
             self._redirect(location)
+
+        def _send_static(self, name: str) -> None:
+            static_root = (Path(__file__).parent / "static").resolve()
+            target = (static_root / name).resolve()
+            if not target.is_file() or not target.is_relative_to(static_root):
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
+            types = {".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".woff2": "font/woff2"}
+            data = target.read_bytes()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", types.get(target.suffix, "application/octet-stream"))
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "max-age=3600" if target.suffix == ".woff2" else "no-cache")
+            self.end_headers()
+            self.wfile.write(data)
+
+        def _send_text(self, text: str) -> None:
+            data = text.encode("utf-8")
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
 
         def _send_html(self, content: bytes) -> None:
             self.send_response(HTTPStatus.OK)
@@ -1148,12 +1573,40 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
     return DashboardHandler
 
 
-def serve_dashboard(project_yaml: Path, port: int = 8765) -> None:
-    runner = ProjectRunner(project_yaml.resolve())
-    app = DashboardApp(runner)
-    server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(app))
-    print(f"QualFrame local study workspace: http://127.0.0.1:{port}/")
-    print("Press Ctrl+C to stop.")
+def _qualframe_already_running(port: int) -> bool:
+    from urllib.request import urlopen
+    try:
+        with urlopen(f"http://127.0.0.1:{port}/static/workspace.css", timeout=2) as response:
+            return b"QualFrame workspace" in response.read(300)
+    except OSError:
+        return False
+
+
+def serve_dashboard(project_yaml: Path | None = None, port: int = 8765, *, workspace: Path | None = None,
+                    open_browser: bool = False) -> None:
+    runner = ProjectRunner(project_yaml.resolve()) if project_yaml else None
+    app = DashboardApp(runner, workspace_root=workspace)
+    server = None
+    for candidate in range(port, port + 10):
+        try:
+            server = ThreadingHTTPServer(("127.0.0.1", candidate), make_handler(app))
+            port = candidate
+            break
+        except OSError:
+            if open_browser and _qualframe_already_running(candidate):
+                url = f"http://127.0.0.1:{candidate}/"
+                print(f"QualFrame is already running at {url}; opening it.")
+                import webbrowser
+                webbrowser.open(url)
+                return
+    if server is None:
+        raise SystemExit(f"Ports {port} to {port + 9} are busy. Start with --port to choose another.")
+    url = f"http://127.0.0.1:{port}/"
+    print(f"QualFrame is running at {url}")
+    print("Keep this window open while you work. Press Ctrl+C to stop.")
+    if open_browser:
+        import webbrowser
+        threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:

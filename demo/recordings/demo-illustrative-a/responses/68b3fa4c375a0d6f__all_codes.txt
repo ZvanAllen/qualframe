@@ -1,0 +1,70 @@
+{
+ "codings": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "org_leadership",
+   "quote": "Our executive director signed us up, and then there was a staff meeting where we were told it was coming.",
+   "rationale": "Adoption decided by leadership with little consultation."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "org_leadership",
+   "quote": "I think some people felt it was decided for us.",
+   "rationale": "Staff felt excluded from the decision."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "tech_accuracy",
+   "quote": "If someone tells me they're sleeping in their car this week, that's the most important thing in the visit, and the draft might mention it in one line at the bottom, or leave it out entirely.",
+   "rationale": "Drafts omit or downplay social context."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "people_trust",
+   "quote": "I worry that if people stop editing carefully, the record will slowly lose that information, and then planning and funding decisions that rely on the record will miss it too.",
+   "rationale": "Over-reliance on drafts could degrade the record."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "people_relationship",
+   "quote": "One woman stopped mid-sentence and asked, \"Is that thing getting this?\"",
+   "rationale": "The tool changed what a patient was willing to say."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "patients_consent",
+   "quote": "Anything involving substance use, intimate partner violence, or child protection, I just don't use it.",
+   "rationale": "Sensitive topics where recording is avoided."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "org_privacy",
+   "quote": "when I asked about legal requests for records, or about errors in the note being used in court, nobody had an answer for me.",
+   "rationale": "Unanswered governance questions about legal use."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "tech_integration",
+   "quote": "Our clinic uses a different record system from the one the vendor built their connection for, so we copy and paste everything.",
+   "rationale": "No connection to the clinic's record system."
+  },
+  {
+   "meaning_unit": "mu-9",
+   "code_id": "people_workload",
+   "quote": "For complex visits, it's close to neutral, because of all the editing and adding back context.",
+   "rationale": "Little time saved for complex visits."
+  },
+  {
+   "meaning_unit": "mu-10",
+   "code_id": "org_training",
+   "quote": "Nobody covered the things I actually needed, like how to edit efficiently, or how to explain it to patients with limited English.",
+   "rationale": "Training did not cover practical needs."
+  },
+  {
+   "meaning_unit": "mu-11",
+   "code_id": "org_leadership",
+   "quote": "We have a group of patients who advise the clinic, and they were never consulted.",
+   "rationale": "Patient advisors were not consulted."
+  }
+ ]
+}

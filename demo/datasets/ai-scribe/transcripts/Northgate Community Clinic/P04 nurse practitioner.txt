@@ -1,0 +1,47 @@
+QualFrame demo transcript. Fictional interview written for software demonstration; not research data.
+Study: Adopting an AI documentation assistant in primary care
+Participant P04, nurse practitioner, Northgate Community Clinic
+
+Interviewer: How did the documentation assistant come to Northgate?
+
+Participant: The regional health authority offered it to a handful of community clinics as part of a pilot. Our executive director signed us up, and then there was a staff meeting where we were told it was coming. It wasn't a long conversation. I think some people felt it was decided for us.
+
+Interviewer: How did you feel about it?
+
+Participant: Curious, a bit skeptical. A lot of my patients have complex social situations, housing, addictions, immigration stress. I wasn't sure a tool trained on, I don't know, suburban visits would capture what matters in mine.
+
+Interviewer: Has it?
+
+Participant: Partly. It's good at the medical parts: symptoms, medications, the plan. It's weaker on the social context. If someone tells me they're sleeping in their car this week, that's the most important thing in the visit, and the draft might mention it in one line at the bottom, or leave it out entirely. So I add it back. The note ends up more clinical than the visit was.
+
+Interviewer: What do you make of that?
+
+Participant: It's a real gap for our population. The things that drive health outcomes for my patients are often not the things the software thinks are important. I worry that if people stop editing carefully, the record will slowly lose that information, and then planning and funding decisions that rely on the record will miss it too.
+
+Interviewer: How has it affected your conversations with patients?
+
+Participant: Mixed. With some patients, it's lovely, I can just listen. With others, especially people who've had bad experiences with institutions, the idea that something is listening changes the conversation. One woman stopped mid-sentence and asked, "Is that thing getting this?" She was about to tell me about her partner. I turned it off and she continued, but I could see the trust had dipped for a minute.
+
+Interviewer: So you turn it off sometimes.
+
+Participant: Often, actually. Maybe a third of my visits. Anything involving substance use, intimate partner violence, or child protection, I just don't use it. Partly for the patient's comfort, partly because I'm not confident enough about where that audio goes, even with what we've been told.
+
+Interviewer: What have you been told?
+
+Participant: That it's deleted after the note is created. We got a short document from the health authority. It answered the basic questions, but when I asked about legal requests for records, or about errors in the note being used in court, nobody had an answer for me. Our policy is basically "use your professional judgement," which I appreciate, but it puts it back on us.
+
+Interviewer: Let's talk about the technical side. How does it fit with your charting?
+
+Participant: Not well. Our clinic uses a different record system from the one the vendor built their connection for, so we copy and paste everything. It also doesn't know our templates, so the structure of the draft doesn't match the structure our charts are supposed to follow. I spend time rearranging sections.
+
+Interviewer: Does it still save you time overall?
+
+Participant: For straightforward visits, yes, maybe ten minutes each. For complex visits, it's close to neutral, because of all the editing and adding back context. Overall it's positive but less dramatic than the brochure suggested.
+
+Interviewer: Did you get enough training?
+
+Participant: We had one session from the health authority, online. It covered how to start and stop it. Nobody covered the things I actually needed, like how to edit efficiently, or how to explain it to patients with limited English. Another NP and I made our own cheat sheet and shared it around.
+
+Interviewer: If you could change one thing about how it was introduced, what would it be?
+
+Participant: Ask the people who'll use it, before signing up. And ask our patients, through our community advisory group. We have a group of patients who advise the clinic, and they were never consulted. I think they'd have had good ideas about consent, and about when it shouldn't be used at all.

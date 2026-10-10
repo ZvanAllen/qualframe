@@ -1,0 +1,118 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "The regional health authority offered it to a handful of community clinics as part of a pilot. Our executive director signed us up, and then there was a staff meeting where we were told it was coming.",
+      "code_id": "org_leadership",
+      "rationale": "Describes the pilot and the executive director's decision to adopt, with staff informed afterward."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "It wasn't a long conversation. I think some people felt it was decided for us.",
+      "code_id": "org_leadership",
+      "rationale": "Describes limited staff involvement and a perception that adoption was imposed."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "It's good at the medical parts: symptoms, medications, the plan. It's weaker on the social context. If someone tells me they're sleeping in their car this week, that's the most important thing in the visit, and the draft might mention it in one line at the bottom, or leave it out entirely.",
+      "code_id": "tech_accuracy",
+      "rationale": "Evaluates how faithfully drafts capture visits, including explicit omissions of important social information."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "So I add it back.",
+      "code_id": "people_workload",
+      "rationale": "Describes corrective documentation work required to restore omitted context."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "I worry that if people stop editing carefully, the record will slowly lose that information, and then planning and funding decisions that rely on the record will miss it too.",
+      "code_id": "people_trust",
+      "rationale": "Expresses concern about insufficient checking of drafts and the consequences of relying on inadequately edited records."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "With some patients, it's lovely, I can just listen.",
+      "code_id": "people_relationship",
+      "rationale": "Describes improved attention to patients during the visit."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "With others, especially people who've had bad experiences with institutions, the idea that something is listening changes the conversation. One woman stopped mid-sentence and asked, \"Is that thing getting this?\" She was about to tell me about her partner. I turned it off and she continued, but I could see the trust had dipped for a minute.",
+      "code_id": "people_relationship",
+      "rationale": "Describes interrupted disclosure and a temporary loss of rapport associated with the tool listening."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "With others, especially people who've had bad experiences with institutions, the idea that something is listening changes the conversation. One woman stopped mid-sentence and asked, \"Is that thing getting this?\" She was about to tell me about her partner. I turned it off and she continued, but I could see the trust had dipped for a minute.",
+      "code_id": "patients_consent",
+      "rationale": "The patient's question and interrupted disclosure indicate discomfort with being recorded; she resumes after recording stops."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "Anything involving substance use, intimate partner violence, or child protection, I just don't use it. Partly for the patient's comfort, partly because I'm not confident enough about where that audio goes, even with what we've been told.",
+      "code_id": "patients_consent",
+      "rationale": "Patient comfort with recording sensitive disclosures is an explicit reason for withholding use."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "Anything involving substance use, intimate partner violence, or child protection, I just don't use it. Partly for the patient's comfort, partly because I'm not confident enough about where that audio goes, even with what we've been told.",
+      "code_id": "org_privacy",
+      "rationale": "Uncertainty about where recorded audio goes influences whether the participant uses the tool."
+    },
+    {
+      "meaning_unit": "mu-9",
+      "quote": "That it's deleted after the note is created. We got a short document from the health authority. It answered the basic questions, but when I asked about legal requests for records, or about errors in the note being used in court, nobody had an answer for me.",
+      "code_id": "org_privacy",
+      "rationale": "Describes guidance on audio retention and unresolved governance questions about legal access and use of erroneous records."
+    },
+    {
+      "meaning_unit": "mu-10",
+      "quote": "Our policy is basically \"use your professional judgement,\" which I appreciate, but it puts it back on us.",
+      "code_id": "org_privacy",
+      "rationale": "Describes an institutional policy that leaves decisions and responsibility with individual clinicians."
+    },
+    {
+      "meaning_unit": "mu-11",
+      "quote": "Our clinic uses a different record system from the one the vendor built their connection for, so we copy and paste everything.",
+      "code_id": "tech_integration",
+      "rationale": "An incompatible record system requires manual transfer of drafts."
+    },
+    {
+      "meaning_unit": "mu-12",
+      "quote": "It also doesn't know our templates, so the structure of the draft doesn't match the structure our charts are supposed to follow. I spend time rearranging sections.",
+      "code_id": "tech_integration",
+      "rationale": "Draft structure does not match clinic templates, requiring sections to be rearranged."
+    },
+    {
+      "meaning_unit": "mu-12",
+      "quote": "It also doesn't know our templates, so the structure of the draft doesn't match the structure our charts are supposed to follow. I spend time rearranging sections.",
+      "code_id": "people_workload",
+      "rationale": "The participant explicitly reports spending time restructuring drafts."
+    },
+    {
+      "meaning_unit": "mu-13",
+      "quote": "For straightforward visits, yes, maybe ten minutes each. For complex visits, it's close to neutral, because of all the editing and adding back context. Overall it's positive but less dramatic than the brochure suggested.",
+      "code_id": "people_workload",
+      "rationale": "Compares time savings across visit types and explains how editing reduces the overall benefit."
+    },
+    {
+      "meaning_unit": "mu-14",
+      "quote": "We had one session from the health authority, online. It covered how to start and stop it. Nobody covered the things I actually needed, like how to edit efficiently, or how to explain it to patients with limited English.",
+      "code_id": "org_training",
+      "rationale": "Describes onboarding content and gaps in practical training needed for editing and patient explanation."
+    },
+    {
+      "meaning_unit": "mu-15",
+      "quote": "Another NP and I made our own cheat sheet and shared it around.",
+      "code_id": "org_training",
+      "rationale": "Describes locally developed guidance shared with colleagues."
+    },
+    {
+      "meaning_unit": "mu-16",
+      "quote": "Ask the people who'll use it, before signing up. And ask our patients, through our community advisory group. We have a group of patients who advise the clinic, and they were never consulted.",
+      "code_id": "org_leadership",
+      "rationale": "Calls for staff and patient involvement in adoption decisions and identifies an existing advisory group that was not consulted."
+    }
+  ]
+}

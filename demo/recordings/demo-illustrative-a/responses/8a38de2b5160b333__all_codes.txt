@@ -1,0 +1,70 @@
+{
+ "codings": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "patients_consent",
+   "quote": "The first time, I didn't really understand what I was agreeing to.",
+   "rationale": "Consent without understanding."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "patients_consent",
+   "quote": "The question was just phrased in a way that made it sound like a spell-checker.",
+   "rationale": "How the consent question was framed."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "patients_experience",
+   "quote": "She looked at me the whole time. I felt like she was really hearing me, instead of half-listening while she typed.",
+   "rationale": "A better visit when the tool was used."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "patients_consent",
+   "quote": "the tool itself made the visit better, but the way I was asked made me feel less in control.",
+   "rationale": "Separates visit quality from how consent was sought."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "patients_experience",
+   "quote": "He seemed a little surprised and then typed a lot, and the visit felt rushed.",
+   "rationale": "Declining led to a worse visit experience."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "org_leadership",
+   "quote": "We meet every two months, and nobody brought it to us before it started.",
+   "rationale": "Patient advisors were not consulted."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "patients_consent",
+   "quote": "People want to be asked clearly, in plain language, and ideally before they're sitting in the room with the doctor, when it's harder to say no.",
+   "rationale": "Preferences about when and how consent is asked."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "patients_experience",
+   "quote": "Some people wanted to know if they could read the note afterwards to check it was right.",
+   "rationale": "Patients want to see their notes."
+  },
+  {
+   "meaning_unit": "mu-9",
+   "code_id": "patients_consent",
+   "quote": "A few people, especially those who've been through the system in hard ways, said they would never agree to it and wanted to be sure that wouldn't be held against them.",
+   "rationale": "Refusal without penalty."
+  },
+  {
+   "meaning_unit": "mu-10",
+   "code_id": "patients_consent",
+   "quote": "Make it easy to say no, and make sure saying no doesn't mean a shorter visit.",
+   "rationale": "Recommendation about declining."
+  },
+  {
+   "meaning_unit": "mu-11",
+   "code_id": "org_leadership",
+   "quote": "We just want to be part of the decision, not something that happens to us.",
+   "rationale": "Patients want a role in adoption decisions."
+  }
+ ]
+}

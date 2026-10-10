@@ -1,0 +1,64 @@
+{
+ "codings": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "patients_consent",
+   "quote": "\"Is the doctor recording me?\" is the big one.",
+   "rationale": "Patients' questions about being recorded."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "patients_consent",
+   "quote": "An older gentleman asked me whether the government would get the recording.",
+   "rationale": "A patient's concern about who can access the recording."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "org_training",
+   "quote": "Nobody had told us much, it was mainly the doctors who got trained.",
+   "rationale": "Front desk staff were not trained initially."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "patients_consent",
+   "quote": "I put a little flag on their appointment so the doctor knows before they walk in.",
+   "rationale": "A local workaround so patients who decline do not have to repeat it."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "people_workload",
+   "quote": "The doctors are a bit more on time in the afternoons, I've noticed that.",
+   "rationale": "Effect on the pace of the clinic day."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "tech_usability",
+   "quote": "When the phone app doesn't work, the doctor sometimes comes out to the desk to ask for a charger or for help, and I'm not tech support.",
+   "rationale": "Device and app problems during clinic."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "patients_experience",
+   "quote": "when a patient declines, the doctor goes back to typing, and you can tell they're a bit slower that day.",
+   "rationale": "Visits differ for patients who decline."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "patients_consent",
+   "quote": "I've wondered whether some people say yes because they think it's expected.",
+   "rationale": "Concern that consent may not be freely given."
+  },
+  {
+   "meaning_unit": "mu-9",
+   "code_id": "org_training",
+   "quote": "Train the front desk at the same time as the doctors.",
+   "rationale": "Recommendation about who is trained."
+  },
+  {
+   "meaning_unit": "mu-10",
+   "code_id": "patients_consent",
+   "quote": "We have a lot of patients who speak Punjabi and Arabic, and right now it's only in English and French.",
+   "rationale": "Consent information is not available in patients' languages."
+  }
+ ]
+}

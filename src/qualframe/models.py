@@ -10,8 +10,34 @@ class ProviderConfig(BaseModel):
     name: str = "mock"
     model: str | None = None
     api_key_env: str | None = None
-    temperature: float = 0.0
+    temperature: float | None = 0.0
     max_tokens: int = 4000
+    api_mode: Literal["chat_completions", "responses"] = "chat_completions"
+    reasoning_effort: Literal["none", "minimal", "low", "medium", "high", "xhigh", "max"] | None = None
+
+    anthropic_effort: Literal["low", "medium", "high", "xhigh", "max"] | None = None
+    base_url: str | None = Field(
+        default=None,
+        description="OpenAI-compatible endpoint, e.g. a local Ollama server or Azure OpenAI /openai/v1/.",
+    )
+
+    @model_validator(mode="after")
+    def validate_effort(self):
+        if self.name == "openai_compatible" and not (self.base_url or "").strip():
+            raise ValueError("An OpenAI-compatible provider needs an endpoint address.")
+        if self.base_url and self.name != "openai_compatible":
+            raise ValueError("Endpoint addresses apply only to OpenAI-compatible providers.")
+        if self.reasoning_effort is not None and (self.name != "openai" or self.api_mode != "responses"):
+            raise ValueError("Reasoning effort currently requires OpenAI Responses.")
+        if self.reasoning_effort is not None and self.temperature is not None:
+            raise ValueError("Omit temperature when configuring reasoning effort.")
+        if self.anthropic_effort is not None and self.name != "anthropic":
+            raise ValueError("Anthropic effort requires Anthropic.")
+        if self.anthropic_effort is not None and self.temperature is not None:
+            raise ValueError("Omit temperature when configuring Anthropic effort.")
+        if self.api_mode == "responses" and self.name != "openai":
+            raise ValueError("Responses API mode requires OpenAI.")
+        return self
 
 
 class GovernanceConfig(BaseModel):
@@ -85,6 +111,7 @@ class MethodSpec(BaseModel):
     version: str
     name: str
     analysis_family: Literal["directed_content_analysis"] = "directed_content_analysis"
+    evidence_location: Literal["model_offsets", "unique_exact_quote"] = "model_offsets"
     segmentation: SegmentationPolicy = Field(default_factory=SegmentationPolicy)
     context: ContextWindowPolicy = Field(default_factory=ContextWindowPolicy)
     coding: CodingPolicy = Field(default_factory=CodingPolicy)
@@ -399,6 +426,13 @@ class EvidenceReviewRecord(BaseModel):
     proposed_start_offset: int
     proposed_end_offset: int
     proposed_exact_text: str
+    raw_start_value: str | None = None
+    raw_end_value: str | None = None
+    anchoring_method: Literal["model_offsets", "unique_exact_quote", "unresolved_exact_quote", "normalized_quote_candidate", "no_evidence"] = "model_offsets"
+    record_kind: Literal["evidence", "absence"] = "evidence"
+    proposed_code_id: str | None = None
+    proposed_rationale: str | None = None
+    anchor_match_count: int | None = None
     context_text: str | None = None
     evidence_span: EvidenceSpan | None = None
     assignment: CodeAssignment | None = None
@@ -496,6 +530,9 @@ class SourceImportRecord(BaseModel):
     provenance: Literal["checked_in_synthetic_fixture", "researcher_import"]
     imported_by: str | None = None
     rationale: str | None = None
+    original_path: str | None = None
+    original_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    conversion_path: str | None = None
 
 
 class CreatedStudy(BaseModel):
@@ -508,6 +545,7 @@ class CreatedStudy(BaseModel):
 
 
 class MethodPolicyUpdate(BaseModel):
+    context_unit: Literal["characters", "sentences", "paragraphs"] = "sentences"
     segmentation_strategy: Literal[
         "model_proposed",
         "researcher_presegmented",
@@ -615,6 +653,7 @@ class StageArtifact(BaseModel):
     input_sha256: str | None
     prompt_ref: str | None
     prompt_sha256: str
+    evidence_location: Literal["model_offsets", "unique_exact_quote"] = "model_offsets"
     response_text: str
     model: str | None
     provider: str | None
@@ -622,6 +661,8 @@ class StageArtifact(BaseModel):
     # sheet_name → list of row dicts; None if parsing produced no tables
     parsed_output: dict[str, list[dict[str, str]]] | None = None
     structured_output_schema_id: str | None = None
+    # Scoped contracts bind resumed artifacts to their original validation/QA policy.
+    structured_output_contract_sha256: str | None = None
     structured_output_valid: bool | None = None
     structured_output_issues: list[str] = Field(default_factory=list)
 
@@ -639,6 +680,8 @@ class RunManifest(BaseModel):
     # paths to each StageArtifact JSON, relative to the run's artifact_root directory
     artifact_paths: list[str] = Field(default_factory=list)
     qa_failure_count: int = 0
+    qa_inventory_path: str | None = None
+    qa_inventory_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     status: Literal["completed", "awaiting_review", "blocked_validation"] = "completed"
     pending_gate: str | None = None
     approved_gates: list[str] = Field(default_factory=list)
@@ -711,6 +754,27 @@ class AdjudicationAction(BaseModel):
 class StageOutputRule(BaseModel):
     required_columns: list[str] = Field(default_factory=list)
     require_rows: bool = True
+    exact_column_order: bool = False
+    allowed_values: dict[str, list[str]] = Field(default_factory=dict)
+    required_values: dict[str, list[str]] = Field(default_factory=dict)
+    # None preserves framework-level rules and required columns. [] disables only
+    # framework QA for this stage; structured-output validation remains enforced.
+    qa_rules: list[Literal[
+        "required_columns_present", "allowed_network_labels_only",
+        "one_network_one_valence", "source_files_covered_by_valence_columns",
+        "prompt_version_required",
+    ]] | None = None
+
+    @model_validator(mode="after")
+    def validate_column_values(self):
+        for column in self.allowed_values.keys() | self.required_values.keys():
+            if column not in self.required_columns:
+                raise ValueError(f"Constrained column '{column}' must be required.")
+            allowed = self.allowed_values.get(column)
+            required = self.required_values.get(column, [])
+            if allowed is not None and not set(required).issubset(allowed):
+                raise ValueError(f"Required values for '{column}' must be allowed.")
+        return self
 
 
 class StageOutputSpec(BaseModel):

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 
-
 # Matches headings like:
 #   ## Sheet: Innovation Domain
 #   ## Sheet: Innovation
@@ -59,7 +58,7 @@ def parse_markdown_tables(text: str) -> dict[str, list[dict[str, str]]]:
     if not headings:
         # No sheet headings — try parsing the whole text as one table
         rows = _extract_table_rows(text)
-        if rows:
+        if rows or strict_empty_tables(text):
             return {"output": rows}
         return {}
 
@@ -69,9 +68,11 @@ def parse_markdown_tables(text: str) -> dict[str, list[dict[str, str]]]:
         end = headings[idx + 1][0] if idx + 1 < len(headings) else len(text)
         section = text[pos:end]
         rows = _extract_table_rows(section)
-        if rows:
+        if rows or strict_empty_tables(section):
             # Normalise sheet name: strip leading "Sheet N:" artefacts if any
-            clean = re.sub(r"^(?:Sheet|Worksheet)\s*\d*\s*:?\s*", "", sheet_name, flags=re.IGNORECASE).strip()
+            clean = re.sub(
+                r"^(?:Sheet|Worksheet)\s*\d*\s*:?\s*", "", sheet_name, flags=re.IGNORECASE
+            ).strip()
             result[clean or sheet_name] = rows
 
     return result
@@ -140,3 +141,135 @@ def _extract_table_rows(section: str) -> list[dict[str, str]]:
             rows.append(row)
 
     return rows
+
+
+def strict_empty_tables(text: str) -> list[dict[str, object]]:
+    """Recognize explicit header-only tables, never arbitrary missing output.
+
+    Every nonblank line must be a heading, code fence, or one of exactly two
+    table lines. A malformed separator, empty data row, prose, missing header,
+    truncated row, or populated table makes this conservative recognizer fail.
+    Headers are retained so callers can validate a frozen output contract.
+    """
+    tables: list[dict[str, object]] = []
+    lines = text.splitlines()
+    heading = "output"
+    fence_open = False
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        i += 1
+        if not line:
+            continue
+        if line in {"```", "```markdown", "```md"}:
+            if fence_open and line != "```":
+                return []
+            fence_open = not fence_open
+            continue
+        match = _SHEET_HEADING.fullmatch(line)
+        if match:
+            heading = re.sub(
+                r"^(?:Sheet|Worksheet)\s*\d*\s*:?\s*", "", match.group(1), flags=re.IGNORECASE
+            ).strip()
+            continue
+        if not _TABLE_ROW.fullmatch(line) or i >= len(lines):
+            return []
+        headers = _parse_row(line)
+        separator = lines[i].strip()
+        i += 1
+        if not _SEPARATOR_ROW.fullmatch(separator):
+            return []
+        dividers = _parse_row(separator)
+        if (
+            not headers
+            or any(not h for h in headers)
+            or len(headers) != len(set(headers))
+            or len(dividers) != len(headers)
+            or any(re.fullmatch(r":?-{3,}:?", d) is None for d in dividers)
+        ):
+            return []
+        tables.append({"sheet": heading, "headers": headers})
+    return [] if fence_open else tables
+
+
+# --- JSON coding output (directed coding prompt v3) -------------------------------
+
+_JSON_FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL | re.IGNORECASE)
+CODING_COLUMNS = ("Meaning Unit ID", "Evidence Start", "Evidence End", "Exact Evidence", "Code ID", "Rationale")
+
+
+def _json_candidate(text: str) -> str | None:
+    stripped = text.strip()
+    fenced = _JSON_FENCE.match(stripped)
+    if fenced:
+        stripped = fenced.group(1).strip()
+    if stripped.startswith("{"):
+        return stripped
+    start, end = stripped.find("{"), stripped.rfind("}")
+    if start >= 0 and end > start and '"codings"' in stripped[start:end]:
+        return stripped[start:end + 1]
+    return None
+
+
+def parse_coding_json(text: str) -> dict[str, list[dict[str, str]]] | None:
+    """Convert a ``{"codings": [...]}`` response into the coding table the review uses.
+
+    Returns None when the text is not a codings object, so callers can fall back to
+    markdown tables. Quotations keep their exact characters: the review step reverses
+    the ``&`` escaping applied here and then searches the transcript for the quotation.
+    """
+    import json
+
+    candidate = _json_candidate(text)
+    if candidate is None:
+        return None
+    try:
+        payload = json.loads(candidate)
+    except ValueError:
+        return None
+    if not isinstance(payload, dict) or not isinstance(payload.get("codings"), list):
+        return None
+    rows: list[dict[str, str]] = []
+    for index, item in enumerate(payload["codings"], start=1):
+        if not isinstance(item, dict):
+            continue
+        quote = str(item.get("quote", ""))
+        rows.append({
+            "Meaning Unit ID": str(item.get("meaning_unit") or f"mu-{index}").strip(),
+            "Evidence Start": "auto",
+            "Evidence End": "auto",
+            "Exact Evidence": quote.replace("&", "&amp;"),
+            "Code ID": str(item.get("code_id", "")).strip(),
+            "Rationale": str(item.get("rationale", "")).strip(),
+        })
+    return {"Directed Coding": rows}
+
+
+def parse_model_output(text: str) -> dict[str, list[dict[str, str]]]:
+    """Parse JSON coding output when present, otherwise markdown tables."""
+    parsed = parse_coding_json(text)
+    return parsed if parsed is not None else parse_markdown_tables(text)
+
+
+def coding_response_schema(code_ids: list[str]) -> dict:
+    """Strict JSON schema for coding responses; code IDs are limited to the active codebook."""
+    code_field: dict = {"type": "string"}
+    if code_ids:
+        code_field["enum"] = sorted(set(code_ids))
+    item = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["meaning_unit", "quote", "code_id", "rationale"],
+        "properties": {
+            "meaning_unit": {"type": "string"},
+            "quote": {"type": "string"},
+            "code_id": code_field,
+            "rationale": {"type": "string"},
+        },
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["codings"],
+        "properties": {"codings": {"type": "array", "items": item}},
+    }

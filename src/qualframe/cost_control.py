@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 import os
 import smtplib
 import ssl
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -24,8 +27,7 @@ from qualframe.providers.base import LLMResponse, LLMUsage, estimate_tokens
 class CostApprovalRequired(RuntimeError):
     def __init__(self, pause: CostPauseRecord, path: Path) -> None:
         super().__init__(
-            f"Cost approval required at USD {pause.threshold_usd:.2f}; "
-            f"pause record: {path}"
+            f"Cost approval required at USD {pause.threshold_usd:.2f}; pause record: {path}"
         )
         self.pause = pause
         self.path = path
@@ -35,8 +37,29 @@ class CostLimitExceeded(RuntimeError):
     pass
 
 
+class UnresolvedRequest(RuntimeError):
+    """A prior submission must be reconciled before another paid request."""
+
+
+@contextmanager
+def request_lock(path: Path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        handle = path.open("x", encoding="utf-8")
+    except FileExistsError as exc:
+        raise UnresolvedRequest(
+            "Another cost check is active or was interrupted; inspect the request lock."
+        ) from exc
+    try:
+        with handle:
+            handle.write(utc_now())
+        yield
+    finally:
+        path.unlink()
+
+
 def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def find_model_pricing(
@@ -46,11 +69,7 @@ def find_model_pricing(
     model: str,
 ) -> ModelPricing:
     match = next(
-        (
-            item
-            for item in snapshot.models
-            if item.provider == provider and item.model == model
-        ),
+        (item for item in snapshot.models if item.provider == provider and item.model == model),
         None,
     )
     if match is None:
@@ -95,7 +114,9 @@ def estimate_request_usage(
     max_output_tokens: int,
 ) -> LLMUsage:
     return LLMUsage(
-        input_tokens=estimate_tokens(system_prompt + user_prompt),
+        # Text-only allowance: UTF-8 bytes plus message framing. This is a local
+        # estimate, not a provider billing guarantee or a tokenizer count.
+        input_tokens=len((system_prompt + user_prompt).encode("utf-8")) + 256,
         output_tokens=max_output_tokens,
     )
 
@@ -104,15 +125,15 @@ def _append_jsonl(path: Path, value: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(value, sort_keys=True) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
 
 
 def _read_jsonl(path: Path) -> list[dict[str, object]]:
     if not path.exists():
         return []
     return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
+        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
     ]
 
 
@@ -169,17 +190,15 @@ def send_cost_email(pause: CostPauseRecord, recipient_env: str | None) -> Notifi
     try:
         port = int(os.getenv("QUALFRAME_SMTP_PORT", "465"))
         message = EmailMessage()
-        message["Subject"] = (
-            f"QualFrame paused for USD {pause.threshold_usd:.2f} cost approval"
-        )
+        message["Subject"] = f"QualFrame paused for USD {pause.threshold_usd:.2f} cost approval"
         message["From"] = sender
         message["To"] = recipient
         message.set_content(
             "QualFrame paused before an external model request.\n\n"
             f"Project: {pause.project_id}\nRun: {pause.run_id}\n"
             f"Stage: {pause.stage_id}\nInput: {pause.input_label}\n"
-            f"Current spend: USD {pause.current_cost_usd:.4f}\n"
-            f"Projected spend: USD {pause.projected_cost_usd:.4f}\n"
+            f"Current budget exposure: USD {pause.current_cost_usd:.4f}\n"
+            f"Projected budget exposure: USD {pause.projected_cost_usd:.4f}\n"
             f"Approval threshold: USD {pause.threshold_usd:.2f}\n\n"
             "Use the local QualFrame approve-cost command to approve or stop. "
             "This email cannot resume the run."
@@ -208,41 +227,227 @@ class CostController:
         provider: str,
         model: str,
         max_output_tokens: int,
+        allow_budget_holds: bool = False,
     ) -> None:
         self.project_id = project_id
         self.run_id = run_id
         self.artifact_root = artifact_root
         self.ledger_path = logs_root / "cost_ledger.jsonl"
+        self.requests_path = logs_root / "request_reservations.jsonl"
         self.approvals_path = logs_root / "cost_approvals.jsonl"
         self.policy = policy
         self.snapshot = pricing_snapshot
-        self.pricing = find_model_pricing(
-            pricing_snapshot, provider=provider, model=model
-        )
+        self.pricing = find_model_pricing(pricing_snapshot, provider=provider, model=model)
         self.provider = provider
         self.model = model
         self.max_output_tokens = max_output_tokens
+        # Explicit recovery only. Ordinary browser/CLI jobs still require usage.
+        self.allow_budget_holds = allow_budget_holds
+        self.holds_path = logs_root / "unresolved_budget_holds.jsonl"
+
+    def unresolved_requests(self) -> list[dict[str, object]]:
+        settled = {
+            row["request_id"]
+            for row in _read_jsonl(self.ledger_path)
+            if row.get("project_id") == self.project_id and not row.get("cost_is_estimated")
+        }
+        return [
+            row
+            for row in _read_jsonl(self.requests_path)
+            if row.get("project_id") == self.project_id and row["request_id"] not in settled
+        ]
+
+    def _latest_usage(self) -> list[RequestUsageRecord]:
+        latest = {}
+        for raw in _read_jsonl(self.ledger_path):
+            if raw.get("project_id") == self.project_id:
+                record = RequestUsageRecord.model_validate(raw)
+                latest[record.request_id] = record
+        return list(latest.values())
+
+    @staticmethod
+    def _reservation_hash(request: dict[str, object]) -> str:
+        return hashlib.sha256(
+            json.dumps(request, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+
+    def active_budget_holds(self) -> dict[str, float]:
+        """Unsettled budget exposure, never a substitute for provider usage."""
+        unresolved = {str(row["request_id"]): row for row in self.unresolved_requests()}
+        holds: dict[str, float] = {}
+        for row in _read_jsonl(self.holds_path):
+            if row.get("project_id") != self.project_id:
+                continue
+            request_id = str(row.get("request_id", ""))
+            if request_id not in unresolved:
+                continue
+            request = unresolved[request_id]
+            amount = row.get("reserved_usd")
+            if (
+                type(amount) not in (float, int)
+                or not math.isfinite(amount)
+                or amount <= 0
+                or amount < float(request["estimated_cost_usd"])
+                or row.get("reservation_sha256") != self._reservation_hash(request)
+                or any(
+                    not str(row.get(field, "")).strip()
+                    for field in (
+                        "recorded_by",
+                        "rationale",
+                        "bound_evidence_reference",
+                        "resume_authorization",
+                    )
+                )
+                or request_id in holds
+            ):
+                raise UnresolvedRequest("Invalid or duplicate unresolved-request budget hold.")
+            holds[request_id] = float(amount)
+        return holds
+
+    def blocking_unresolved_requests(self) -> list[dict[str, object]]:
+        unresolved = self.unresolved_requests()
+        if not self.allow_budget_holds:
+            return unresolved
+        holds = self.active_budget_holds()
+        return [row for row in unresolved if row["request_id"] not in holds]
+
+    def budget_exposure_usd(self) -> float:
+        """Latest recorded charges plus outstanding reserves, counted once each."""
+        latest = {row.request_id: row.calculated_cost_usd for row in self._latest_usage()}
+        holds = self.active_budget_holds()
+        for request in self.unresolved_requests():
+            request_id = str(request["request_id"])
+            latest[request_id] = max(
+                latest.get(request_id, 0.0),
+                holds.get(request_id, float(request["estimated_cost_usd"])),
+            )
+        return round(sum(latest.values()), 8)
+
+    def hold_unresolved_request(
+        self,
+        *,
+        request_id: str,
+        reserved_usd: float,
+        recorded_by: str,
+        rationale: str,
+        bound_evidence_reference: str,
+        resume_authorization: str,
+        dry_run: bool = True,
+    ) -> dict[str, object]:
+        """Keep a documented conservative bound inside the existing spending cap.
+
+        Caller must verify a bound for the actual provider/request configuration.
+        A transport failure or the ordinary byte estimate is not that evidence.
+        This does not reconcile usage, clear uncertainty, or resume any work.
+        """
+        if any(
+            not value.strip()
+            for value in (recorded_by, rationale, bound_evidence_reference, resume_authorization)
+        ):
+            raise ValueError(
+                "A budget hold needs a recorder, bound evidence and resume authorization."
+            )
+        if (
+            type(reserved_usd) not in (int, float)
+            or not math.isfinite(reserved_usd)
+            or reserved_usd <= 0
+        ):
+            raise ValueError("The budget hold must be a finite positive USD amount.")
+        with request_lock(self.requests_path.with_suffix(".lock")):
+            request = next(
+                (row for row in self.unresolved_requests() if row["request_id"] == request_id), None
+            )
+            if request is None:
+                raise ValueError("No unresolved request with this identity exists in this study.")
+            if request_id in self.active_budget_holds():
+                raise ValueError("This request already has a budget hold.")
+            if reserved_usd < float(request["estimated_cost_usd"]):
+                raise ValueError("The hold cannot be below the original request allowance.")
+            row = {
+                "kind": "qualframe_unresolved_budget_hold_v1",
+                "request_id": request_id,
+                "project_id": self.project_id,
+                "run_id": request["run_id"],
+                "reservation_sha256": self._reservation_hash(request),
+                "reserved_usd": float(reserved_usd),
+                "recorded_by": recorded_by.strip(),
+                "rationale": rationale.strip(),
+                "bound_evidence_reference": bound_evidence_reference.strip(),
+                "resume_authorization": resume_authorization.strip(),
+                "timestamp_utc": utc_now(),
+                "usage_reconciled": False,
+                "actual_charge_usd": None,
+            }
+            if not dry_run:
+                _append_jsonl(self.holds_path, row)
+            return row
 
     def project_cost_usd(self) -> float:
-        return round(
-            sum(
-                RequestUsageRecord.model_validate(raw).calculated_cost_usd
-                for raw in _read_jsonl(self.ledger_path)
-                if raw.get("project_id") == self.project_id
-            ),
-            8,
-        )
+        return round(sum(row.calculated_cost_usd for row in self._latest_usage()), 8)
 
     def run_cost_usd(self) -> float:
         return round(
             sum(
-                RequestUsageRecord.model_validate(raw).calculated_cost_usd
-                for raw in _read_jsonl(self.ledger_path)
-                if raw.get("project_id") == self.project_id
-                and raw.get("run_id") == self.run_id
+                row.calculated_cost_usd for row in self._latest_usage() if row.run_id == self.run_id
             ),
             8,
         )
+
+    def reconcile_request(
+        self,
+        *,
+        request_id: str,
+        usage: LLMUsage,
+        reviewer: str,
+        rationale: str,
+        evidence_reference: str,
+        response_id: str | None = None,
+    ) -> RequestUsageRecord:
+        """Record provider-confirmed usage; never assumes a failed call was free."""
+        if not reviewer.strip() or not rationale.strip() or not evidence_reference.strip():
+            raise ValueError(
+                "Reconciliation needs a reviewer, rationale, and provider evidence reference."
+            )
+        import dataclasses
+
+        if any(type(value) is not int or value < 0 for value in dataclasses.asdict(usage).values()):
+            raise ValueError("Usage counts must be nonnegative integers.")
+        with request_lock(self.requests_path.with_suffix(".lock")):
+            request = next(
+                (row for row in self.unresolved_requests() if row["request_id"] == request_id), None
+            )
+            if request is None:
+                raise ValueError("No unresolved request with this identity exists in this study.")
+            pricing = ModelPricing.model_validate(request["pricing"])
+            record = RequestUsageRecord(
+                request_id=request_id,
+                response_id=response_id,
+                project_id=self.project_id,
+                run_id=request["run_id"],
+                stage_id=request["stage_id"],
+                input_label=request["input_label"],
+                provider=request["provider"],
+                model=request["model"],
+                timestamp_utc=utc_now(),
+                **dataclasses.asdict(usage),
+                pricing_snapshot_id=request["pricing_snapshot_id"],
+                estimated_cost_usd=request["estimated_cost_usd"],
+                calculated_cost_usd=calculate_cost_usd(usage, pricing),
+                cost_is_estimated=False,
+            )
+            _append_jsonl(
+                self.ledger_path.parent / "usage_reconciliations.jsonl",
+                {
+                    "request_id": request_id,
+                    "reviewer": reviewer.strip(),
+                    "rationale": rationale.strip(),
+                    "evidence_reference": evidence_reference.strip(),
+                    "timestamp_utc": utc_now(),
+                    "record": record.model_dump(),
+                },
+            )
+            _append_jsonl(self.ledger_path, record.model_dump())
+            return record
 
     def preflight(
         self,
@@ -252,14 +457,51 @@ class CostController:
         system_prompt: str,
         user_prompt: str,
     ) -> tuple[str, float]:
-        request_id = f"request-{uuid.uuid4().hex}"
+        with request_lock(self.requests_path.with_suffix(".lock")):
+            if self.blocking_unresolved_requests():
+                raise UnresolvedRequest(
+                    "A previous request has unresolved usage. Reconcile its provider usage "
+                    "before retrying; another request was not sent."
+                )
+            return self._reserve(
+                stage_id=stage_id,
+                input_label=input_label,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+            )
+
+    def estimate_usd(self, *, system_prompt: str, user_prompt: str) -> float:
+        """Read-only bound using the same pricing allowance as request reservation."""
         estimated_usage = estimate_request_usage(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             max_output_tokens=self.max_output_tokens,
         )
-        estimate = calculate_cost_usd(estimated_usage, self.pricing)
-        current = self.project_cost_usd()
+        reserve_pricing = self.pricing.model_copy(
+            update={
+                "input_per_million_usd": max(
+                    self.pricing.input_per_million_usd,
+                    self.pricing.cached_input_per_million_usd or 0,
+                    self.pricing.cache_write_per_million_usd or 0,
+                ),
+                "output_per_million_usd": max(
+                    self.pricing.output_per_million_usd, self.pricing.reasoning_per_million_usd or 0
+                ),
+            }
+        )
+        return calculate_cost_usd(estimated_usage, reserve_pricing)
+
+    def _reserve(
+        self,
+        *,
+        stage_id: str,
+        input_label: str,
+        system_prompt: str,
+        user_prompt: str,
+    ) -> tuple[str, float]:
+        request_id = f"request-{uuid.uuid4().hex}"
+        estimate = self.estimate_usd(system_prompt=system_prompt, user_prompt=user_prompt)
+        current = self.budget_exposure_usd()
         projected = round(current + estimate, 8)
         if projected > self.policy.absolute_limit_usd:
             raise CostLimitExceeded(
@@ -287,9 +529,7 @@ class CostController:
                     created_at_utc=utc_now(),
                 )
                 if self.policy.notification_adapter == "email":
-                    result = send_cost_email(
-                        pause, self.policy.notification_recipient_env
-                    )
+                    result = send_cost_email(pause, self.policy.notification_recipient_env)
                     pause.notification_status = result.status
                     pause.notification_error = result.error
                 pause_path = self.artifact_root / "cost_pause.json"
@@ -297,6 +537,22 @@ class CostController:
                 pause_path.write_text(pause.model_dump_json(indent=2), encoding="utf-8")
                 raise CostApprovalRequired(pause, pause_path)
             threshold += increment
+        _append_jsonl(
+            self.requests_path,
+            {
+                "request_id": request_id,
+                "project_id": self.project_id,
+                "run_id": self.run_id,
+                "stage_id": stage_id,
+                "input_label": input_label,
+                "provider": self.provider,
+                "model": self.model,
+                "estimated_cost_usd": estimate,
+                "timestamp_utc": utc_now(),
+                "pricing": self.pricing.model_dump(),
+                "pricing_snapshot_id": self.snapshot.id,
+            },
+        )
         return request_id, estimate
 
     def record_response(

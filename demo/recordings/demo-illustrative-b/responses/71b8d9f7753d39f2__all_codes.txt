@@ -1,0 +1,52 @@
+{
+ "codings": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "org_leadership",
+   "quote": "Our medical director made the decision, and I made it happen.",
+   "rationale": "Leadership decision and implementation roles."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "org_leadership",
+   "quote": "When the doubters see a colleague leaving on time, that does more than any presentation from me.",
+   "rationale": "Peer champions."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "org_training",
+   "quote": "What actually worked was our own lunch-and-learn, where Dr. Okafor showed her real workflow on a test patient.",
+   "rationale": "Locally led training worked better."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "org_privacy",
+   "quote": "It took six weeks to get written answers.",
+   "rationale": "Slow vendor responses to privacy questions."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "org_privacy",
+   "quote": "A written agreement that audio is deleted after the note is generated, that our data isn't used for training, and that processing happens in Canada.",
+   "rationale": "Contractual data protections."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "org_leadership",
+   "quote": "The licence isn't cheap, and it's per clinician per month.",
+   "rationale": "Cost of the tool."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "patients_consent",
+   "quote": "patients sometimes ask them about it before they see the doctor, and they weren't prepared for those questions at first.",
+   "rationale": "Patients raise consent questions at the front desk."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "tech_integration",
+   "quote": "the copying back and forth is the number one complaint I hear.",
+   "rationale": "Main complaint is moving drafts into the record."
+  }
+ ]
+}

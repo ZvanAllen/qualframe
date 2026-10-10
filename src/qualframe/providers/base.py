@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 
 @dataclass
@@ -16,7 +16,7 @@ class LLMUsage:
 
 
 def estimate_tokens(text: str) -> int:
-    """Return a conservative local token estimate without provider calls."""
+    """Return a rough display estimate without provider calls."""
     return max(1, (len(text) + 3) // 4)
 
 
@@ -27,6 +27,9 @@ class LLMResponse:
     provider: str | None = None
     response_id: str | None = None
     usage: LLMUsage | None = None
+    status: str = "completed"
+    finish_reason: str | None = None
+    service_tier: str | None = None
 
 
 class LLMProvider(ABC):
@@ -39,5 +42,6 @@ class LLMProvider(ABC):
         system_prompt: str,
         user_prompt: str,
         attachments: Sequence[Path] | None = None,
+        response_schema: dict | None = None,
     ) -> LLMResponse:
         raise NotImplementedError

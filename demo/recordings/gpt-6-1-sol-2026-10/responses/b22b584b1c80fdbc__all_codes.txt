@@ -1,0 +1,184 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "I was in the first group at Riverside, so I've seen it go from a bit of a novelty to something I use in most visits.",
+      "code_id": "org_leadership",
+      "rationale": "The participant describes involvement in the clinic's initial adoption group, fitting the inclusion of pilots."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "Honestly, the charting. I was finishing notes at nine or ten at night, three or four nights a week. My partner started calling it my second shift.",
+      "code_id": "people_workload",
+      "rationale": "After-hours documentation burden motivated the participant to adopt the tool."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "When our medical director said we could try a tool that drafts the note from the conversation, I said yes before she finished the sentence.",
+      "code_id": "org_leadership",
+      "rationale": "The medical director offered the opportunity to try the tool, demonstrating leadership involvement in adoption."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "On a good week I'm done with my notes before I leave the building. I'd say I've gained back something like forty-five minutes a day, maybe an hour on a heavy clinic day.",
+      "code_id": "people_workload",
+      "rationale": "The participant reports daily time savings and reduced after-hours charting."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "A bad week is when the drafts need a lot of fixing.",
+      "code_id": "people_workload",
+      "rationale": "The participant identifies substantial draft-editing burden as a feature of bad weeks."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "It's not that it makes things up all the time, but when it does, it's convincing. Last month it wrote that a patient had denied chest pain, and we never discussed chest pain at all. That kind of thing worries me more than a missing detail, because it reads like something I asked.",
+      "code_id": "tech_accuracy",
+      "rationale": "The draft invented a symptom denial and implied a discussion that did not occur."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "I read every note before I sign it. That's non-negotiable for me. But I'll admit that on a busy afternoon my reading gets faster than it should.",
+      "code_id": "people_trust",
+      "rationale": "The participant describes a verification requirement and acknowledges reading drafts less carefully under pressure."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "The risk is that you start to trust it because it's usually right.",
+      "code_id": "people_trust",
+      "rationale": "The participant explicitly identifies the risk of over-reliance on usually correct drafts."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "The risk is that you start to trust it because it's usually right.",
+      "code_id": "tech_accuracy",
+      "rationale": "The passage also makes an explicit judgement that the tool's drafts are usually correct."
+    },
+    {
+      "meaning_unit": "mu-9",
+      "quote": "It's my name on the note. If something is wrong in the record, it's not the software's licence on the line, it's mine.",
+      "code_id": "people_trust",
+      "rationale": "The participant locates professional accountability for record errors with the signing clinician."
+    },
+    {
+      "meaning_unit": "mu-10",
+      "quote": "So I treat it like a draft from a student. A good student, but a student.",
+      "code_id": "people_trust",
+      "rationale": "The student analogy expresses qualified confidence in drafts rather than treating them as authoritative."
+    },
+    {
+      "meaning_unit": "mu-11",
+      "quote": "I've also noticed I'm less sure what I would have written myself. The draft frames the visit for you, and then you edit around its framing.",
+      "code_id": "people_trust",
+      "rationale": "The participant describes how the draft shapes their own judgement and documentation framing."
+    },
+    {
+      "meaning_unit": "mu-12",
+      "quote": "Writing the note used to be part of how I thought through the case. Now I'm reviewing someone else's thinking about my case.",
+      "code_id": "people_trust",
+      "rationale": "The tool changes the participant's clinical reasoning process from writing to reviewing."
+    },
+    {
+      "meaning_unit": "mu-13",
+      "quote": "For the complicated ones, the frail older patient with six problems, I sometimes turn it off and write the assessment myself.",
+      "code_id": "people_trust",
+      "rationale": "In the context of altered case reasoning, the participant preserves independent assessment for complex visits."
+    },
+    {
+      "meaning_unit": "mu-13",
+      "quote": "For the complicated ones, the frail older patient with six problems, I sometimes turn it off and write the assessment myself.",
+      "code_id": "tech_usability",
+      "rationale": "The participant describes selectively turning off the tool when it does not fit the visit."
+    },
+    {
+      "meaning_unit": "mu-14",
+      "quote": "I look at people more. I used to type while they talked, and I'd catch myself saying \"mm-hmm\" to the screen. Now my hands are in my lap and I'm actually watching their face.",
+      "code_id": "people_relationship",
+      "rationale": "The tool reduces screen-directed attention and increases face-to-face attention during visits."
+    },
+    {
+      "meaning_unit": "mu-15",
+      "quote": "One of my long-time patients said, \"You seem less rushed today,\" and I hadn't changed anything except not typing.",
+      "code_id": "patients_experience",
+      "rationale": "A patient perceived the clinician as less rushed when typing was removed from the visit."
+    },
+    {
+      "meaning_unit": "mu-16",
+      "quote": "Most say yes without much thought. I explain that it listens to help write my note, that the audio isn't kept, and that they can say no.",
+      "code_id": "patients_consent",
+      "rationale": "The participant describes patients' agreement and the explanation of the tool and right to decline."
+    },
+    {
+      "meaning_unit": "mu-17",
+      "quote": "Maybe one in twenty says no, usually people who are already uneasy with technology, or someone discussing something very personal. A few people have asked who else can hear it, which is a fair question.",
+      "code_id": "patients_consent",
+      "rationale": "The passage describes refusal, discomfort, and patient questions about who can hear the recording."
+    },
+    {
+      "meaning_unit": "mu-18",
+      "quote": "I tell them what our clinic told us: the recording is processed and then deleted, and the note stays in our record like any other note.",
+      "code_id": "org_privacy",
+      "rationale": "The participant relays clinic-provided information about recording deletion and note storage."
+    },
+    {
+      "meaning_unit": "mu-19",
+      "quote": "I believe that's accurate, but I'm repeating what I was told. I couldn't explain the technical details if someone pushed me.",
+      "code_id": "org_training",
+      "rationale": "In the context of clinic-provided privacy information, the participant identifies a gap in their preparation to explain the tool's data handling."
+    },
+    {
+      "meaning_unit": "mu-20",
+      "quote": "The draft appears in a separate window, and I copy sections into the record. The formatting sometimes breaks, bullet points turn into one long paragraph, and the medication list doesn't land in the medication field, so I retype it.",
+      "code_id": "tech_integration",
+      "rationale": "The participant describes manual transfer, broken formatting, and failure to populate a structured medication field."
+    },
+    {
+      "meaning_unit": "mu-21",
+      "quote": "Our manager says a proper connection is coming. I'll believe it when I see it.",
+      "code_id": "tech_integration",
+      "rationale": "The participant reports a promised direct connection to the health record and doubts about its delivery."
+    },
+    {
+      "meaning_unit": "mu-22",
+      "quote": "Starting it is easy. One button on the phone. What took longer was learning how to talk so that it gets things right.",
+      "code_id": "tech_usability",
+      "rationale": "The participant contrasts easy startup with the learning required to speak effectively for the tool."
+    },
+    {
+      "meaning_unit": "mu-23",
+      "quote": "I've started saying the plan out loud at the end of the visit, which actually helps the patient too, because they hear the plan summarised.",
+      "code_id": "tech_usability",
+      "rationale": "In the context of learning how to speak for the tool, the participant describes a new end-of-visit verbal summarising practice."
+    },
+    {
+      "meaning_unit": "mu-23",
+      "quote": "I've started saying the plan out loud at the end of the visit, which actually helps the patient too, because they hear the plan summarised.",
+      "code_id": "people_relationship",
+      "rationale": "The tool changes the visit conversation by prompting an audible plan summary for the patient."
+    },
+    {
+      "meaning_unit": "mu-24",
+      "quote": "Read every note.",
+      "code_id": "people_trust",
+      "rationale": "The participant recommends verification of every draft rather than uncritical reliance."
+    },
+    {
+      "meaning_unit": "mu-25",
+      "quote": "Turn it off when it doesn't fit the visit.",
+      "code_id": "tech_usability",
+      "rationale": "The participant recommends selective stopping according to fit with the visit."
+    },
+    {
+      "meaning_unit": "mu-26",
+      "quote": "And make sure someone at your clinic can answer the privacy questions properly, because patients will ask you, not the vendor.",
+      "code_id": "org_training",
+      "rationale": "The participant recommends local support capable of answering patients' privacy questions."
+    },
+    {
+      "meaning_unit": "mu-27",
+      "quote": "Only that the time savings are real, and I don't want the worries to drown that out. I'm a better doctor at four in the afternoon than I was a year ago because I'm not dreading the evening.",
+      "code_id": "people_workload",
+      "rationale": "The participant reiterates time savings and links relief from anticipated evening work to improved functioning late in the clinic day."
+    }
+  ]
+}

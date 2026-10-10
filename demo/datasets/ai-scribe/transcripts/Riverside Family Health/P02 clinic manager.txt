@@ -1,0 +1,47 @@
+QualFrame demo transcript. Fictional interview written for software demonstration; not research data.
+Study: Adopting an AI documentation assistant in primary care
+Participant P02, clinic manager, Riverside Family Health
+
+Interviewer: Could you describe your role in bringing the documentation assistant to Riverside?
+
+Participant: I manage operations for the team, so I ended up coordinating most of the rollout: the contract, the devices, the training sessions, the consent forms. Our medical director made the decision, and I made it happen.
+
+Interviewer: How was the decision made?
+
+Participant: It started with burnout. We'd lost two physicians in eighteen months, and in both exit conversations documentation came up. Our medical director had heard about these tools at a conference and asked me to find out what it would take. She was very clear that it would be voluntary and that we'd start small.
+
+Interviewer: Why start small?
+
+Participant: Partly budget, partly caution. We licensed eight seats for a three-month pilot. The idea was that if it went badly, we'd have learned something cheaply. And having a few enthusiastic people go first made a big difference. When the doubters see a colleague leaving on time, that does more than any presentation from me.
+
+Interviewer: What did training look like?
+
+Participant: The vendor ran one webinar, which was fine for the basics but quite generic. What actually worked was our own lunch-and-learn, where Dr. Okafor showed her real workflow on a test patient. People asked practical questions, like what to do when the phone dies mid-visit. After that we set up a channel where people post problems and someone usually answers within the hour.
+
+Interviewer: Who answers?
+
+Participant: Mostly me and two of the physician champions. It's informal. I worry about that, honestly. If either champion leaves, a lot of the know-how leaves with them. We haven't written much down.
+
+Interviewer: You mentioned consent forms. How did you approach privacy?
+
+Participant: That was the slowest part by far. Our privacy officer had a long list of questions for the vendor: where the audio is processed, whether it's stored, whether it's used to train their models, which country the servers are in. It took six weeks to get written answers. Some of the first answers were vague, and we went back twice.
+
+Interviewer: What did you end up with?
+
+Participant: A written agreement that audio is deleted after the note is generated, that our data isn't used for training, and that processing happens in Canada. We also built a one-page patient information sheet and a verbal consent script. The clinicians document consent in the chart each time.
+
+Interviewer: Has documenting consent each time been workable?
+
+Participant: Mostly. It's a click. But the front desk staff noticed patients sometimes ask them about it before they see the doctor, and they weren't prepared for those questions at first. We had to bring them into the training afterwards, which in hindsight we should have done from the start.
+
+Interviewer: What about costs?
+
+Participant: The licence isn't cheap, and it's per clinician per month. For the pilot we used a small innovation fund. To expand, I had to make a case to our board, and the hardest part was putting a number on benefits. Time saved is real, but it doesn't show up as revenue. I ended up framing it around retention: what it costs us to recruit a physician versus what the tool costs.
+
+Interviewer: How did the board respond?
+
+Participant: They approved expansion to the whole team, with a review in a year. One board member asked a pointed question about what happens if the vendor is bought or goes out of business. We didn't have a great answer. We've since added an exit clause about getting our data back, but there's real dependency there.
+
+Interviewer: Looking back, what would you do differently?
+
+Participant: Involve the front desk and nursing staff earlier. Write down the workflow and troubleshooting steps instead of relying on two champions. And push the vendor harder, earlier, on how the drafts get into the health record, because the copying back and forth is the number one complaint I hear.

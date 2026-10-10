@@ -1,0 +1,59 @@
+QualFrame demo transcript. Fictional interview written for software demonstration; not research data.
+Study: Adopting an AI documentation assistant in primary care
+Participant P01, family physician, Riverside Family Health
+
+Interviewer: Thanks for making time. To start, can you tell me how long you've been using the documentation assistant?
+
+Participant: About five months now. I was in the first group at Riverside, so I've seen it go from a bit of a novelty to something I use in most visits. Not all of them, but most.
+
+Interviewer: What made you volunteer for that first group?
+
+Participant: Honestly, the charting. I was finishing notes at nine or ten at night, three or four nights a week. My partner started calling it my second shift. When our medical director said we could try a tool that drafts the note from the conversation, I said yes before she finished the sentence.
+
+Interviewer: And has it changed that second shift?
+
+Participant: It has. On a good week I'm done with my notes before I leave the building. I'd say I've gained back something like forty-five minutes a day, maybe an hour on a heavy clinic day. That's real. That's dinner with my kids.
+
+Interviewer: You said on a good week. What does a bad week look like?
+
+Participant: A bad week is when the drafts need a lot of fixing. It's not that it makes things up all the time, but when it does, it's convincing. Last month it wrote that a patient had denied chest pain, and we never discussed chest pain at all. That kind of thing worries me more than a missing detail, because it reads like something I asked.
+
+Interviewer: How did you catch that one?
+
+Participant: I read every note before I sign it. That's non-negotiable for me. But I'll admit that on a busy afternoon my reading gets faster than it should. The risk is that you start to trust it because it's usually right.
+
+Interviewer: Can you say more about that, the trust part?
+
+Participant: It's my name on the note. If something is wrong in the record, it's not the software's licence on the line, it's mine. So I treat it like a draft from a student. A good student, but a student. I've also noticed I'm less sure what I would have written myself. The draft frames the visit for you, and then you edit around its framing.
+
+Interviewer: That's interesting. Does that concern you?
+
+Participant: A little. Writing the note used to be part of how I thought through the case. Now I'm reviewing someone else's thinking about my case. For simple visits that's fine. For the complicated ones, the frail older patient with six problems, I sometimes turn it off and write the assessment myself.
+
+Interviewer: Let's talk about the visit itself. Has it changed how you are with patients?
+
+Participant: That's the part I didn't expect. I look at people more. I used to type while they talked, and I'd catch myself saying "mm-hmm" to the screen. Now my hands are in my lap and I'm actually watching their face. One of my long-time patients said, "You seem less rushed today," and I hadn't changed anything except not typing.
+
+Interviewer: How do patients respond when you ask to use it?
+
+Participant: Most say yes without much thought. I explain that it listens to help write my note, that the audio isn't kept, and that they can say no. Maybe one in twenty says no, usually people who are already uneasy with technology, or someone discussing something very personal. A few people have asked who else can hear it, which is a fair question.
+
+Interviewer: What do you tell them?
+
+Participant: I tell them what our clinic told us: the recording is processed and then deleted, and the note stays in our record like any other note. I believe that's accurate, but I'm repeating what I was told. I couldn't explain the technical details if someone pushed me.
+
+Interviewer: How does the draft get into your charting system?
+
+Participant: That's clunkier than it should be. The draft appears in a separate window, and I copy sections into the record. The formatting sometimes breaks, bullet points turn into one long paragraph, and the medication list doesn't land in the medication field, so I retype it. Our manager says a proper connection is coming. I'll believe it when I see it.
+
+Interviewer: Was it easy to learn?
+
+Participant: Starting it is easy. One button on the phone. What took longer was learning how to talk so that it gets things right. I've started saying the plan out loud at the end of the visit, which actually helps the patient too, because they hear the plan summarised.
+
+Interviewer: If a colleague at another clinic asked whether they should adopt it, what would you say?
+
+Participant: I'd say yes, but go in with your eyes open. Read every note. Turn it off when it doesn't fit the visit. And make sure someone at your clinic can answer the privacy questions properly, because patients will ask you, not the vendor.
+
+Interviewer: Anything else you'd like to add?
+
+Participant: Only that the time savings are real, and I don't want the worries to drown that out. I'm a better doctor at four in the afternoon than I was a year ago because I'm not dreading the evening.

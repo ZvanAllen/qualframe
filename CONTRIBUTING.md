@@ -1,13 +1,22 @@
 # Contributing
 
-QualFrame is an early research prototype released under the MIT license. Small, testable changes with explicit capability boundaries are welcome.
+Thanks for your interest in QualFrame. Bug reports, usability feedback from researchers, codebook and method examples, and small focused pull requests are all welcome.
 
-- Use Python 3.11+ and run `python -m pytest -q`.
-- Use synthetic fixtures and mock/cached providers; no live model calls in CI.
-- Never include identifiable transcripts, private codebooks, credentials, notification recipients, or derived research outputs.
-- Preserve source files, exact prompt wording, framework labels, and prior review actions.
-- Analysis-setting changes must preserve version and provenance semantics.
-- Verify UI changes in the actual browser using synthetic data.
-- Update `docs/capability_status.md` when behavior changes. Software tests are not methodological validation.
+## Reporting a problem
 
-Issue reports should contain only a minimal synthetic reproduction, expected behavior, observed behavior, and environment information. Keep secrets and real research content out of screenshots and logs.
+Open an issue with what you did, what you expected and what happened, plus your operating system and QualFrame version (shown on the Methods record page). Use the demo study or a small made-up example to show the problem. **Never include real transcripts, participant information, private codebooks or API keys** in issues, screenshots or logs.
+
+## Suggesting an improvement
+
+Researchers' accounts of where the workflow gets in their way are especially useful. Describe the task you were doing and the step that was confusing or slow.
+
+## Code changes
+
+See [docs/development.md](docs/development.md) for setup and layout, and [AGENTS.md](AGENTS.md) for the project's guardrails. In short:
+
+- Python 3.11 or later; run `python -m pytest -q` before opening a pull request.
+- Tests use fictional data and offline providers only. Nothing in CI calls a model.
+- Don't edit released prompt files or change how existing records are read; add a new version.
+- For interface changes, check the page in a browser at desktop and narrow widths, and include a screenshot using the demo study.
+
+By contributing you agree that your contribution is released under the MIT license.

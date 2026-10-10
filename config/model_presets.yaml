@@ -1,0 +1,94 @@
+# Model presets shown on the "Run coding" page.
+#
+# Prices are USD per million tokens at standard (non-batch) rates, copied from the
+# providers' official pricing pages on the date below. They are estimates for
+# budgeting only; your provider bill is authoritative. Update this file (with a
+# new checked date) when prices change. Researchers can override every value.
+#
+# max_tokens caps each response, including any hidden reasoning. Output grows with
+# transcript length, so hosted presets allow 32,000 tokens; you pay only for what is used.
+checked_on: "2026-10-10"
+presets:
+  - id: openai-gpt-6-1-sol
+    label: OpenAI GPT-6.1 Sol
+    summary: Strong general model. A good default for coding quality.
+    provider: openai
+    model: gpt-6.1-sol
+    api_mode: responses
+    reasoning_effort: low
+    temperature: null
+    max_tokens: 32000
+    input_rate: 2.00
+    output_rate: 10.00
+    pricing_source: https://developers.openai.com/api/docs/pricing
+    key_hint: Starts with sk-. Create one at platform.openai.com.
+  - id: openai-gpt-6-luna
+    label: OpenAI GPT-6 Luna
+    summary: Very low cost. Useful for trial runs and repeat-run testing.
+    provider: openai
+    model: gpt-6-luna
+    api_mode: responses
+    reasoning_effort: low
+    temperature: null
+    max_tokens: 32000
+    input_rate: 0.10
+    output_rate: 0.50
+    pricing_source: https://developers.openai.com/api/docs/pricing
+    key_hint: Starts with sk-. Create one at platform.openai.com.
+  - id: anthropic-sonnet-5-5
+    label: Anthropic Claude Sonnet 5.5
+    summary: Strong general model. A good default for coding quality.
+    provider: anthropic
+    model: claude-sonnet-5-5
+    temperature: null
+    max_tokens: 32000
+    input_rate: 2.00
+    output_rate: 10.00
+    pricing_source: https://platform.claude.com/docs/en/about-claude/pricing
+    key_hint: Starts with sk-ant-. Create one at platform.claude.com.
+  - id: anthropic-haiku-5-5
+    label: Anthropic Claude Haiku 5.5
+    summary: Very low cost for transcripts under about 75,000 words.
+    provider: anthropic
+    model: claude-haiku-5-5
+    temperature: null
+    max_tokens: 32000
+    input_rate: 0.10
+    output_rate: 0.50
+    pricing_source: https://platform.claude.com/docs/en/about-claude/pricing
+    key_hint: Starts with sk-ant-. Create one at platform.claude.com.
+  - id: local-ollama
+    label: Local model with Ollama
+    summary: Runs on this computer. Transcripts never leave it and there is no API cost.
+    provider: openai_compatible
+    base_url: http://localhost:11434/v1
+    model: gpt-oss:20b
+    temperature: 0.0
+    max_tokens: 16000
+    input_rate: 0
+    output_rate: 0
+    local: true
+    key_hint: No key needed. Install Ollama, run `ollama pull` for the model you want, and set Ollama's context length to at least 32k in its settings.
+  - id: local-lmstudio
+    label: Local model with LM Studio
+    summary: Runs on this computer through LM Studio's local server. No API cost.
+    provider: openai_compatible
+    base_url: http://localhost:1234/v1
+    model: ""
+    temperature: 0.0
+    max_tokens: 16000
+    input_rate: 0
+    output_rate: 0
+    local: true
+    key_hint: No key needed. Start the local server in LM Studio and use the model's identifier.
+  - id: custom-endpoint
+    label: Azure OpenAI or another compatible endpoint
+    summary: Your institution's endpoint, such as Azure OpenAI (use its /openai/v1/ address).
+    provider: openai_compatible
+    base_url: ""
+    model: ""
+    temperature: null
+    max_tokens: 16000
+    input_rate: 0
+    output_rate: 0
+    key_hint: Use the key and deployment name your institution provides.

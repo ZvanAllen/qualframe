@@ -1,20 +1,16 @@
-# QualFrame public snapshot
+# Working on QualFrame
 
-Build a human-supervised, local-first platform for reproducible, evidence-linked, AI-assisted directed qualitative content analysis. CFIR is the first reference method; preserve its exact prompt wording and framework labels.
-
-Before product changes, read `docs/product_specification.md`, `docs/domain_model.md`, `docs/user_workflows.md`, `docs/model_evaluation_and_cost_control.md`, and `docs/capability_status.md`. Target specifications are not proof of implementation.
+QualFrame is open-source software for AI-assisted directed content analysis: a researcher brings transcripts and a codebook, a model proposes codes with exact quotations, and the researcher reviews every proposal. Read `README.md`, `docs/development.md` and `docs/decisions/0009-researcher-first-v1.md` before making changes. Documents in `docs/reference/` record the September 2026 prototype phase and are not current guidance.
 
 ## Guardrails
 
-- Preserve sources and prior outputs. Generated work belongs in `studies/`, `data/working/`, `artifacts/`, `review_queue/`, `exports/`, or `logs/`.
-- Never commit real research inputs, derived research outputs, private reference workbooks, credentials, or notification recipients.
-- Public examples and ordinary tests use synthetic fixtures and mock/cached providers.
-- External model calls require explicit provider configuration, governance approval, an absolute ceiling, and applicable spending approval.
-- Preserve prompt text; revisions require versioned assets.
-- Python engine state and verified runs are authoritative. Never invent UI metrics or imply planned features work.
-- Use small typed Python 3.11+ modules, side effects at the edges, and dry-run support for major commands.
-- Preserve unrelated changes and completed work.
+- Never commit real research inputs, derived research outputs, private codebooks or workbooks, credentials, or notification recipients. Examples and tests use the fictional fixtures under `demo/` and `tests/`.
+- No live model calls or spending without the owner's explicit approval. Tests and CI use offline or recorded providers only.
+- Never edit a released prompt or overwrite sources, prior outputs or review records. Add a new version instead.
+- The study folder is the source of truth. Pages read state from it; never invent counts, statuses or capabilities in the interface.
+- Interface text names what researchers do, in plain language. Engine terms belong in details and downloaded records.
+- Keep the stack small: Python 3.11+, standard-library web server, server-rendered HTML, no front-end build step.
 
-## Verification
+## Before finishing a change
 
-Run `python -m pytest -q` and both offline demos for execution changes. Check UI changes at desktop and narrow widths. Update architecture, roadmap, and capability status when relevant. Do not publish without owner approval and a reviewed file inventory.
+Run `python -m pytest -q`. For interface changes, open the app (`qualframe start --workspace <tmp>`), go through the demo study, and check the pages at desktop and narrow widths. Do not publish or push without owner approval.

@@ -1,0 +1,74 @@
+id: ai_scribe_adoption
+version: 1.0.0
+name: Adopting an AI documentation assistant
+codes:
+  - id: tech
+    label: Technology characteristics
+    definition: How the documentation assistant's design and performance shape whether and how it is used.
+    inclusion_guidance: Use a child code where one fits. Use this parent only for general comments about the tool as a technology.
+  - id: tech_accuracy
+    label: Accuracy and errors
+    parent_id: tech
+    definition: Whether drafted notes correctly reflect what happened in the visit.
+    inclusion_guidance: Include errors, invented content, omissions, misattributed statements, and judgements about how often drafts are right.
+    exclusion_guidance: Time spent correcting drafts belongs in Workload and time. Missing social context belongs here only when described as an error or omission.
+  - id: tech_usability
+    label: Ease of use
+    parent_id: tech
+    definition: How easy the tool is to start, run, and fit into the flow of a visit.
+    inclusion_guidance: Include starting and stopping, devices and batteries, learning to speak so the tool captures the plan, and turning it on or off.
+    exclusion_guidance: Moving drafts into the health record belongs in Fit with the health record.
+  - id: tech_integration
+    label: Fit with the health record
+    parent_id: tech
+    definition: How drafted notes move into the electronic medical record and match its structure.
+    inclusion_guidance: Include copying and pasting, formatting problems, templates, structured fields, and requests for a direct connection.
+  - id: people
+    label: Clinicians and staff
+    definition: Effects on the people who use the tool or work around it.
+    inclusion_guidance: Use a child code where one fits.
+  - id: people_workload
+    label: Workload and time
+    parent_id: people
+    definition: Effects on documentation time, after-hours charting, editing burden, and the pace of the clinic day.
+    inclusion_guidance: Include time saved or lost, evening charting, running late, and effort spent checking drafts.
+  - id: people_trust
+    label: Trust and professional judgement
+    parent_id: people
+    definition: Confidence in the tool's drafts, accountability for the record, and effects on clinical reasoning or learning.
+    inclusion_guidance: Include responsibility for signed notes, over-reliance, reading drafts less carefully, deskilling, and effects on trainees.
+  - id: people_relationship
+    label: Clinician–patient interaction
+    parent_id: people
+    definition: How the tool changes attention, eye contact, conversation, and rapport during the visit.
+    exclusion_guidance: Patients' own views of the tool belong under Patient perspectives.
+  - id: org
+    label: Clinic and organisation
+    definition: Organisational conditions that shape adoption.
+    inclusion_guidance: Use a child code where one fits.
+  - id: org_leadership
+    label: Leadership and decision-making
+    parent_id: org
+    definition: How the decision to adopt was made, who was involved, leadership support, champions, and funding.
+    inclusion_guidance: Include pilots, champions, board or funder decisions, costs, and whether staff or patients were consulted.
+  - id: org_training
+    label: Training and support
+    parent_id: org
+    definition: Onboarding, ongoing help, troubleshooting, and locally developed guidance.
+  - id: org_privacy
+    label: Privacy and governance
+    parent_id: org
+    definition: Institutional policies and agreements on recording, data storage, data use, vendors, and legal responsibility.
+    exclusion_guidance: Individual patients' reactions to being recorded belong in Consent and comfort.
+  - id: patients
+    label: Patient perspectives
+    definition: Patients' views and experiences of the tool.
+    inclusion_guidance: Use a child code where one fits.
+  - id: patients_consent
+    label: Consent and comfort
+    parent_id: patients
+    definition: How patients are asked, whether they understand, and their comfort with being recorded, including declining.
+  - id: patients_experience
+    label: Patient experience of care
+    parent_id: patients
+    definition: How patients perceive the quality of their visit when the tool is or is not used.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import html
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,6 +12,8 @@ from openpyxl.styles import Alignment, Font, PatternFill
 
 from qualframe.config import load_codebook_spec, load_project_manifest, resolve_repo_path
 from qualframe.directed_analysis import validate_evidence_span_against_source
+from qualframe.evidence_anchoring import anchor_exact_quote
+from qualframe.cfir_review import cfir_records, reference_codes
 from qualframe.governance import assert_export_allowed
 from qualframe.io.files import sha256_for_file, sha256_for_text
 from qualframe.io.transcript_io import transcript_to_text
@@ -30,20 +33,40 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _context_offsets(source_text: str, start: int, end: int, before: int, after: int) -> tuple[int, int]:
+def _review_project(project_path: Path, artifact_root: Path):
+    """Resolve the codebook retained by the run lock, not a later active version."""
+    project = load_project_manifest(project_path)
+    lock_path = artifact_root / 'analysis_configuration_lock.json'
+    if lock_path.exists():
+        lock = json.loads(lock_path.read_text(encoding='utf-8'))
+        for asset in lock.get('assets', []):
+            if asset.get('kind') == 'codebook' and asset.get('path'):
+                path = resolve_repo_path(project_path.parents[2], asset['path'])
+                if sha256_for_file(path) != asset.get('sha256'):
+                    raise ValueError('The run codebook changed; restore its retained version before preparing review.')
+                if path.suffix == '.xlsx':
+                    project.paths['reference'] = str(path.parent)
+                else:
+                    project.codebook = str(path)
+    return project
+
+
+def _context_offsets(source_text: str, start: int, end: int, before: int, after: int, unit: str = "sentences") -> tuple[int, int]:
+    if before == 0 and after == 0:
+        return start, end
+    if unit == "characters":
+        return max(0, start - before), min(len(source_text), end + after)
+    pattern = r"[^\n]+" if unit == "paragraphs" else r"[^.!?\n]+(?:[.!?]+|(?=\n|$))"
     ranges = [
         (match.start(), match.end())
-        for match in re.finditer(r"[^.!?\n]+(?:[.!?]+|(?=\n|$))", source_text)
+        for match in re.finditer(pattern, source_text)
         if match.group(0).strip()
     ]
-    containing = next(
-        (index for index, (left, right) in enumerate(ranges) if left <= start and right >= end),
-        None,
-    )
-    if containing is None:
+    overlapping = [i for i, (left, right) in enumerate(ranges) if left < end and right > start]
+    if not overlapping:
         return start, end
-    left = ranges[max(0, containing - before)][0]
-    right = ranges[min(len(ranges) - 1, containing + after)][1]
+    left = min(start, ranges[max(0, overlapping[0] - before)][0]) if before else start
+    right = max(end, ranges[min(len(ranges) - 1, overlapping[-1] + after)][1]) if after else end
     while left < start and source_text[left].isspace():
         left += 1
     return left, right
@@ -86,6 +109,7 @@ def build_evidence_review_records(
     repo_root = project_path.parents[2]
     project = load_project_manifest(project_path)
     artifact_root = resolve_repo_path(repo_root, project.paths["artifacts"]) / run_id
+    project = _review_project(project_path, artifact_root)
     manifest_path = artifact_root / "run_manifest.json"
     manifest = RunManifest.model_validate_json(manifest_path.read_text(encoding="utf-8"))
     codebook = (
@@ -96,6 +120,7 @@ def build_evidence_review_records(
     code_lookup = {entry.id: entry for entry in codebook.codes} if codebook else {}
     method_before = 0
     method_after = 0
+    method_unit = "sentences"
     if project.method:
         import yaml
 
@@ -103,6 +128,7 @@ def build_evidence_review_records(
             resolve_repo_path(repo_root, project.method).read_text(encoding="utf-8")
         )
         method_before = int(method_data.get("context", {}).get("before", 0))
+        method_unit = method_data.get("context", {}).get("unit", "sentences")
         method_after = int(method_data.get("context", {}).get("after", 0))
     records = _source_records(repo_root, project_path)
     review_records: list[EvidenceReviewRecord] = []
@@ -118,18 +144,39 @@ def build_evidence_review_records(
         source_text_hash = sha256_for_text(source_text)
         source_id, registered_hash = _source_identity(repo_root, source_path, records)
         current_hash = sha256_for_file(source_path)
+        if artifact.stage_id == 'transcript_to_cfir':
+            reference = resolve_repo_path(repo_root, project.paths['reference']) / 'codebook.xlsx'
+            review_records.extend(cfir_records(artifact=artifact, artifact_rel=artifact_rel,
+                artifact_path=artifact_path, source_path=source_path, repo_root=repo_root, manifest=manifest,
+                codes=reference_codes(reference), codebook_hash=sha256_for_file(reference) if reference.exists() else 'unknown'))
+            continue
         for sheet_name, rows in artifact.parsed_output.items():
             for row_index, row in enumerate(rows, start=1):
                 if not {"Evidence Start", "Evidence End", "Exact Evidence", "Code ID"} <= set(row):
                     continue
                 issues: list[str] = []
-                try:
-                    start = int(str(row.get("Evidence Start", "")).strip())
-                    end = int(str(row.get("Evidence End", "")).strip())
-                except ValueError:
-                    start, end = -1, -1
-                    issues.append("Evidence offsets are not integers.")
+                raw_start = str(row.get("Evidence Start", "")).strip()
+                raw_end = str(row.get("Evidence End", "")).strip()
                 exact_text = str(row.get("Exact Evidence", ""))
+                if artifact.evidence_location == "unique_exact_quote":
+                    exact_text = html.unescape(exact_text)
+                anchoring_method = "model_offsets"
+                anchor_match_count = None
+                automatic = artifact.evidence_location == "unique_exact_quote" and raw_start.lower() == raw_end.lower() == "auto"
+                if automatic:
+                    anchor = anchor_exact_quote(source_text, exact_text)
+                    anchor_match_count = anchor.match_count
+                    start, end = anchor.start if anchor.start is not None else -1, anchor.end if anchor.end is not None else -1
+                    anchoring_method = "unique_exact_quote" if anchor.match_count == 1 else "unresolved_exact_quote"
+                    if anchor.match_count != 1:
+                        issues.append("Exact quotation is missing or occurs more than once; locate evidence through review.")
+                else:
+                    try:
+                        start, end = int(raw_start), int(raw_end)
+                    except ValueError:
+                        start, end = -1, -1
+                        issues.append("Evidence offsets are not integers under this run's location contract.")
+                proposed_start, proposed_end = (-1, -1) if automatic else (start, end)
                 meaning_unit_id = str(row.get("Meaning Unit ID", "")).strip() or (
                     f"meaning-{sha256_for_text(f'{artifact_rel}:{sheet_name}:{row_index}')[:16]}"
                 )
@@ -142,9 +189,13 @@ def build_evidence_review_records(
                 span: EvidenceSpan | None = None
                 assignment: CodeAssignment | None = None
                 context_text: str | None = None
-                if start >= 0 and end > start and exact_text:
+                if start < 0 or end <= start:
+                    issues.append("Evidence offsets must specify a nonempty character span with 0 <= start < end.")
+                if not exact_text.strip():
+                    issues.append("Exact evidence text is empty.")
+                if start >= 0 and end > start and exact_text.strip():
                     context_start, context_end = _context_offsets(
-                        source_text, start, end, method_before, method_after
+                        source_text, start, end, method_before, method_after, method_unit
                     )
                     try:
                         MeaningUnit(
@@ -164,7 +215,7 @@ def build_evidence_review_records(
                             exact_text=exact_text,
                             context_start_offset=context_start,
                             context_end_offset=context_end,
-                            creation_method="model_proposed",
+                            creation_method="automatic" if automatic else "model_proposed",
                         )
                         validate_evidence_span_against_source(span, source_text)
                     except ValueError as exc:
@@ -198,12 +249,15 @@ def build_evidence_review_records(
                         source_path=str(source_path.relative_to(repo_root)),
                         source_sha256=current_hash,
                         meaning_unit_id=meaning_unit_id,
-                        proposed_start_offset=start,
-                        proposed_end_offset=end,
+                        proposed_start_offset=proposed_start,
+                        proposed_end_offset=proposed_end,
+                        raw_start_value=raw_start, raw_end_value=raw_end,
+                        anchoring_method=anchoring_method, anchor_match_count=anchor_match_count,
                         proposed_exact_text=exact_text,
                         context_text=context_text,
                         evidence_span=span,
                         assignment=assignment,
+                        proposed_code_id=code_id, proposed_rationale=str(row.get("Rationale", "")),
                         code_label=code.label if code else None,
                         code_definition=code.definition if code else None,
                         model=artifact.model,
@@ -223,6 +277,13 @@ def write_evidence_review_index(
     repo_root = project_path.parents[2]
     project = load_project_manifest(project_path)
     artifact_root = resolve_repo_path(repo_root, project.paths["artifacts"]) / run_id
+    project = _review_project(project_path, artifact_root)
+    output = artifact_root / "evidence_review" / "index.json"
+    if output.exists():
+        for record in load_evidence_review_records(output):
+            if sha256_for_file(artifact_root / record.artifact_path) != record.artifact_sha256:
+                raise ValueError('Model artifact changed after review preparation; preserve this index and create a new run.')
+        return output  # Review indexes are immutable once materialized.
     records = build_evidence_review_records(
         project_manifest_path=project_path, run_id=run_id
     )
@@ -234,6 +295,9 @@ def write_evidence_review_index(
                 "run_id": run_id,
                 "generated_at_utc": _utc_now(),
                 "record_count": len(records),
+                "codebook": (load_codebook_spec(resolve_repo_path(repo_root, project.codebook)).model_dump(mode='json') if project.codebook else
+                    {'id': 'cfir-reference', 'version': sha256_for_file(resolve_repo_path(repo_root, project.paths['reference']) / 'codebook.xlsx') if (resolve_repo_path(repo_root, project.paths['reference']) / 'codebook.xlsx').exists() else 'unknown',
+                     'codes': reference_codes(resolve_repo_path(repo_root, project.paths['reference']) / 'codebook.xlsx')}),
                 "records": [record.model_dump(mode="json") for record in records],
             },
             indent=2,
@@ -266,6 +330,19 @@ def latest_evidence_action_by_record(review_dir: Path) -> dict[str, EvidenceRevi
     return latest
 
 
+def blocking_review_issues(record: EvidenceReviewRecord, source_text: str) -> list[str]:
+    """Accept itself confirms uniquely located typography-only differences."""
+    issues = list(record.validation_issues)
+    legacy_notice = 'Formatting differs from the model quotation. Confirm the highlighted source passage with Save changes.'
+    if record.anchoring_method == 'normalized_quote_candidate' and record.evidence_span:
+        from qualframe.cfir_review import locate_quote
+        span = record.evidence_span
+        start, end, method = locate_quote(source_text, record.proposed_exact_text)
+        if (start, end) == (span.start_offset, span.end_offset) and method == 'normalized_quote_candidate':
+            issues = [issue for issue in issues if issue != legacy_notice]
+    return issues
+
+
 def append_evidence_review_action(
     *,
     record: EvidenceReviewRecord,
@@ -278,6 +355,8 @@ def append_evidence_review_action(
     edited_start: int | None = None,
     edited_end: int | None = None,
     edited_code_id: str | None = None,
+    codebook_id: str | None = None,
+    codebook_version: str | None = None,
 ) -> EvidenceReviewAction:
     if decision not in {"accept", "edit", "reject", "defer"}:
         raise ValueError("Unknown evidence review decision.")
@@ -286,10 +365,15 @@ def append_evidence_review_action(
     if sha256_for_file(source_path) != record.source_sha256:
         raise ValueError("Source file hash changed after the evidence review index was created.")
     source_text = transcript_to_text(source_path)
-    if decision == "accept" and (
-        record.evidence_span is None or record.assignment is None or record.validation_issues
+    issues = blocking_review_issues(record, source_text)
+    if decision == "accept" and record.evidence_span:
+        validate_evidence_span_against_source(record.evidence_span, source_text)
+    if decision == "accept" and record.record_kind != 'absence' and (
+        record.evidence_span is None or record.assignment is None or issues
     ):
         raise ValueError("Invalid evidence cannot be accepted; edit, reject, or defer it.")
+    if decision == 'accept' and record.record_kind == 'absence' and issues:
+        raise ValueError('Resolve the unknown construct before accepting an absence proposal.')
     action_id = f"evidence-review-{uuid4().hex}"
     derived_rel: str | None = None
     if decision == "edit":
@@ -317,8 +401,8 @@ def append_evidence_review_action(
             id=f"assignment-{uuid4().hex}",
             meaning_unit_id=record.meaning_unit_id,
             evidence_span_id=span.id,
-            codebook_id=(original_assignment.codebook_id if original_assignment else "reviewer_selected"),
-            codebook_version=(original_assignment.codebook_version if original_assignment else "unknown"),
+            codebook_id=codebook_id or (original_assignment.codebook_id if original_assignment else "reviewer_selected"),
+            codebook_version=codebook_version or (original_assignment.codebook_version if original_assignment else "unknown"),
             code_id=edited_code_id,
             origin="adjudicated",
             rationale=rationale.strip(),
@@ -390,6 +474,8 @@ def export_evidence_review_package(
             f"{len(unresolved)} item(s) remain unreviewed or deferred."
         )
     manifest = json.loads((artifact_root / "run_manifest.json").read_text(encoding="utf-8"))
+    catalog = json.loads(index_path.read_text(encoding="utf-8")).get("codebook", {})
+    labels = {c["id"]: c["label"] for c in catalog.get("codes", [])}
     evidence_rows: list[dict[str, object]] = []
     for record in records:
         action = latest.get(record.record_id)
@@ -413,11 +499,16 @@ def export_evidence_review_package(
                 "End offset": span.end_offset if span else record.proposed_end_offset,
                 "Exact evidence": span.exact_text if span else record.proposed_exact_text,
                 "Context": record.context_text or "",
-                "Code ID": assignment.code_id if assignment else "",
-                "Code label": record.code_label or "",
+                "Code ID": assignment.code_id if assignment else record.proposed_code_id or "",
+                "Code label": labels.get(assignment.code_id if assignment else record.proposed_code_id, record.code_label or ""),
+                "Proposal kind": record.record_kind,
+                "Original model quotation": record.proposed_exact_text,
                 "Rationale": assignment.rationale if assignment else "",
                 "Validation issues": "; ".join(record.validation_issues),
                 "Stage": record.stage_id,
+                "Anchoring method": record.anchoring_method,
+                "Raw model start": record.raw_start_value or str(record.proposed_start_offset),
+                "Raw model end": record.raw_end_value or str(record.proposed_end_offset),
                 "Artifact": record.artifact_path,
                 "Artifact SHA-256": record.artifact_sha256,
                 "Prompt SHA-256": record.prompt_sha256,

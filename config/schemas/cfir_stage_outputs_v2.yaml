@@ -1,0 +1,69 @@
+# Opt-in post-parse contract for the preserved prompts/cfir/final/01..05 assets.
+# Does not change prompts, introduce native provider constraints, or activate v1 studies.
+# Domain presence checks do not establish construct completeness or semantic support.
+id: cfir_stage_outputs_v2
+stages:
+  transcript_to_cfir:
+    # 01_code_to_domain.md: six configured domain/addendum calls per transcript.
+    required_columns: [CFIR Domain, CFIR Construct, Quote, Page Number, Explanation]
+    exact_column_order: true
+    require_rows: true
+    allowed_values:
+      CFIR Domain: [Innovation, Outer Setting, Inner Setting, Individuals, Implementation Process, Outcomes Addendum]
+    required_values:
+      CFIR Domain: [Innovation, Outer Setting, Inner Setting, Individuals, Implementation Process, Outcomes Addendum]
+    qa_rules: [required_columns_present, prompt_version_required]
+  participant_parent_construct_rollup:
+    # 02_subconstruct_rollup.md preserves Page Number and allows the addendum.
+    # The prompt mentions five sheets while also specifying addendum roll-ups;
+    # do not claim complete six-part coverage from this header contract.
+    required_columns: [CFIR Domain, CFIR Construct, Quote, Page Number, Explanation]
+    exact_column_order: true
+    require_rows: true
+    allowed_values:
+      CFIR Domain: [Innovation, Outer Setting, Inner Setting, Individuals, Implementation Process, Outcomes Addendum]
+    qa_rules: [required_columns_present, prompt_version_required]
+  quote_context_enrichment:
+    # 03_add_context.md changes only Quote and preserves the five columns.
+    required_columns: [CFIR Domain, CFIR Construct, Quote, Page Number, Explanation]
+    exact_column_order: true
+    require_rows: true
+    allowed_values:
+      CFIR Domain: [Innovation, Outer Setting, Inner Setting, Individuals, Implementation Process, Outcomes Addendum]
+    qa_rules: [required_columns_present, prompt_version_required]
+  participant_to_network_synthesis:
+    # 04_group_level_synthesis.md explicitly names five determinant domains.
+    # Source File(s) contains participant/source IDs, not valence network labels.
+    required_columns: [CFIR Domain, CFIR Construct, Combined Evidence Quotes, Synthesized Explanation, Source File(s)]
+    exact_column_order: true
+    require_rows: true
+    allowed_values:
+      CFIR Domain: [Innovation, Outer Setting, Inner Setting, Individuals, Implementation Process]
+    required_values:
+      CFIR Domain: [Innovation, Outer Setting, Inner Setting, Individuals, Implementation Process]
+    qa_rules: [required_columns_present, prompt_version_required]
+  cross_network_synthesis:
+    # 05_final_synthesis.md literally targets Innovation; this is not all-domain synthesis.
+    required_columns:
+      - CFIR Domain
+      - CFIR Construct
+      - Combined Evidence Quotes
+      - Synthesized Explanation
+      - Facilitator Networks
+      - Barrier Networks
+      - Mixed Networks
+      - Neutral/Unclear Networks
+      - Overall Valence
+      - Valence Explanation
+      - Source File(s)
+    exact_column_order: true
+    require_rows: true
+    allowed_values:
+      CFIR Domain: [Innovation]
+      Overall Valence: [Facilitator, Barrier, Mixed, Neutral]
+    qa_rules:
+      - required_columns_present
+      - allowed_network_labels_only
+      - one_network_one_valence
+      - source_files_covered_by_valence_columns
+      - prompt_version_required

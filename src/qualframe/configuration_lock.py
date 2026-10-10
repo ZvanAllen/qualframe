@@ -148,6 +148,11 @@ def create_configuration_lock(project_yaml: Path) -> LockedAnalysisConfiguration
             )
         )
 
+    reference_book = resolve_repo_path(repo_root, project.paths.get('reference', 'data/reference')) / 'codebook.xlsx'
+    if any(stage.domain_iterations for stage in pipeline.stages) and reference_book.exists():
+        assets.append(_file_asset(kind='codebook', asset_id='cfir-reference', version=None,
+            path=reference_book, repo_root=repo_root))
+
     if project.structured_output.enforce:
         schema_path = resolve_repo_path(repo_root, project.structured_output.spec)
         schema = load_stage_output_spec(schema_path)

@@ -1,0 +1,369 @@
+{
+  "baseline_commit": "ffa4b44",
+  "source_inventory": [
+    {
+      "path": "src/qualframe/__init__.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/adjudication.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/cli.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/config.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/configuration_lock.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/cost_control.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/dashboard.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/directed_analysis.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/evidence_review.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/governance.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/io/__init__.py",
+      "status": "identical"
+    },
+    {
+      "path": "src/qualframe/io/excel_io.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/io/export.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/io/files.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/io/response_parser.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/io/transcript_io.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/models.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/pipeline/__init__.py",
+      "status": "identical"
+    },
+    {
+      "path": "src/qualframe/pipeline/project_runner.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/prompts.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/providers/__init__.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/providers/anthropic_provider.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/providers/base.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/providers/cached_demo_provider.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/providers/google_provider.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/providers/mock_provider.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/providers/openai_provider.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/qa/__init__.py",
+      "status": "identical"
+    },
+    {
+      "path": "src/qualframe/qa/disagreement.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/qa/rules.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/structured_output.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/study_setup.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe/web_forms.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe_eval/__init__.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe_eval/cli.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe_eval/config.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe_eval/judging.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe_eval/metrics.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe_eval/normalize.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe_eval/reports.py",
+      "status": "different"
+    },
+    {
+      "path": "src/qualframe_eval/seeded_errors.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_adjudication.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_cached_demo_provider.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_config.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_configuration_lock.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_cost_control.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_dashboard.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_directed_analysis.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_disagreement.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_eval_metrics.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_evidence_review.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_excel_io.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_governance.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_qa_rules.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_response_parser.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_runner.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_structured_output.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_study_setup.py",
+      "status": "different"
+    },
+    {
+      "path": "tests/test_web_forms.py",
+      "status": "different"
+    },
+    {
+      "path": "config/analysis_plans/example_group_comparison_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/codebooks/example_directed_codebook_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/cost_policies/example_local_email_20_usd_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/disagreement/cfir_default.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/eval/metrics_spec.json",
+      "status": "different"
+    },
+    {
+      "path": "config/eval/rubrics.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/frameworks/cfir_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/frameworks/example_directed_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/frameworks/template_framework.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/methods/cfir_directed_content_analysis_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/methods/directed_content_analysis_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/pipelines/directed_content_analysis_contracts_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/pipelines/transcript_cfir.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/pipelines/transcript_cfir_experimental.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/pipelines/workbook_cfir.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/pricing/mock_pricing_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/prompt_sets/cfir_final_prompts_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/prompt_sets/directed_content_analysis_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/review_policies/calibration_then_risk_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "config/schemas/cfir_stage_outputs_v1.yaml",
+      "status": "different"
+    },
+    {
+      "path": "prompts/cfir/final/01_code_to_domain.md",
+      "status": "different"
+    },
+    {
+      "path": "prompts/cfir/final/02_subconstruct_rollup.md",
+      "status": "different"
+    },
+    {
+      "path": "prompts/cfir/final/03_add_context.md",
+      "status": "different"
+    },
+    {
+      "path": "prompts/cfir/final/04_group_level_synthesis.md",
+      "status": "different"
+    },
+    {
+      "path": "prompts/cfir/final/05_final_synthesis.md",
+      "status": "different"
+    },
+    {
+      "path": "prompts/cfir/final/06_rate_constructs.md",
+      "status": "different"
+    },
+    {
+      "path": "prompts/directed/v1/directed_coding.md",
+      "status": "different"
+    },
+    {
+      "path": "prompts/evaluation/crossnetwork_rubric_judge.md",
+      "status": "different"
+    },
+    {
+      "path": "prompts/evaluation/network_rubric_judge.md",
+      "status": "different"
+    },
+    {
+      "path": "prompts/evaluation/seeded_error_validator.md",
+      "status": "different"
+    },
+    {
+      "path": "prompts/evaluation/transcript_pairwise_compare.md",
+      "status": "different"
+    },
+    {
+      "path": "prompts/evaluation/transcript_rubric_judge.md",
+      "status": "different"
+    }
+  ]
+}

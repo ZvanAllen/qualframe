@@ -18,6 +18,7 @@ if str(SRC_ROOT) not in sys.path:
 from qualframe import __version__
 from qualframe.io.export import export_run
 from qualframe.pipeline.project_runner import ProjectRunner
+from qualframe.qa.inventory import review_item_paths
 
 
 PROJECT_YAML = REPO_ROOT / "demo" / "project" / "project_demo.yaml"
@@ -190,7 +191,7 @@ def main() -> int:
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     review_dir = REPO_ROOT / runner.project.paths["review_queue"] / run_id
-    review_items = sorted(review_dir.glob("*.json")) if review_dir.exists() else []
+    review_items = review_item_paths(artifact_root, review_dir, manifest)
     if manifest["qa_failure_count"] != 1 or len(review_items) != 1:
         raise RuntimeError(
             "Demo reliability check failed: expected exactly one deliberately seeded QA item."

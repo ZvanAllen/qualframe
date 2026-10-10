@@ -1,0 +1,70 @@
+{
+ "codings": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "tech_accuracy",
+   "quote": "I found errors in roughly one note out of five.",
+   "rationale": "Estimated error rate in drafts."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "tech_accuracy",
+   "quote": "But one note said I'd examined a patient's abdomen when I hadn't.",
+   "rationale": "An invented examination in a draft."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "people_workload",
+   "quote": "That took me about as long as writing a short note myself.",
+   "rationale": "Checking drafts took as long as writing notes."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "people_trust",
+   "quote": "If something is right ninety percent of the time, your attention drifts.",
+   "rationale": "Risk of over-reliance."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "people_trust",
+   "quote": "Our regulatory college is clear that the physician is responsible for the content of the record, no matter who or what drafted it.",
+   "rationale": "Professional accountability for the record."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "people_trust",
+   "quote": "Writing a note is how residents learn to organise their thinking: what's the problem, what's the evidence, what's the plan.",
+   "rationale": "Concern about effects on trainees' learning."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "patients_experience",
+   "quote": "A couple of my older patients were quite pleased, actually, they said it was nice to see me not typing.",
+   "rationale": "Patients' positive reaction."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "org_privacy",
+   "quote": "One patient asked me directly whether the company would use her conversation to improve its product, and I couldn't give her a confident answer at the time.",
+   "rationale": "Unclear information about vendor data use."
+  },
+  {
+   "meaning_unit": "mu-9",
+   "code_id": "org_leadership",
+   "quote": "But the decision to join the pilot had already been made above our heads, so it felt like we were fixing the plane while flying it.",
+   "rationale": "Decision made without clinician input."
+  },
+  {
+   "meaning_unit": "mu-10",
+   "code_id": "tech_integration",
+   "quote": "A proper connection to our record system so I'm not copying and pasting.",
+   "rationale": "Wants direct integration with the record."
+  },
+  {
+   "meaning_unit": "mu-11",
+   "code_id": "tech_accuracy",
+   "quote": "If it highlighted what it wasn't sure about, I'd trust it more, not less.",
+   "rationale": "Wants the tool to flag uncertain content."
+  }
+ ]
+}

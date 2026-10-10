@@ -4,12 +4,12 @@ import json
 from pathlib import Path
 
 import pytest
+from qualframe.qa.inventory import review_item_paths
 
 from qualframe.config import load_stage_output_spec
 from qualframe.io.export import export_run
 from qualframe.pipeline.project_runner import ProjectRunner
 from qualframe.structured_output import validate_stage_output
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEMO_PROJECT = REPO_ROOT / "demo/project/project_demo.yaml"
@@ -54,7 +54,9 @@ def test_enforced_structured_output_stops_invalid_mock_run_and_blocks_export(
         assert "MOCK RESPONSE" in artifact["response_text"]
         assert artifact["structured_output_issues"]
 
-    review_items = list((tmp_path / "review_queue" / run_id).glob("*.json"))
+    review_items = review_item_paths(
+        manifest_path.parent, tmp_path / "review_queue" / run_id, manifest
+    )
     assert len(review_items) == 2
     with pytest.raises(PermissionError, match="structured-output"):
         export_run(

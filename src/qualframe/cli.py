@@ -204,6 +204,42 @@ def run(
         console.print(f"[green]Run complete — all QA checks passed.[/green] Manifest: {manifest_path}")
 
 
+@app.command("reconcile-usage")
+def reconcile_usage(
+    project_yaml: Path,
+    request_id: str = typer.Option(...),
+    input_tokens: int = typer.Option(..., min=0),
+    output_tokens: int = typer.Option(..., min=0),
+    cached_input_tokens: int = typer.Option(0, min=0),
+    cache_write_tokens: int = typer.Option(0, min=0),
+    reasoning_tokens: int = typer.Option(0, min=0),
+    reviewer: str = typer.Option(...),
+    rationale: str = typer.Option(...),
+    evidence_reference: str = typer.Option(..., help="Provider usage record or support confirmation."),
+    dry_run: bool = typer.Option(True, help="Preview only; use --no-dry-run to record."),
+) -> None:
+    """Reconcile uncertain usage from provider evidence before a manual retry."""
+    from qualframe.providers.base import LLMUsage
+    runner = ProjectRunner(project_yaml.resolve())
+    cost = runner._build_cost_controller(run_id="reconciliation", artifact_root=runner.repo_root / "artifacts")
+    if cost is None:
+        raise typer.BadParameter("This study has no cost configuration.")
+    if not any(row["request_id"] == request_id for row in cost.unresolved_requests()):
+        raise typer.BadParameter("Request is not unresolved in this study.")
+    usage = LLMUsage(input_tokens=input_tokens, output_tokens=output_tokens,
+                     cached_input_tokens=cached_input_tokens, cache_write_tokens=cache_write_tokens,
+                     reasoning_tokens=reasoning_tokens)
+    if dry_run:
+        console.print({"request_id": request_id, "usage": usage, "recorded": False})
+        return
+    try:
+        record = cost.reconcile_request(request_id=request_id, usage=usage, reviewer=reviewer,
+                                        rationale=rationale, evidence_reference=evidence_reference)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    console.print(f"Reconciled {request_id}: USD {record.calculated_cost_usd:.6f}. No model call made.")
+
+
 @app.command("approve-cost")
 def approve_cost(
     project_yaml: Path,
@@ -467,6 +503,24 @@ def adjudicate_command(
         else ""
     )
     console.print(f"[green]Recorded {action.decision}[/green] ({action.action_id}).{suffix}")
+
+
+@app.command("start")
+def start_command(
+    workspace: Path = typer.Option(None, help="Folder that holds your studies. Default: ~/QualFrame or QUALFRAME_HOME."),
+    port: int = typer.Option(8765, min=1024, max=65535, help="Local port for the browser address."),
+    no_browser: bool = typer.Option(False, "--no-browser", help="Do not open a browser window."),
+) -> None:
+    """Start QualFrame and open it in your browser. Everything runs on this computer."""
+    from qualframe.app_workspace import default_workspace, ensure_workspace, list_study_manifests
+
+    root = (workspace or default_workspace()).expanduser()
+    sync = ensure_workspace(root)
+    console.print(f"Studies folder: {sync.root}")
+    if sync.copied:
+        console.print(f"Added {sync.copied} template file(s) to the studies folder.")
+    studies = list_study_manifests(sync.root)
+    serve_dashboard(studies[0] if studies else None, port=port, workspace=sync.root, open_browser=not no_browser)
 
 
 @app.command("serve")

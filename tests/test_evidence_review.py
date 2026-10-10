@@ -234,9 +234,9 @@ def test_dashboard_reviews_all_exact_evidence_and_exports(tmp_path: Path) -> Non
     index_path = artifact_root / "evidence_review/index.json"
     records = load_evidence_review_records(index_path)
     page = app.render_evidence(run_id=run_id, item_id=records[0].record_id)
-    assert "Review exact evidence" in page
-    assert "<mark>" in page
-    assert "not a research finding" in page
+    assert "<h1>Review</h1>" in page
+    assert '<mark id="current-span">' in page
+    assert "Proposal 1 of 4" in page
     assert records[0].source_sha256 in page
 
     for record in records:
@@ -258,9 +258,27 @@ def test_dashboard_reviews_all_exact_evidence_and_exports(tmp_path: Path) -> Non
     _selected, export_message = app.handle_action(
         "/export-evidence", {"run_id": [run_id]}
     )
-    assert "Exported 2" in export_message
+    assert "Exported the reviewed coding" in export_message
     final_page = app.render_evidence(run_id=run_id, item_id=records[-1].record_id)
-    assert "4 / 4" in final_page
-    assert "reviewed_evidence_package.json" in final_page
-    assert "reviewed_evidence_package.xlsx" in final_page
+    assert "4 of 4 decided" in final_page
+    assert "Every proposal has a decision" in final_page
+    assert (app.exports_dir / run_id / "reviewed_evidence_package.json").exists()
+    assert (app.exports_dir / run_id / "reviewed_evidence_package.xlsx").exists()
     assert len(load_evidence_review_actions(review_dir)) == 4
+
+
+@pytest.mark.parametrize("start,end,text", [(2, 2, "quoted text"), (-1, 2, "quoted text"), (2, 3, "")])
+def test_invalid_or_empty_spans_are_explicitly_flagged(tmp_path, start, end, text):
+    project, run_id, artifact_root, _ = _completed_synthetic_run(tmp_path)
+    manifest = json.loads((artifact_root / "run_manifest.json").read_text(encoding="utf-8"))
+    artifact_path = artifact_root / manifest["artifact_paths"][0]
+    artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+    row = next(iter(artifact["parsed_output"].values()))[0]
+    row.update({"Evidence Start": str(start), "Evidence End": str(end), "Exact Evidence": text})
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+    index = write_evidence_review_index(project_manifest_path=project, run_id=run_id)
+    records = load_evidence_review_records(index)
+    first = next(record for record in records if record.artifact_path == manifest["artifact_paths"][0] and record.row_index == 1)
+    assert first.validation_issues
+    assert first.evidence_span is None
+    assert first.assignment is None

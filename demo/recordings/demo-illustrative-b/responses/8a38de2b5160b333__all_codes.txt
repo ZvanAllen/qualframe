@@ -1,0 +1,46 @@
+{
+ "codings": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "patients_consent",
+   "quote": "The first time, I didn't really understand what I was agreeing to.",
+   "rationale": "Consent without understanding."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "people_relationship",
+   "quote": "She looked at me the whole time. I felt like she was really hearing me, instead of half-listening while she typed.",
+   "rationale": "Clinician attention during the visit."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "patients_experience",
+   "quote": "honestly that visit was one of the best I've had.",
+   "rationale": "Positive visit experience."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "patients_consent",
+   "quote": "the tool itself made the visit better, but the way I was asked made me feel less in control.",
+   "rationale": "Consent process undermined control."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "patients_experience",
+   "quote": "I wondered afterwards whether saying no meant I got a worse appointment.",
+   "rationale": "Worry that declining affects care."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "org_leadership",
+   "quote": "We heard about it from patients asking questions in the waiting room.",
+   "rationale": "Advisory group not informed."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "patients_consent",
+   "quote": "Ask clearly and early.",
+   "rationale": "Recommendation on consent."
+  }
+ ]
+}

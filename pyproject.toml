@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qualframe"
-version = "0.1.0"
-description = "Framework-aware workflow engine for AI-assisted qualitative analysis"
+version = "0.9.0"
+description = "AI-assisted directed qualitative content analysis you can check: every proposed code beside its source passage"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
@@ -25,7 +25,9 @@ dependencies = [
 [project.optional-dependencies]
 llm = [
   "anthropic>=0.34.0",
-  "openai>=1.40.0",
+  "openai>=1.81.0"
+]
+google = [
   "google-generativeai>=0.8.0"
 ]
 dev = [
@@ -42,7 +44,7 @@ qualframe-eval = "qualframe_eval.cli:app"
 where = ["src"]
 
 [tool.setuptools.package-data]
-qualframe = ["static/*.css"]
+qualframe = ["static/*.css", "static/*.js", "static/fonts/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

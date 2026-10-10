@@ -1,0 +1,29 @@
+{
+  "id": "claude-sonnet-5-5-2026-10",
+  "label": "Claude Sonnet 5.5",
+  "kind": "model",
+  "description": "Responses recorded from Claude Sonnet 5.5 over the fictional demo transcripts.",
+  "provider_settings": {
+    "name": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "max_tokens": 16000,
+    "api_mode": "chat_completions",
+    "prices_usd_per_million": {
+      "input": 2.0,
+      "output": 10.0,
+      "checked_on": "2026-10-10"
+    }
+  },
+  "recorded_at_utc": "2026-10-10T19:47:29+00:00",
+  "dataset": "ai-scribe",
+  "prompt_sha256": "8f56ef2978a587e6ab747fbbcf72fce860c5f57cb5aea752a7a9310d5b72b2be",
+  "requests": 6,
+  "reported_usage": {
+    "input_tokens": 29243,
+    "output_tokens": 15815
+  },
+  "response_status": [
+    "completed"
+  ],
+  "estimated_cost_usd": 0.2166
+}

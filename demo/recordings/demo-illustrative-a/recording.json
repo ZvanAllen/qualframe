@@ -1,0 +1,18 @@
+{
+  "id": "demo-illustrative-a",
+  "label": "Illustrative coder A",
+  "kind": "illustrative",
+  "description": "Hand-written example codings for demonstrating the software. Not output from a model.",
+  "provider_settings": {
+    "name": "mock",
+    "model": "illustrative"
+  },
+  "recorded_at_utc": "2026-10-10T15:39:48+00:00",
+  "dataset": "ai-scribe",
+  "prompt_sha256": "8f56ef2978a587e6ab747fbbcf72fce860c5f57cb5aea752a7a9310d5b72b2be",
+  "requests": 6,
+  "reported_usage": {
+    "input_tokens": 19144,
+    "output_tokens": 3938
+  }
+}

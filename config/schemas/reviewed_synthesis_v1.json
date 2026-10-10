@@ -1,0 +1,56 @@
+{
+  "$defs": {
+    "CodeSynthesis": {
+      "additionalProperties": false,
+      "properties": {
+        "code_id": {
+          "type": "string"
+        },
+        "statements": {
+          "items": {
+            "$ref": "#/$defs/SynthesisStatement"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "code_id",
+        "statements"
+      ],
+      "type": "object"
+    },
+    "SynthesisStatement": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "evidence_ids"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "summaries": {
+      "items": {
+        "$ref": "#/$defs/CodeSynthesis"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "summaries"
+  ],
+  "type": "object"
+}

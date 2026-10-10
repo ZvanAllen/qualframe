@@ -1,0 +1,70 @@
+{
+ "codings": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "people_workload",
+   "quote": "I was finishing notes at nine or ten at night, three or four nights a week.",
+   "rationale": "Describes after-hours charting before the tool was introduced."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "people_workload",
+   "quote": "I'd say I've gained back something like forty-five minutes a day, maybe an hour on a heavy clinic day.",
+   "rationale": "Quantifies documentation time saved."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "tech_accuracy",
+   "quote": "Last month it wrote that a patient had denied chest pain, and we never discussed chest pain at all.",
+   "rationale": "An invented statement in a drafted note."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "people_trust",
+   "quote": "If something is wrong in the record, it's not the software's licence on the line, it's mine.",
+   "rationale": "Accountability for the signed record stays with the clinician."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "people_trust",
+   "quote": "The draft frames the visit for you, and then you edit around its framing.",
+   "rationale": "Concern that the draft shapes clinical reasoning."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "people_relationship",
+   "quote": "I look at people more. I used to type while they talked, and I'd catch myself saying \"mm-hmm\" to the screen.",
+   "rationale": "More attention and eye contact during the visit."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "patients_experience",
+   "quote": "One of my long-time patients said, \"You seem less rushed today,\" and I hadn't changed anything except not typing.",
+   "rationale": "A patient noticed a less rushed visit."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "patients_consent",
+   "quote": "Maybe one in twenty says no, usually people who are already uneasy with technology, or someone discussing something very personal.",
+   "rationale": "How often and why patients decline."
+  },
+  {
+   "meaning_unit": "mu-9",
+   "code_id": "org_privacy",
+   "quote": "I believe that's accurate, but I'm repeating what I was told.",
+   "rationale": "Relies on the clinic's account of how recordings are handled."
+  },
+  {
+   "meaning_unit": "mu-10",
+   "code_id": "tech_integration",
+   "quote": "The draft appears in a separate window, and I copy sections into the record.",
+   "rationale": "Drafts must be copied manually into the health record."
+  },
+  {
+   "meaning_unit": "mu-11",
+   "code_id": "tech_usability",
+   "quote": "What took longer was learning how to talk so that it gets things right.",
+   "rationale": "Learning to speak so the tool captures the visit."
+  }
+ ]
+}

@@ -1,0 +1,118 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "The first time, I didn't really understand what I was agreeing to. She said something like, \"Is it okay if I use a tool that helps me write my notes?\" and I said yes, because why would I say no to that? It was only afterwards, reading the sign in the hallway, that I realised it was listening to our whole conversation.",
+      "code_id": "patients_consent",
+      "rationale": "The participant agreed without understanding that the tool would listen to the entire conversation, directly describing inadequate informed consent."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "A bit uneasy. Not angry, just like I'd agreed to something without knowing what it was.",
+      "code_id": "patients_consent",
+      "rationale": "The participant describes discomfort arising from agreeing without understanding the tool."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "I don't think anyone meant to hide anything. The question was just phrased in a way that made it sound like a spell-checker.",
+      "code_id": "patients_consent",
+      "rationale": "The participant identifies how the wording of the consent question misrepresented the tool's function, while distinguishing this from intentional concealment."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "The next time, I asked more questions, and she explained it properly, that the recording is deleted and only the note is kept.",
+      "code_id": "patients_consent",
+      "rationale": "The participant describes receiving a clearer explanation after asking questions, addressing understanding before agreeing."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "The next time, I asked more questions, and she explained it properly, that the recording is deleted and only the note is kept.",
+      "code_id": "org_privacy",
+      "rationale": "The explanation reports the recording deletion and note retention arrangements, which concern data storage and governance."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "I said yes again, and honestly that visit was one of the best I've had. She looked at me the whole time. I felt like she was really hearing me, instead of half-listening while she typed.",
+      "code_id": "patients_experience",
+      "rationale": "The participant describes an improved visit, experienced through sustained attention and feeling heard. This is the patient's own assessment of care."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "That's the thing, the tool itself made the visit better, but the way I was asked made me feel less in control.",
+      "code_id": "patients_experience",
+      "rationale": "The participant explicitly reports that the tool improved the visit."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "That's the thing, the tool itself made the visit better, but the way I was asked made me feel less in control.",
+      "code_id": "patients_consent",
+      "rationale": "The participant contrasts the improved visit with diminished control resulting from how consent was sought."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "I was there about something personal, and when he asked about the tool, I said no.",
+      "code_id": "patients_consent",
+      "rationale": "The participant describes declining the tool during a visit involving a personal concern."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "He seemed a little surprised and then typed a lot, and the visit felt rushed. I wondered afterwards whether saying no meant I got a worse appointment. I hope not. But that's how it felt.",
+      "code_id": "patients_experience",
+      "rationale": "The participant perceived the visit without the tool as rushed and wondered whether declining resulted in worse care, without claiming that this was established."
+    },
+    {
+      "meaning_unit": "mu-9",
+      "quote": "Not formally, which is the strange part. We meet every two months, and nobody brought it to us before it started. We heard about it from patients asking questions in the waiting room.",
+      "code_id": "org_leadership",
+      "rationale": "The participant reports that the patient advisory group was not consulted before implementation and learned about adoption indirectly."
+    },
+    {
+      "meaning_unit": "mu-10",
+      "quote": "People want to be asked clearly, in plain language, and ideally before they're sitting in the room with the doctor, when it's harder to say no.",
+      "code_id": "patients_consent",
+      "rationale": "The participant reports preferences for understandable, early consent requests that reduce pressure to agree."
+    },
+    {
+      "meaning_unit": "mu-11",
+      "quote": "Some people wanted to know if they could read the note afterwards to check it was right.",
+      "code_id": "patients",
+      "rationale": "The participant reports patients' desire to access and verify their notes. This is a patient preference, rather than evidence of draft errors or a judgement about actual accuracy."
+    },
+    {
+      "meaning_unit": "mu-12",
+      "quote": "A few people, especially those who've been through the system in hard ways, said they would never agree to it and wanted to be sure that wouldn't be held against them.",
+      "code_id": "patients_consent",
+      "rationale": "The passage describes refusal and concern that declining might carry consequences, both relevant to voluntary consent."
+    },
+    {
+      "meaning_unit": "mu-13",
+      "quote": "Ask clearly and early. Have the information in the languages our community speaks. Make it easy to say no, and make sure saying no doesn't mean a shorter visit.",
+      "code_id": "patients_consent",
+      "rationale": "The recommendations address timing, clarity, language accessibility, and freedom to decline without penalty."
+    },
+    {
+      "meaning_unit": "mu-13",
+      "quote": "Ask clearly and early. Have the information in the languages our community speaks. Make it easy to say no, and make sure saying no doesn't mean a shorter visit.",
+      "code_id": "patients_experience",
+      "rationale": "The recommendation explicitly seeks to preserve visit length and care quality for patients who decline the tool."
+    },
+    {
+      "meaning_unit": "mu-14",
+      "quote": "And let patients see their notes. Those seem like small things, but they're about respect.",
+      "code_id": "patients",
+      "rationale": "The participant advocates patient access to notes and frames the group's recommendations as respect for patients; no narrower child fully captures note access."
+    },
+    {
+      "meaning_unit": "mu-15",
+      "quote": "Just that patients aren't against new tools. Most of us want our doctors to be less exhausted.",
+      "code_id": "patients",
+      "rationale": "The participant expresses general openness to new tools and a patient preference for supporting clinicians, without asserting a specific effect on documentation workload."
+    },
+    {
+      "meaning_unit": "mu-16",
+      "quote": "We just want to be part of the decision, not something that happens to us.",
+      "code_id": "org_leadership",
+      "rationale": "In the context of adoption without advisory-group consultation, the participant calls for patients to be involved in decision-making."
+    }
+  ]
+}

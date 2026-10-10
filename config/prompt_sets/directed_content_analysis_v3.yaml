@@ -1,0 +1,6 @@
+id: directed_content_analysis_v3
+description: JSON coding output with exact-quotation anchoring. Every proposal is human-reviewed.
+stages:
+  directed_coding:
+    file: prompts/directed/v3/directed_coding.md
+    notes: Quotations are located in the transcript by the application; missing or repeated quotations go to the researcher.

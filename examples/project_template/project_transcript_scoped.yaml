@@ -1,0 +1,28 @@
+# Separate opt-in example. Existing project_transcript.yaml and studies stay on v1.
+# Use a new project/configuration and a new run ID; this is not a migration manifest.
+# Preserved synthesis scope: five network determinant domains; cross-network Innovation only.
+project_id: cfir_transcript_scoped_contract_example
+framework: config/frameworks/cfir_v1.yaml
+pipeline: config/pipelines/transcript_cfir.yaml
+method: config/methods/cfir_directed_content_analysis_v1.yaml
+mode: transcript_first
+paths:
+  raw_transcripts: data/raw/transcripts
+  raw_workbooks: data/raw/workbooks
+  reference: data/reference
+  working: data/working
+  artifacts: artifacts
+  review_queue: review_queue
+  exports: exports
+  logs: logs
+provider:
+  name: mock
+  model: mock
+  temperature: 0.0
+  max_tokens: 4000
+governance:
+  enforce_review_gates: true
+  require_release_for_export: true
+structured_output:
+  enforce: true
+  spec: config/schemas/cfir_stage_outputs_v2.yaml

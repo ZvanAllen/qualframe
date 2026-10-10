@@ -1,0 +1,58 @@
+{
+ "codings": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "org_leadership",
+   "quote": "The regional health authority offered it to a handful of community clinics as part of a pilot.",
+   "rationale": "How the tool reached the clinic."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "tech_accuracy",
+   "quote": "It's good at the medical parts: symptoms, medications, the plan.",
+   "rationale": "Accuracy for clinical content."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "tech_accuracy",
+   "quote": "If someone tells me they're sleeping in their car this week, that's the most important thing in the visit, and the draft might mention it in one line at the bottom, or leave it out entirely.",
+   "rationale": "Omits social context."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "people_relationship",
+   "quote": "With others, especially people who've had bad experiences with institutions, the idea that something is listening changes the conversation.",
+   "rationale": "Recording changes conversations with some patients."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "org_privacy",
+   "quote": "Partly for the patient's comfort, partly because I'm not confident enough about where that audio goes, even with what we've been told.",
+   "rationale": "Uncertainty about data handling."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "org_privacy",
+   "quote": "Our policy is basically \"use your professional judgement,\" which I appreciate, but it puts it back on us.",
+   "rationale": "Policy leaves decisions to clinicians."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "tech_integration",
+   "quote": "It also doesn't know our templates, so the structure of the draft doesn't match the structure our charts are supposed to follow.",
+   "rationale": "Drafts do not match chart templates."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "people_workload",
+   "quote": "For straightforward visits, yes, maybe ten minutes each.",
+   "rationale": "Time saved on simple visits."
+  },
+  {
+   "meaning_unit": "mu-9",
+   "code_id": "org_training",
+   "quote": "Another NP and I made our own cheat sheet and shared it around.",
+   "rationale": "Locally developed guidance."
+  }
+ ]
+}

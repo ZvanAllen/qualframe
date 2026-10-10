@@ -1,0 +1,30 @@
+{
+  "id": "gpt-6-1-sol-2026-10",
+  "label": "OpenAI GPT-6.1 Sol",
+  "kind": "model",
+  "description": "Responses recorded from OpenAI GPT-6.1 Sol over the fictional demo transcripts.",
+  "provider_settings": {
+    "name": "openai",
+    "model": "gpt-6.1-sol",
+    "max_tokens": 16000,
+    "api_mode": "responses",
+    "reasoning_effort": "low",
+    "prices_usd_per_million": {
+      "input": 2.0,
+      "output": 10.0,
+      "checked_on": "2026-10-10"
+    }
+  },
+  "recorded_at_utc": "2026-10-10T19:53:12+00:00",
+  "dataset": "ai-scribe",
+  "prompt_sha256": "8f56ef2978a587e6ab747fbbcf72fce860c5f57cb5aea752a7a9310d5b72b2be",
+  "requests": 6,
+  "reported_usage": {
+    "input_tokens": 18100,
+    "output_tokens": 11058
+  },
+  "response_status": [
+    "completed"
+  ],
+  "estimated_cost_usd": 0.1468
+}

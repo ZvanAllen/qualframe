@@ -1,0 +1,43 @@
+QualFrame demo transcript. Fictional interview written for software demonstration; not research data.
+Study: Adopting an AI documentation assistant in primary care
+Participant P06, patient partner, Northgate Community Clinic advisory group
+
+Interviewer: You're a patient at Northgate and a member of the patient advisory group. Have you had visits where the documentation assistant was used?
+
+Participant: Yes, three or four times now, with my nurse practitioner and once with a doctor I was seeing for the first time.
+
+Interviewer: What was that like?
+
+Participant: The first time, I didn't really understand what I was agreeing to. She said something like, "Is it okay if I use a tool that helps me write my notes?" and I said yes, because why would I say no to that? It was only afterwards, reading the sign in the hallway, that I realised it was listening to our whole conversation.
+
+Interviewer: How did you feel when you realised?
+
+Participant: A bit uneasy. Not angry, just like I'd agreed to something without knowing what it was. I don't think anyone meant to hide anything. The question was just phrased in a way that made it sound like a spell-checker.
+
+Interviewer: And the later visits?
+
+Participant: The next time, I asked more questions, and she explained it properly, that the recording is deleted and only the note is kept. I said yes again, and honestly that visit was one of the best I've had. She looked at me the whole time. I felt like she was really hearing me, instead of half-listening while she typed.
+
+Interviewer: That's a strong contrast.
+
+Participant: It is. That's the thing, the tool itself made the visit better, but the way I was asked made me feel less in control. Those are two different problems, and I think the clinic only thought about the first one.
+
+Interviewer: You mentioned a visit with a new doctor.
+
+Participant: Yes, that one was different. I was there about something personal, and when he asked about the tool, I said no. He seemed a little surprised and then typed a lot, and the visit felt rushed. I wondered afterwards whether saying no meant I got a worse appointment. I hope not. But that's how it felt.
+
+Interviewer: Has the advisory group discussed the tool?
+
+Participant: Not formally, which is the strange part. We meet every two months, and nobody brought it to us before it started. We heard about it from patients asking questions in the waiting room. When we finally put it on our agenda, people had a lot to say.
+
+Interviewer: What came up?
+
+Participant: Mostly consent. People want to be asked clearly, in plain language, and ideally before they're sitting in the room with the doctor, when it's harder to say no. Some people wanted to know if they could read the note afterwards to check it was right. A few people, especially those who've been through the system in hard ways, said they would never agree to it and wanted to be sure that wouldn't be held against them.
+
+Interviewer: Did the group make recommendations?
+
+Participant: We wrote a short letter. Ask clearly and early. Have the information in the languages our community speaks. Make it easy to say no, and make sure saying no doesn't mean a shorter visit. And let patients see their notes. Those seem like small things, but they're about respect.
+
+Interviewer: Is there anything else you'd want researchers to hear?
+
+Participant: Just that patients aren't against new tools. Most of us want our doctors to be less exhausted. We just want to be part of the decision, not something that happens to us.

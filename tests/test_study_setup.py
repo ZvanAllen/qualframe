@@ -114,8 +114,8 @@ def test_new_study_dashboard_creates_dry_run_plan_without_execution(
 
     page = app.render()
     assert "Setup Interface Study" in page
-    assert "Create dry-run plan" in page
-    assert "Local mock mode; no external request" in page
+    assert "Run AI coding" in page
+    assert "Offline demo model" in page
 
     run_id, message = app.handle_action("/plan", {})
     assert "No model request was sent" in message
@@ -276,8 +276,11 @@ def test_dashboard_import_and_method_editor_change_real_run_plan(tmp_path: Path)
     app = DashboardApp(ProjectRunner(repo_root / created.project_manifest_path))
 
     import_page = app.render_imports()
-    assert "Import study files" in import_page
+    assert "Add transcripts" in import_page
     assert "Transcript" in import_page
+    codebook = (repo_root / "config/codebooks/example_directed_codebook_v1.yaml").read_bytes()
+    app.handle_upload("/import/codebook", {"actor": ["researcher"], "rationale": ["Starter codebook."]},
+                      {"upload": UploadedFile(filename="codebook.yaml", content_type="text/yaml", content=codebook)})
     message = app.handle_upload(
         "/import/transcript",
         {
@@ -296,8 +299,8 @@ def test_dashboard_import_and_method_editor_change_real_run_plan(tmp_path: Path)
     assert "Imported SYN-UI-01.txt" in message
 
     method_page = app.render_configure()
-    assert "Configure analysis method" in method_page
-    assert "One call per top-level category" in method_page
+    assert "Run coding" in method_page
+    assert "One request per top-level category" in method_page
     method_message = app.handle_method_update(
         {
             "segmentation_strategy": ["sentence"],
@@ -309,7 +312,7 @@ def test_dashboard_import_and_method_editor_change_real_run_plan(tmp_path: Path)
             "rationale": ["Test top-level partitioning and one-code policy."],
         }
     )
-    assert "method version method v2" in method_message
+    assert "new method version" in method_message
 
     plan = app.runner.build_run_plan()
     assert len(plan.planned_stage_runs) == 2

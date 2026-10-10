@@ -1,16 +1,16 @@
 cff-version: 1.2.0
 message: "If you use QualFrame in your research, please cite this software using the metadata below. Citation is requested, not an additional condition of the MIT license."
 type: software
-title: "QualFrame: Evidence-linked, human-supervised qualitative analysis"
+title: "QualFrame: AI-assisted directed content analysis you can check"
 authors:
   - family-names: "van Allen"
     given-names: "Zack"
-version: 0.1.0
-date-released: "2026-08-30"
+version: 0.9.0
+date-released: "2026-10-10"
 license: MIT
 repository-code: "https://github.com/ZvanAllen/qualframe"
 url: "https://github.com/ZvanAllen/qualframe"
-abstract: "A local-first research prototype for reproducible, evidence-linked, AI-assisted directed qualitative content analysis, with versioned workflows, exact-evidence review, human decisions, and traceable exports."
+abstract: "Local, open-source software for directed (deductive) qualitative content analysis with language models. QualFrame applies a researcher's codebook to interview transcripts, places every proposed code beside its exact source passage for human review, compares coding runs, and keeps a reproducible record of models, prompts, settings, and decisions."
 keywords:
   - qualitative analysis
   - directed content analysis
@@ -18,3 +18,4 @@ keywords:
   - research software
   - reproducibility
   - CFIR
+  - large language models

@@ -1,0 +1,20 @@
+id: example_directed_v2
+name: Synthetic service experience framework
+analysis_mode: deductive
+domains:
+- Access
+- Service Experience
+network_labels: []
+valence_labels: {}
+qa_rules:
+- required_columns_present
+- prompt_version_required
+required_columns:
+- Meaning Unit ID
+- Evidence Start
+- Evidence End
+- Exact Evidence
+- Code ID
+- Rationale
+special_rollups: {}
+prompt_set: config/prompt_sets/directed_content_analysis_v2.yaml

@@ -6,6 +6,9 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError
+
+import pytest
 
 from qualframe.adjudication import load_adjudication_actions
 from qualframe.dashboard import DashboardApp, make_handler
@@ -15,6 +18,23 @@ from qualframe.pipeline.project_runner import ProjectRunner
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEMO_PROJECT = REPO_ROOT / "demo/project/project_demo.yaml"
+
+
+def test_dashboard_rejects_cross_origin_posts_and_unexpected_hosts():
+    app = DashboardApp(ProjectRunner(DEMO_PROJECT))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(app))
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        for headers in ({"Origin": "https://untrusted.example"}, {"Host": "untrusted.example"}):
+            with pytest.raises(HTTPError) as caught:
+                urlopen(Request(base + "/provider/save", data=b"", headers=headers), timeout=5)
+            assert caught.value.code == 403
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_local_dashboard_renders_run_and_records_adjudication(tmp_path: Path) -> None:
@@ -58,18 +78,19 @@ def test_local_dashboard_renders_run_and_records_adjudication(tmp_path: Path) ->
     base_url = f"http://127.0.0.1:{server.server_port}"
     try:
         with urlopen(base_url + "/", timeout=5) as response:
-            page = response.read().decode("utf-8")
+            overview = response.read().decode("utf-8")
             assert response.headers["X-Content-Type-Options"] == "nosniff"
-        assert "Study workspace" in page
+        assert "Coding runs" in overview and "Runs on this computer" in overview
+        with urlopen(base_url + "/?run_id=" + run_id, timeout=5) as response:
+            page = response.read().decode("utf-8")
         assert "one_network_one_valence" in page
-        assert "loopback-only" in page
         assert ('href="/presentation"' in page) == (REPO_ROOT / "demo/presentation/index.html").exists()
         assert "/setup" in page
 
         with urlopen(base_url + "/setup", timeout=5) as response:
             setup_page = response.read().decode("utf-8")
-        assert "Create a study" in setup_page
-        assert "No model request is made during setup" in setup_page
+        assert "New study" in setup_page
+        assert "Nothing is sent anywhere until you start a coding run" in setup_page
         assert "Directed content analysis" in setup_page
 
         form = urlencode(
@@ -152,3 +173,16 @@ def test_local_dashboard_exposes_cost_pause_and_records_decision(tmp_path: Path)
     approval = json.loads(approval_line)
     assert approval["decision"] == "approve"
     assert approval["threshold_usd"] == 20
+
+
+def test_restarted_incomplete_run_is_not_an_untouched_dry_run(tmp_path):
+    runner=ProjectRunner(DEMO_PROJECT)
+    runner.project.paths['artifacts']=str(tmp_path/'artifacts')
+    root=tmp_path/'artifacts'/'interrupted'
+    (root/'requests').mkdir(parents=True)
+    (root/'run_plan.json').write_text('{}',encoding='utf-8')
+    (root/'requests'/'one.json').write_text('{"status":"usage_unresolved"}',encoding='utf-8')
+    page=DashboardApp(runner)._render_run('interrupted')
+    assert 'Coding incomplete' in page
+    assert 'Dry-run plan' not in page
+    assert 'No model request was sent.' not in page

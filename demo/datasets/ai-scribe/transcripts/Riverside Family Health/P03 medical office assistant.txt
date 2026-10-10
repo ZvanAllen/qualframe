@@ -1,0 +1,39 @@
+QualFrame demo transcript. Fictional interview written for software demonstration; not research data.
+Study: Adopting an AI documentation assistant in primary care
+Participant P03, medical office assistant, Riverside Family Health
+
+Interviewer: Your role is at the front desk. How does the documentation assistant affect your work?
+
+Participant: I don't use it myself, it's for the doctors and the nurse practitioner. But it changed my day more than I expected, because patients ask me about it. They see the sign in the waiting room and they want to know what it is before they go in.
+
+Interviewer: What kinds of questions do they ask?
+
+Participant: "Is the doctor recording me?" is the big one. Some people ask if it's like a smart speaker that's always listening. An older gentleman asked me whether the government would get the recording. A mother asked if it would be okay to talk about her teenager's mental health with it on.
+
+Interviewer: How did you answer?
+
+Participant: At first I didn't really know what to say. Nobody had told us much, it was mainly the doctors who got trained. I'd say, "You can ask the doctor to turn it off," which was true but felt like I was passing the buck. After a few weeks our manager gave us the information sheet and went through it with us, and now I can explain the basics: it helps write the note, the audio gets deleted, and they can say no without any problem.
+
+Interviewer: Do patients ever decline?
+
+Participant: Some do. Usually they tell me, and I put a little flag on their appointment so the doctor knows before they walk in. That way the patient doesn't have to say it twice. I came up with that myself, actually, and now everyone does it.
+
+Interviewer: That sounds like a useful workaround.
+
+Participant: It helps. It's a small thing, but people who are nervous about it don't want to argue with their doctor. If the flag is there, the doctor just doesn't turn it on and nobody has to make a fuss.
+
+Interviewer: Has it changed the flow of the clinic day?
+
+Participant: The doctors are a bit more on time in the afternoons, I've noticed that. Before, the last appointments would run late because they were catching up on charts between patients. Now they're not doing that as much. That makes my end of the day less stressful because I'm not apologising to people in the waiting room as often.
+
+Interviewer: Are there any downsides from where you sit?
+
+Participant: A couple. When the phone app doesn't work, the doctor sometimes comes out to the desk to ask for a charger or for help, and I'm not tech support. And when a patient declines, the doctor goes back to typing, and you can tell they're a bit slower that day. I don't think patients should feel pressured because of that, but I've wondered whether some people say yes because they think it's expected.
+
+Interviewer: Why do you think that?
+
+Participant: Just the way some people answer. They say "I guess it's fine" in a voice that doesn't sound fine. I've started telling people, "It's completely up to you, and the doctor won't mind either way." I don't know if that's my place, but it feels right.
+
+Interviewer: Is there anything you'd change?
+
+Participant: Train the front desk at the same time as the doctors. We're the first people patients talk to, so we should be able to answer their questions properly from day one. And maybe have the information sheet in more languages. We have a lot of patients who speak Punjabi and Arabic, and right now it's only in English and French.

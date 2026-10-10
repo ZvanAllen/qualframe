@@ -19,6 +19,7 @@ def build_provider(config: ProviderConfig) -> LLMProvider:
             api_key_env=config.api_key_env or "ANTHROPIC_API_KEY",
             max_tokens=config.max_tokens,
             temperature=config.temperature,
+            effort=config.anthropic_effort,
         )
     if config.name == "openai":
         from qualframe.providers.openai_provider import OpenAIProvider
@@ -28,7 +29,25 @@ def build_provider(config: ProviderConfig) -> LLMProvider:
             api_key_env=config.api_key_env or "OPENAI_API_KEY",
             max_tokens=config.max_tokens,
             temperature=config.temperature,
+            api_mode=config.api_mode,
+            reasoning_effort=config.reasoning_effort,
         )
+    if config.name == "openai_compatible":
+        from qualframe.providers.openai_provider import OpenAIProvider
+
+        return OpenAIProvider(
+            model=config.model or "",
+            api_key_env=config.api_key_env or "",
+            max_tokens=config.max_tokens,
+            temperature=config.temperature,
+            api_mode="chat_completions",
+            base_url=config.base_url,
+            provider_name="openai_compatible",
+        )
+    if config.name == "recorded":
+        from qualframe.providers.recorded_provider import RecordedProvider
+
+        return RecordedProvider(recording=config.model or "")
     if config.name == "google":
         from qualframe.providers.google_provider import GoogleProvider
 
@@ -38,4 +57,6 @@ def build_provider(config: ProviderConfig) -> LLMProvider:
             max_tokens=config.max_tokens,
             temperature=config.temperature,
         )
-    return MockProvider(model=config.model or "mock")
+    if config.name == "mock":
+        return MockProvider(model=config.model or "mock")
+    raise ValueError(f"Unknown provider '{config.name}'; refusing to substitute mock output.")

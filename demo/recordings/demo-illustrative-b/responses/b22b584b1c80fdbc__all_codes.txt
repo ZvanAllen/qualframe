@@ -1,0 +1,58 @@
+{
+ "codings": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "tech_accuracy",
+   "quote": "It's not that it makes things up all the time, but when it does, it's convincing.",
+   "rationale": "Errors are rare but convincing."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "tech_accuracy",
+   "quote": "Last month it wrote that a patient had denied chest pain, and we never discussed chest pain at all.",
+   "rationale": "Invented content in a draft."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "people_trust",
+   "quote": "I treat it like a draft from a student.",
+   "rationale": "Treats drafts as needing supervision."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "people_trust",
+   "quote": "For the complicated ones, the frail older patient with six problems, I sometimes turn it off and write the assessment myself.",
+   "rationale": "Keeps clinical reasoning for complex cases."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "people_relationship",
+   "quote": "I look at people more.",
+   "rationale": "More attention to patients."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "people_workload",
+   "quote": "I'd say I've gained back something like forty-five minutes a day, maybe an hour on a heavy clinic day.",
+   "rationale": "Time saved."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "org_privacy",
+   "quote": "A few people have asked who else can hear it, which is a fair question.",
+   "rationale": "Questions about who can access recordings."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "tech_integration",
+   "quote": "The formatting sometimes breaks, bullet points turn into one long paragraph, and the medication list doesn't land in the medication field, so I retype it.",
+   "rationale": "Formatting problems moving drafts into the record."
+  },
+  {
+   "meaning_unit": "mu-9",
+   "code_id": "tech_usability",
+   "quote": "Starting it is easy.",
+   "rationale": "The tool is easy to start."
+  }
+ ]
+}

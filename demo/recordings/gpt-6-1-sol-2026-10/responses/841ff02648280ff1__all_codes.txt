@@ -1,0 +1,100 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "They see the sign in the waiting room and they want to know what it is before they go in.",
+      "code_id": "patients_consent",
+      "rationale": "Patients seek an explanation of the tool before their visit, indicating a need to understand its use."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "\"Is the doctor recording me?\" is the big one. Some people ask if it's like a smart speaker that's always listening.",
+      "code_id": "patients_consent",
+      "rationale": "These patient questions express uncertainty about recording and the extent of listening."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "An older gentleman asked me whether the government would get the recording. A mother asked if it would be okay to talk about her teenager's mental health with it on.",
+      "code_id": "patients_consent",
+      "rationale": "Patients express concerns about access to recordings and comfort discussing sensitive information while the tool is active. These are individual reactions rather than institutional governance policies."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "At first I didn't really know what to say. Nobody had told us much, it was mainly the doctors who got trained.",
+      "code_id": "org_training",
+      "rationale": "The participant describes inadequate front-desk onboarding and training concentrated on doctors."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "After a few weeks our manager gave us the information sheet and went through it with us, and now I can explain the basics: it helps write the note, the audio gets deleted, and they can say no without any problem.",
+      "code_id": "org_training",
+      "rationale": "The manager supplies written guidance and instruction that enable staff to explain the tool to patients."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "Some do. Usually they tell me, and I put a little flag on their appointment so the doctor knows before they walk in. That way the patient doesn't have to say it twice.",
+      "code_id": "patients_consent",
+      "rationale": "The participant describes patients declining and a process for communicating their refusal to the doctor."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "It's a small thing, but people who are nervous about it don't want to argue with their doctor. If the flag is there, the doctor just doesn't turn it on and nobody has to make a fuss.",
+      "code_id": "patients_consent",
+      "rationale": "The flag allows nervous patients to have their refusal respected without having to confront the doctor."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "The doctors are a bit more on time in the afternoons, I've noticed that. Before, the last appointments would run late because they were catching up on charts between patients. Now they're not doing that as much.",
+      "code_id": "people_workload",
+      "rationale": "Reduced charting between visits is associated with improved punctuality and clinic pace."
+    },
+    {
+      "meaning_unit": "mu-9",
+      "quote": "That makes my end of the day less stressful because I'm not apologising to people in the waiting room as often.",
+      "code_id": "people_workload",
+      "rationale": "The improved clinic pace reduces the front-desk burden of managing delays and apologising to waiting patients."
+    },
+    {
+      "meaning_unit": "mu-10",
+      "quote": "When the phone app doesn't work, the doctor sometimes comes out to the desk to ask for a charger or for help, and I'm not tech support.",
+      "code_id": "tech_usability",
+      "rationale": "App failures and charger needs create practical barriers to running the tool."
+    },
+    {
+      "meaning_unit": "mu-10",
+      "quote": "When the phone app doesn't work, the doctor sometimes comes out to the desk to ask for a charger or for help, and I'm not tech support.",
+      "code_id": "org_training",
+      "rationale": "Troubleshooting requests are directed to a front-desk worker who does not regard technical support as their role."
+    },
+    {
+      "meaning_unit": "mu-11",
+      "quote": "And when a patient declines, the doctor goes back to typing, and you can tell they're a bit slower that day.",
+      "code_id": "people_workload",
+      "rationale": "Returning to manual documentation when patients decline slows the doctor's work."
+    },
+    {
+      "meaning_unit": "mu-12",
+      "quote": "I don't think patients should feel pressured because of that, but I've wondered whether some people say yes because they think it's expected.",
+      "code_id": "patients_consent",
+      "rationale": "The participant raises concern that perceived expectations may pressure patients into agreeing."
+    },
+    {
+      "meaning_unit": "mu-13",
+      "quote": "They say \"I guess it's fine\" in a voice that doesn't sound fine. I've started telling people, \"It's completely up to you, and the doctor won't mind either way.\"",
+      "code_id": "patients_consent",
+      "rationale": "The participant observes apparent discomfort despite verbal agreement and reassures patients that participation is voluntary."
+    },
+    {
+      "meaning_unit": "mu-14",
+      "quote": "Train the front desk at the same time as the doctors. We're the first people patients talk to, so we should be able to answer their questions properly from day one.",
+      "code_id": "org_training",
+      "rationale": "The participant recommends simultaneous onboarding so front-desk staff can answer patient questions from the outset."
+    },
+    {
+      "meaning_unit": "mu-15",
+      "quote": "And maybe have the information sheet in more languages. We have a lot of patients who speak Punjabi and Arabic, and right now it's only in English and French.",
+      "code_id": "patients_consent",
+      "rationale": "The participant identifies a language-access limitation in information provided to patients, which affects their ability to understand the tool."
+    }
+  ]
+}

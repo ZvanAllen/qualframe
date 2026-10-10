@@ -1,0 +1,6 @@
+id: directed_content_analysis_v2
+description: Exact-quotation anchoring contract; experimental and human-reviewed.
+stages:
+  directed_coding:
+    file: prompts/directed/v2/directed_coding.md
+    notes: Unique verbatim quotations are anchored deterministically; ambiguous locations require review.

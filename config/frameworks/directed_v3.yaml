@@ -1,0 +1,18 @@
+id: directed_v3
+name: Directed content analysis
+analysis_mode: deductive
+domains: []
+network_labels: []
+valence_labels: {}
+qa_rules:
+- required_columns_present
+- prompt_version_required
+required_columns:
+- Meaning Unit ID
+- Evidence Start
+- Evidence End
+- Exact Evidence
+- Code ID
+- Rationale
+special_rollups: {}
+prompt_set: config/prompt_sets/directed_content_analysis_v3.yaml

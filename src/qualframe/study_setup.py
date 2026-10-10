@@ -87,6 +87,51 @@ class StudyWorkspace:
             imported_source_count=len(imported),
         )
 
+    def create_from_dataset(
+        self,
+        *,
+        dataset_root: Path,
+        title: str,
+        study_id: str | None = None,
+        actor: str = "QualFrame demo",
+    ) -> CreatedStudy:
+        """Create a synthetic study from a bundled dataset folder.
+
+        The dataset holds ``transcripts/<group>/*.txt|docx``, ``codebook.yaml`` and an
+        optional ``metadata.csv``. Files go through the ordinary import path, so the
+        study records hashes and provenance exactly as for researcher uploads.
+        """
+        created = self.create(StudyCreationRequest(
+            title=title, study_id=study_id, data_classification="synthetic",
+            template="generic_directed", include_synthetic_fixtures=False,
+        ))
+        project_path = self.repo_root / created.project_manifest_path
+        reason = f"Bundled demo dataset: {dataset_root.name}"
+        count = 0
+        for source in sorted((dataset_root / "transcripts").rglob("*")):
+            if source.is_file() and source.suffix.lower() in {".txt", ".docx"}:
+                self.import_transcript(
+                    project_manifest_path=project_path, filename=source.name,
+                    content=source.read_bytes(), group_label=source.parent.name,
+                    actor=actor, rationale=reason,
+                )
+                count += 1
+        codebook = dataset_root / "codebook.yaml"
+        if codebook.exists():
+            self.import_codebook(
+                project_manifest_path=project_path, filename=codebook.name,
+                content=codebook.read_bytes(), actor=actor, rationale=reason,
+            )
+            count += 1
+        metadata = dataset_root / "metadata.csv"
+        if metadata.exists():
+            self.import_metadata(
+                project_manifest_path=project_path, filename=metadata.name,
+                content=metadata.read_bytes(), actor=actor, rationale=reason,
+            )
+            count += 1
+        return created.model_copy(update={"imported_source_count": count})
+
     def managed_study_root(self, project_manifest_path: Path) -> Path:
         project_path = project_manifest_path.resolve()
         studies_root = self.studies_root.resolve()
@@ -173,6 +218,8 @@ class StudyWorkspace:
         content: bytes,
         actor: str,
         rationale: str,
+        original_upload: tuple[str, bytes] | None = None,
+        conversion: dict[str, object] | None = None,
     ) -> SourceImportRecord:
         actor, rationale = self._validate_action_fields(actor, rationale)
         study_root = self.managed_study_root(project_manifest_path)
@@ -201,6 +248,23 @@ class StudyWorkspace:
             actor=actor,
             rationale=rationale,
         )
+        if original_upload is not None:
+            original_name, original_bytes = original_upload
+            self._safe_filename(original_name, {".xlsx"})
+            original_path = version_path.with_suffix(".xlsx")
+            with original_path.open("xb") as handle:
+                handle.write(original_bytes)
+            conversion_path = version_path.with_suffix(".import.json")
+            conversion_path.write_text(json.dumps({
+                **(conversion or {}), "original_sha256": sha256_for_file(original_path),
+                "normalized_sha256": record.sha256,
+            }, indent=2), encoding="utf-8")
+            record = record.model_copy(update={
+                "original_filename": original_name,
+                "original_path": original_path.relative_to(self.repo_root).as_posix(),
+                "original_sha256": sha256_for_file(original_path),
+                "conversion_path": conversion_path.relative_to(self.repo_root).as_posix(),
+            })
         previous = project.codebook
         relative = version_path.relative_to(self.repo_root).as_posix()
         self._update_project_reference(
@@ -311,6 +375,7 @@ class StudyWorkspace:
         data["version"] = f"1.0.{version_number - 1}"
         data["segmentation"]["strategy"] = update.segmentation_strategy
         data["context"]["before"] = update.context_before
+        data["context"]["unit"] = update.context_unit
         data["context"]["after"] = update.context_after
         data["coding"]["cardinality"] = update.coding_cardinality
         data["coding"]["allow_overlapping_spans"] = update.allow_overlapping_spans
@@ -366,8 +431,9 @@ class StudyWorkspace:
         project_relative = final_root.relative_to(self.repo_root).as_posix()
         imported: list[SourceImportRecord] = []
         codebook_path: str | None = None
+        legacy_fixture = request.template == "generic_directed" and request.include_synthetic_fixtures
         base_method_name = (
-            "directed_content_analysis_v1.yaml"
+            ("directed_content_analysis_v2.yaml" if legacy_fixture else "directed_content_analysis_v3.yaml")
             if request.template == "generic_directed"
             else "cfir_directed_content_analysis_v1.yaml"
         )
@@ -380,7 +446,7 @@ class StudyWorkspace:
             yaml.safe_dump(method_data, sort_keys=False), encoding="utf-8"
         )
         method_path = f"{project_relative}/config/method_v1.yaml"
-        if request.template == "generic_directed":
+        if legacy_fixture:
             source_codebook = (
                 self.repo_root / "config/codebooks/example_directed_codebook_v1.yaml"
             )
@@ -442,6 +508,18 @@ class StudyWorkspace:
             codebook_path=codebook_path,
             method_path=method_path,
         )
+        if request.template == "generic_directed" and not legacy_fixture:
+            manifest["framework"] = "config/frameworks/directed_v3.yaml"
+            manifest.pop("codebook", None)
+        if request.template == 'cfir' and not request.include_synthetic_fixtures:
+            pipeline = yaml.safe_load((self.repo_root / 'config/pipelines/transcript_cfir.yaml').read_text(encoding='utf-8'))
+            pipeline['id'] = f'{study_id}_coding_first_v1'
+            for stage in pipeline['stages']:
+                stage['enabled'] = stage['id'] == 'transcript_to_cfir'
+            (temp_root / 'config/pipeline_v1.yaml').write_text(yaml.safe_dump(pipeline, sort_keys=False), encoding='utf-8')
+            manifest['pipeline'] = f'{project_relative}/config/pipeline_v1.yaml'
+            manifest['governance'] = {'enforce_review_gates': True, 'require_release_for_export': True}
+            manifest['review_policy'] = 'config/review_policies/complete_review_v1.yaml'
         (temp_root / "project.yaml").write_text(
             yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8"
         )
@@ -648,11 +726,11 @@ class StudyWorkspace:
         if template == "generic_directed":
             common.update(
                 {
-                    "framework": "config/frameworks/example_directed_v1.yaml",
+                    "framework": "config/frameworks/example_directed_v2.yaml",
                     "pipeline": "config/pipelines/directed_content_analysis_contracts_v1.yaml",
                     "method": method_path,
                     "codebook": codebook_path,
-                    "review_policy": "config/review_policies/calibration_then_risk_v1.yaml",
+                    "review_policy": "config/review_policies/complete_review_v1.yaml",
                     "analysis_plan": "config/analysis_plans/example_group_comparison_v1.yaml",
                     "cost_policy": "config/cost_policies/example_local_email_20_usd_v1.yaml",
                     "pricing_snapshot": "config/pricing/mock_pricing_v1.yaml",

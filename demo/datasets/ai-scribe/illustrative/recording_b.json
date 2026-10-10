@@ -1,0 +1,308 @@
+{
+ "P01": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "tech_accuracy",
+   "quote": "It's not that it makes things up all the time, but when it does, it's convincing.",
+   "rationale": "Errors are rare but convincing."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "tech_accuracy",
+   "quote": "Last month it wrote that a patient had denied chest pain, and we never discussed chest pain at all.",
+   "rationale": "Invented content in a draft."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "people_trust",
+   "quote": "I treat it like a draft from a student.",
+   "rationale": "Treats drafts as needing supervision."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "people_trust",
+   "quote": "For the complicated ones, the frail older patient with six problems, I sometimes turn it off and write the assessment myself.",
+   "rationale": "Keeps clinical reasoning for complex cases."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "people_relationship",
+   "quote": "I look at people more.",
+   "rationale": "More attention to patients."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "people_workload",
+   "quote": "I'd say I've gained back something like forty-five minutes a day, maybe an hour on a heavy clinic day.",
+   "rationale": "Time saved."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "org_privacy",
+   "quote": "A few people have asked who else can hear it, which is a fair question.",
+   "rationale": "Questions about who can access recordings."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "tech_integration",
+   "quote": "The formatting sometimes breaks, bullet points turn into one long paragraph, and the medication list doesn't land in the medication field, so I retype it.",
+   "rationale": "Formatting problems moving drafts into the record."
+  },
+  {
+   "meaning_unit": "mu-9",
+   "code_id": "tech_usability",
+   "quote": "Starting it is easy.",
+   "rationale": "The tool is easy to start."
+  }
+ ],
+ "P02": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "org_leadership",
+   "quote": "Our medical director made the decision, and I made it happen.",
+   "rationale": "Leadership decision and implementation roles."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "org_leadership",
+   "quote": "When the doubters see a colleague leaving on time, that does more than any presentation from me.",
+   "rationale": "Peer champions."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "org_training",
+   "quote": "What actually worked was our own lunch-and-learn, where Dr. Okafor showed her real workflow on a test patient.",
+   "rationale": "Locally led training worked better."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "org_privacy",
+   "quote": "It took six weeks to get written answers.",
+   "rationale": "Slow vendor responses to privacy questions."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "org_privacy",
+   "quote": "A written agreement that audio is deleted after the note is generated, that our data isn't used for training, and that processing happens in Canada.",
+   "rationale": "Contractual data protections."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "org_leadership",
+   "quote": "The licence isn't cheap, and it's per clinician per month.",
+   "rationale": "Cost of the tool."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "patients_consent",
+   "quote": "patients sometimes ask them about it before they see the doctor, and they weren't prepared for those questions at first.",
+   "rationale": "Patients raise consent questions at the front desk."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "tech_integration",
+   "quote": "the copying back and forth is the number one complaint I hear.",
+   "rationale": "Main complaint is moving drafts into the record."
+  }
+ ],
+ "P03": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "patients_consent",
+   "quote": "Some people ask if it's like a smart speaker that's always listening.",
+   "rationale": "Patients' understanding of the recording."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "org_training",
+   "quote": "Nobody had told us much, it was mainly the doctors who got trained.",
+   "rationale": "Front desk not trained."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "patients_consent",
+   "quote": "Usually they tell me, and I put a little flag on their appointment so the doctor knows before they walk in.",
+   "rationale": "Workaround to honour refusals."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "people_workload",
+   "quote": "Before, the last appointments would run late because they were catching up on charts between patients.",
+   "rationale": "Charting delayed afternoon appointments before adoption."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "patients_consent",
+   "quote": "They say \"I guess it's fine\" in a voice that doesn't sound fine.",
+   "rationale": "Hesitant consent."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "tech_usability",
+   "quote": "When the phone app doesn't work, the doctor sometimes comes out to the desk to ask for a charger or for help, and I'm not tech support.",
+   "rationale": "Device problems."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "patients_consent",
+   "quote": "And maybe have the information sheet in more languages.",
+   "rationale": "Language access for consent information."
+  }
+ ],
+ "P04": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "org_leadership",
+   "quote": "The regional health authority offered it to a handful of community clinics as part of a pilot.",
+   "rationale": "How the tool reached the clinic."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "tech_accuracy",
+   "quote": "It's good at the medical parts: symptoms, medications, the plan.",
+   "rationale": "Accuracy for clinical content."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "tech_accuracy",
+   "quote": "If someone tells me they're sleeping in their car this week, that's the most important thing in the visit, and the draft might mention it in one line at the bottom, or leave it out entirely.",
+   "rationale": "Omits social context."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "people_relationship",
+   "quote": "With others, especially people who've had bad experiences with institutions, the idea that something is listening changes the conversation.",
+   "rationale": "Recording changes conversations with some patients."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "org_privacy",
+   "quote": "Partly for the patient's comfort, partly because I'm not confident enough about where that audio goes, even with what we've been told.",
+   "rationale": "Uncertainty about data handling."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "org_privacy",
+   "quote": "Our policy is basically \"use your professional judgement,\" which I appreciate, but it puts it back on us.",
+   "rationale": "Policy leaves decisions to clinicians."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "tech_integration",
+   "quote": "It also doesn't know our templates, so the structure of the draft doesn't match the structure our charts are supposed to follow.",
+   "rationale": "Drafts do not match chart templates."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "people_workload",
+   "quote": "For straightforward visits, yes, maybe ten minutes each.",
+   "rationale": "Time saved on simple visits."
+  },
+  {
+   "meaning_unit": "mu-9",
+   "code_id": "org_training",
+   "quote": "Another NP and I made our own cheat sheet and shared it around.",
+   "rationale": "Locally developed guidance."
+  }
+ ],
+ "P05": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "tech_accuracy",
+   "quote": "I found errors in about one note out of five.",
+   "rationale": "Estimated error rate."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "tech_accuracy",
+   "quote": "a dose recorded wrong, laterality flipped, left knee instead of right",
+   "rationale": "Types of errors found."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "tech_accuracy",
+   "quote": "But one note said I'd examined a patient's abdomen when I hadn't.",
+   "rationale": "Invented examination."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "people_workload",
+   "quote": "So for me the time savings didn't materialise.",
+   "rationale": "No time saved."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "people_trust",
+   "quote": "If something is right ninety percent of the time, your attention drifts.",
+   "rationale": "Over-reliance."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "people_trust",
+   "quote": "I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+   "rationale": "Restricting trainee use."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "org_privacy",
+   "quote": "One patient asked me directly whether the company would use her conversation to improve its product, and I couldn't give her a confident answer at the time.",
+   "rationale": "Unclear vendor data use."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "org_leadership",
+   "quote": "To her credit she took it seriously and asked the health authority for clearer answers about data use.",
+   "rationale": "Leadership responded to concerns."
+  },
+  {
+   "meaning_unit": "mu-9",
+   "code_id": "people_trust",
+   "quote": "If someone showed me that it was as accurate as a good human scribe, I'd use it tomorrow.",
+   "rationale": "Conditions for trusting the tool."
+  }
+ ],
+ "P06": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "patients_consent",
+   "quote": "The first time, I didn't really understand what I was agreeing to.",
+   "rationale": "Consent without understanding."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "people_relationship",
+   "quote": "She looked at me the whole time. I felt like she was really hearing me, instead of half-listening while she typed.",
+   "rationale": "Clinician attention during the visit."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "patients_experience",
+   "quote": "honestly that visit was one of the best I've had.",
+   "rationale": "Positive visit experience."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "patients_consent",
+   "quote": "the tool itself made the visit better, but the way I was asked made me feel less in control.",
+   "rationale": "Consent process undermined control."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "patients_experience",
+   "quote": "I wondered afterwards whether saying no meant I got a worse appointment.",
+   "rationale": "Worry that declining affects care."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "org_leadership",
+   "quote": "We heard about it from patients asking questions in the waiting room.",
+   "rationale": "Advisory group not informed."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "patients_consent",
+   "quote": "Ask clearly and early.",
+   "rationale": "Recommendation on consent."
+  }
+ ]
+}

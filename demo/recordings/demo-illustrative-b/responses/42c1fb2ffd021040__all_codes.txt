@@ -1,0 +1,58 @@
+{
+ "codings": [
+  {
+   "meaning_unit": "mu-1",
+   "code_id": "tech_accuracy",
+   "quote": "I found errors in about one note out of five.",
+   "rationale": "Estimated error rate."
+  },
+  {
+   "meaning_unit": "mu-2",
+   "code_id": "tech_accuracy",
+   "quote": "a dose recorded wrong, laterality flipped, left knee instead of right",
+   "rationale": "Types of errors found."
+  },
+  {
+   "meaning_unit": "mu-3",
+   "code_id": "tech_accuracy",
+   "quote": "But one note said I'd examined a patient's abdomen when I hadn't.",
+   "rationale": "Invented examination."
+  },
+  {
+   "meaning_unit": "mu-4",
+   "code_id": "people_workload",
+   "quote": "So for me the time savings didn't materialise.",
+   "rationale": "No time saved."
+  },
+  {
+   "meaning_unit": "mu-5",
+   "code_id": "people_trust",
+   "quote": "If something is right ninety percent of the time, your attention drifts.",
+   "rationale": "Over-reliance."
+  },
+  {
+   "meaning_unit": "mu-6",
+   "code_id": "people_trust",
+   "quote": "I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+   "rationale": "Restricting trainee use."
+  },
+  {
+   "meaning_unit": "mu-7",
+   "code_id": "org_privacy",
+   "quote": "One patient asked me directly whether the company would use her conversation to improve its product, and I couldn't give her a confident answer at the time.",
+   "rationale": "Unclear vendor data use."
+  },
+  {
+   "meaning_unit": "mu-8",
+   "code_id": "org_leadership",
+   "quote": "To her credit she took it seriously and asked the health authority for clearer answers about data use.",
+   "rationale": "Leadership responded to concerns."
+  },
+  {
+   "meaning_unit": "mu-9",
+   "code_id": "people_trust",
+   "quote": "If someone showed me that it was as accurate as a good human scribe, I'd use it tomorrow.",
+   "rationale": "Conditions for trusting the tool."
+  }
+ ]
+}

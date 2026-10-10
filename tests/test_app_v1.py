@@ -1,0 +1,217 @@
+"""Workspace, offline demo, JSON coding output, and compatible-endpoint setup."""
+from __future__ import annotations
+
+import json
+import threading
+from http.server import ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+
+import pytest
+
+from qualframe.app_workspace import ensure_workspace, list_study_manifests, researcher_name, write_settings
+from qualframe.dashboard import DashboardApp, make_handler
+from qualframe.demo_study import create_demo_study
+from qualframe.evidence_review import load_evidence_review_records
+from qualframe.io.response_parser import coding_response_schema, parse_coding_json, parse_model_output
+from qualframe.models import ProviderConfig
+from qualframe.pipeline.project_runner import ProjectRunner
+from qualframe.provider_setup import ProviderSetup
+from qualframe.providers import build_provider
+from qualframe.providers.recorded_provider import RecordedProvider, recording_key
+
+
+def test_workspace_gets_templates_once_and_never_overwrites(tmp_path: Path) -> None:
+    first = ensure_workspace(tmp_path / "ws")
+    assert first.copied > 0
+    prompt = first.root / "prompts/directed/v3/directed_coding.md"
+    prompt.write_text("researcher edit", encoding="utf-8")
+    second = ensure_workspace(tmp_path / "ws")
+    assert second.copied == 0
+    assert prompt.read_text(encoding="utf-8") == "researcher edit"
+    assert (first.root / "studies").is_dir()
+
+
+def test_settings_remember_the_researcher(tmp_path: Path) -> None:
+    assert researcher_name(tmp_path) == ""
+    write_settings(tmp_path, researcher_name="Ada")
+    assert researcher_name(tmp_path) == "Ada"
+
+
+def test_json_coding_output_becomes_review_rows() -> None:
+    text = '```json\n{"codings": [{"meaning_unit": "mu-1", "quote": "A & B | C", "code_id": "x", "rationale": "fits"}]}\n```'
+    rows = parse_coding_json(text)["Directed Coding"]
+    assert rows[0]["Evidence Start"] == "auto" and rows[0]["Code ID"] == "x"
+    assert rows[0]["Exact Evidence"] == "A &amp; B | C"  # review unescapes back to the exact quote
+    assert parse_coding_json("| a |\n|---|\n| 1 |") is None
+    assert parse_model_output('{"codings": []}') == {"Directed Coding": []}
+    schema = coding_response_schema(["b", "a"])
+    assert schema["properties"]["codings"]["items"]["properties"]["code_id"]["enum"] == ["a", "b"]
+
+
+def test_compatible_endpoint_configuration_and_validation() -> None:
+    config = ProviderConfig(name="openai_compatible", model="gpt-oss:20b", base_url="http://localhost:11434/v1")
+    provider = build_provider(config)
+    assert provider.name == "openai_compatible" and provider.base_url == "http://localhost:11434/v1"
+    with pytest.raises(ValueError):
+        ProviderConfig(name="openai_compatible", model="m")
+    with pytest.raises(ValueError):
+        ProviderConfig(name="openai", model="m", base_url="http://localhost:1")
+    base = dict(provider="openai_compatible", model="gpt-oss:20b", max_tokens=1000, absolute_limit_usd=1,
+                input_rate=0, output_rate=0, pricing_date="2026-01-01", governance_confirmed=True)
+    assert ProviderSetup.model_validate({**base, "base_url": "http://localhost:11434/v1"}).input_rate == 0
+    with pytest.raises(ValueError, match="https"):
+        ProviderSetup.model_validate({**base, "base_url": "http://example.org/v1"})
+    with pytest.raises(ValueError, match="prices"):
+        ProviderSetup.model_validate({**base, "provider": "openai", "pricing_source": "https://openai.com/api/pricing"})
+
+
+def test_offline_demo_study_codes_from_recordings(tmp_path: Path) -> None:
+    root = ensure_workspace(tmp_path / "ws").root
+    created, project_path, run_id = create_demo_study(root)
+    assert created.imported_source_count == 8  # six transcripts, a codebook and metadata
+    runner = ProjectRunner(project_path)
+    assert runner.codebook is not None and len(runner.codebook.codes) == 15
+    records = load_evidence_review_records(runner.repo_root / "studies" / created.study_id / "artifacts" / run_id / "evidence_review/index.json")
+    assert len(records) == 92  # Claude Sonnet 5.5, recorded October 2026
+    assert all(record.anchoring_method == "unique_exact_quote" for record in records)
+    assert all(not record.validation_issues for record in records)
+    assert list_study_manifests(root) == [project_path]
+
+
+def test_recorded_provider_only_answers_for_its_transcripts() -> None:
+    provider = RecordedProvider("demo-illustrative-a")
+    with pytest.raises(FileNotFoundError):
+        provider.complete(system_prompt="", user_prompt="Transcript:\n\nSomething else\n\n---\n\nCodebook")
+    assert recording_key("no transcript here") is None
+
+
+def _serve(app: DashboardApp):
+    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(app))
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return server, thread, f"http://127.0.0.1:{server.server_port}"
+
+
+def test_app_starts_without_a_study_and_opens_the_demo(tmp_path: Path) -> None:
+    root = ensure_workspace(tmp_path / "ws").root
+    app = DashboardApp(None, workspace_root=root)
+    server, thread, base = _serve(app)
+    try:
+        home = urlopen(base + "/", timeout=10).read().decode("utf-8")
+        assert "Open the demo study" in home and "No studies yet" in home
+        css = urlopen(base + "/static/workspace.css", timeout=10).read().decode("utf-8")
+        assert "@font-face" in css
+        with pytest.raises(Exception):
+            urlopen(base + "/static/../dashboard.py", timeout=10)
+        page = urlopen(Request(base + "/demo", data=b"", method="POST"), timeout=60).read().decode("utf-8")
+        assert "Demo study ready" in page and "Continue reviewing" in page
+        name = urlencode({"researcher_name": "Grace", "back": "/review"}).encode()
+        review = urlopen(Request(base + "/settings/name", data=name, method="POST"), timeout=10).read().decode("utf-8")
+        assert "Recording decisions as Grace" in review
+        results = urlopen(base + "/compare", timeout=10).read().decode("utf-8")
+        assert "Codes in common" in results
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_methods_record_summarises_run_and_review(tmp_path: Path) -> None:
+    from qualframe.methods_record import build_methods_record, methods_markdown, methods_paragraph
+
+    root = ensure_workspace(tmp_path / "ws").root
+    created, project_path, run_id = create_demo_study(root, with_comparison=False)
+    app = DashboardApp(ProjectRunner(project_path))
+    records = load_evidence_review_records(app.artifacts_dir / run_id / "evidence_review/index.json")
+    for record, decision in zip(records[:3], ["accept", "reject", "accept"]):
+        app.handle_action("/evidence-action", {"run_id": [run_id], "item": [record.record_id],
+                                               "decision": [decision], "reviewer": ["Ada"]})
+    record = build_methods_record(app, run_id)
+    assert record["qualframe_version"] and record["model"]["label"] == "Claude Sonnet 5.5"
+    assert record["review"]["decisions"]["accept"] == 2 and record["review"]["decisions"]["reject"] == 1
+    assert record["review"]["reviewers"] == ["Ada"] and len(record["transcripts"]) == 6
+    assert record["prompt"]["path"].endswith("directed/v3/directed_coding.md")
+    paragraph = methods_paragraph(record)
+    assert "accepting 2" in paragraph and "rejecting 1" in paragraph and "15-code codebook" in paragraph
+    assert "## Human review" in methods_markdown(record)
+
+
+def test_runner_stops_when_a_local_model_reads_only_part_of_the_prompt(tmp_path: Path) -> None:
+    from qualframe.providers.base import LLMResponse, LLMUsage
+
+    class Truncating:
+        name = "openai_compatible"
+
+        def complete(self, **_):
+            return LLMResponse(text='{"codings": []}', status="completed",
+                               usage=LLMUsage(input_tokens=4096, output_tokens=20))
+
+    root = ensure_workspace(tmp_path / "ws").root
+    _, project_path, _ = create_demo_study(root, with_comparison=False)
+    runner = ProjectRunner(project_path)
+    with pytest.raises(RuntimeError, match="context length"):
+        runner._complete(provider=Truncating(), cost_controller=None, stage_id="coding",
+                         input_label="P01", user_prompt="word " * 20000)
+    # A full read passes.
+    Truncating.complete = lambda self, **_: LLMResponse(text='{"codings": []}', status="completed",
+                                                         usage=LLMUsage(input_tokens=26000, output_tokens=20))
+    assert runner._complete(provider=Truncating(), cost_controller=None, stage_id="coding",
+                            input_label="P01", user_prompt="word " * 20000).text
+
+
+def test_cost_estimate_allows_for_reasoning_tokens(tmp_path: Path) -> None:
+    from qualframe.coding_ui import cost_for, estimate_study
+
+    root = ensure_workspace(tmp_path / "ws").root
+    _, project_path, _ = create_demo_study(root, with_comparison=False)
+    estimate = estimate_study(DashboardApp(ProjectRunner(project_path)))
+    # Claude Sonnet 5.5 used 29,243 input and 15,815 output tokens on the demo (October 2026).
+    assert estimate["input_tokens"] >= 29_000 * 0.9 and estimate["output_tokens"] >= 15_815
+    assert 0.2 <= cost_for(estimate, 2.0, 10.0) <= 0.35
+
+
+def test_compatible_endpoint_streams_and_reads_usage() -> None:
+    """A slow local server is read as a stream; reasoning deltas are ignored and usage is kept."""
+    import time
+    from http.server import BaseHTTPRequestHandler
+
+    pytest.importorskip("openai")
+    seen: dict = {}
+
+    class FakeOllama(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+        def do_POST(self):
+            seen["body"] = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.end_headers()
+            base = {"id": "c1", "object": "chat.completion.chunk", "created": 0, "model": "gpt-oss:20b"}
+            events = [
+                {**base, "choices": [{"index": 0, "delta": {"role": "assistant", "reasoning": "Thinking..."}, "finish_reason": None}]},
+                {**base, "choices": [{"index": 0, "delta": {"content": '{"codings": '}, "finish_reason": None}]},
+                {**base, "choices": [{"index": 0, "delta": {"content": "[]}"}, "finish_reason": "stop"}]},
+                {**base, "choices": [], "usage": {"prompt_tokens": 5000, "completion_tokens": 900, "total_tokens": 5900}},
+            ]
+            for event in events:
+                self.wfile.write(f"data: {json.dumps(event)}\n\n".encode())
+                self.wfile.flush()
+                time.sleep(0.05)
+            self.wfile.write(b"data: [DONE]\n\n")
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), FakeOllama)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        provider = build_provider(ProviderConfig(name="openai_compatible", model="gpt-oss:20b",
+                                                 base_url=f"http://127.0.0.1:{server.server_port}/v1"))
+        response = provider.complete(system_prompt="s", user_prompt="u")
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert seen["body"]["stream"] is True and seen["body"]["stream_options"] == {"include_usage": True}
+    assert response.text == '{"codings": []}' and response.status == "completed"
+    assert response.usage.input_tokens == 5000 and response.usage.output_tokens == 900

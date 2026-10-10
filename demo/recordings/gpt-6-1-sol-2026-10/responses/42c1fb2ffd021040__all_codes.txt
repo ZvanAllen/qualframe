@@ -1,0 +1,136 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "I tried it for about three weeks, properly, in every visit where the patient agreed.",
+      "code_id": "patients_consent",
+      "rationale": "Use of the assistant was conditional on the patient agreeing."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "I found errors in roughly one note out of five. Small ones mostly, a dose recorded wrong, laterality flipped, left knee instead of right. But one note said I'd examined a patient's abdomen when I hadn't.",
+      "code_id": "tech_accuracy",
+      "rationale": "The participant reports an error frequency and examples of incorrect and invented clinical content."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "That's a falsified record if I sign it without noticing. The software doesn't get tired, but it also doesn't know when it's guessing.",
+      "code_id": "people_trust",
+      "rationale": "The participant connects signing an unchecked draft to professional accountability and questions the reliability of the software's judgements."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "To check a note properly, I have to remember the visit in detail and compare it line by line. That took me about as long as writing a short note myself. So for me the time savings didn't materialise.",
+      "code_id": "people_workload",
+      "rationale": "Checking drafts required substantial effort and eliminated the anticipated documentation time savings."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "But I also think some of them are reading less carefully than they think they are. That's not a criticism of them, it's human nature. If something is right ninety percent of the time, your attention drifts.",
+      "code_id": "people_trust",
+      "rationale": "The participant describes reduced scrutiny of drafts and the risk of over-reliance on generally accurate output."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "Our regulatory college is clear that the physician is responsible for the content of the record, no matter who or what drafted it.",
+      "code_id": "people_trust",
+      "rationale": "The passage explicitly identifies the physician's accountability for the record regardless of its author."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "Our regulatory college is clear that the physician is responsible for the content of the record, no matter who or what drafted it.",
+      "code_id": "org_privacy",
+      "rationale": "The participant cites an institutional regulatory rule assigning responsibility for documentation content."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "Writing a note is how residents learn to organise their thinking: what's the problem, what's the evidence, what's the plan. If the machine writes the note, what happens to that skill?",
+      "code_id": "people_trust",
+      "rationale": "The participant raises concerns about the tool's effects on trainees' clinical reasoning and skill development."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+      "code_id": "people_trust",
+      "rationale": "In the context of protecting residents' reasoning skills, the participant restricts trainees' use of the assistant."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+      "code_id": "org_leadership",
+      "rationale": "The program director supports a local decision limiting adoption among first-year residents."
+    },
+    {
+      "meaning_unit": "mu-9",
+      "quote": "Most didn't mind.",
+      "code_id": "patients_consent",
+      "rationale": "In response to how patients reacted to use of the assistant, the participant reports that most were comfortable with it."
+    },
+    {
+      "meaning_unit": "mu-10",
+      "quote": "A couple of my older patients were quite pleased, actually, they said it was nice to see me not typing.",
+      "code_id": "patients_experience",
+      "rationale": "Patients positively perceived their visits because the physician was not typing."
+    },
+    {
+      "meaning_unit": "mu-11",
+      "quote": "One patient asked me directly whether the company would use her conversation to improve its product, and I couldn't give her a confident answer at the time.",
+      "code_id": "patients_consent",
+      "rationale": "The patient's question and the physician's inability to answer reveal uncertainty about what patients understand about the use of their recorded conversations."
+    },
+    {
+      "meaning_unit": "mu-11",
+      "quote": "One patient asked me directly whether the company would use her conversation to improve its product, and I couldn't give her a confident answer at the time.",
+      "code_id": "org_privacy",
+      "rationale": "The passage identifies uncertainty about the vendor's secondary use of patient conversation data."
+    },
+    {
+      "meaning_unit": "mu-12",
+      "quote": "To her credit she took it seriously and asked the health authority for clearer answers about data use. We got a better document a month later.",
+      "code_id": "org_privacy",
+      "rationale": "The clinic sought and received clearer institutional documentation about data use."
+    },
+    {
+      "meaning_unit": "mu-12",
+      "quote": "To her credit she took it seriously and asked the health authority for clearer answers about data use. We got a better document a month later.",
+      "code_id": "org_leadership",
+      "rationale": "The executive director responded supportively to concerns and took action to obtain clarification."
+    },
+    {
+      "meaning_unit": "mu-13",
+      "quote": "But the decision to join the pilot had already been made above our heads, so it felt like we were fixing the plane while flying it.",
+      "code_id": "org_leadership",
+      "rationale": "The participant describes a top-down pilot adoption decision that excluded frontline staff from prior decision-making."
+    },
+    {
+      "meaning_unit": "mu-14",
+      "quote": "A proper connection to our record system so I'm not copying and pasting.",
+      "code_id": "tech_integration",
+      "rationale": "The participant requests direct integration with the health record to avoid manual copying and pasting."
+    },
+    {
+      "meaning_unit": "mu-15",
+      "quote": "Evidence from independent evaluations, not just the vendor's numbers, about error rates.",
+      "code_id": "tech_accuracy",
+      "rationale": "The participant wants independently established error rates before reconsidering adoption."
+    },
+    {
+      "meaning_unit": "mu-16",
+      "quote": "And a clear way to see which parts of the note came from the conversation and which parts the software inferred. If it highlighted what it wasn't sure about, I'd trust it more, not less.",
+      "code_id": "people_trust",
+      "rationale": "The participant explicitly links greater trust to transparency about inferred content and uncertainty."
+    },
+    {
+      "meaning_unit": "mu-17",
+      "quote": "I'm against using it without knowing how good it is. If someone showed me that it was as accurate as a good human scribe, I'd use it tomorrow.",
+      "code_id": "tech_accuracy",
+      "rationale": "Demonstrated accuracy comparable to a human scribe is the participant's condition for adopting the tool."
+    },
+    {
+      "meaning_unit": "mu-17",
+      "quote": "I'm against using it without knowing how good it is. If someone showed me that it was as accurate as a good human scribe, I'd use it tomorrow.",
+      "code_id": "people_trust",
+      "rationale": "The participant's willingness to rely on the assistant depends on evidence establishing confidence in its drafts."
+    }
+  ]
+}
