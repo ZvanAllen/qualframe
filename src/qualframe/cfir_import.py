@@ -35,3 +35,30 @@ def import_reference(workspace, project_path: Path, filename: str, content: byte
     workspace._append_change(root, project_id=project.project_id, change_kind='codebook_import',
         previous_ref=previous, new_ref=relative, actor=actor, rationale=rationale)
     return record
+
+
+def reference_codebook_spec(codes: list[dict], *, codebook_id: str, name: str, version: str = "1") -> dict:
+    """The CFIR reference catalogue as a QualFrame codebook, keeping each construct's ID.
+
+    Lets the same CFIR workbook be used with QualFrame's general coding instructions, and keeps
+    the code IDs identical so runs of both kinds can be compared directly.
+    """
+    import re
+
+    def domain_title(code: dict) -> str:
+        domain = re.sub(r"\s+domain$", "", code["domain"], flags=re.IGNORECASE).title()
+        section = code.get("section", "")
+        return f"{domain} ({section.title()})" if section else domain
+
+    entries = []
+    for code in codes:
+        parent = None
+        if code["parent_label"]:
+            matches = [c["id"] for c in codes if c["raw_label"] == code["parent_label"] and not c["parent_label"]
+                       and c["domain"] == code["domain"] and c.get("section", "") == code.get("section", "")]
+            if len(matches) != 1:
+                raise ValueError(f"The parent of {code['label']} could not be identified in the CFIR workbook.")
+            parent = matches[0]
+        entries.append({"id": code["id"], "label": f"{domain_title(code)}: {code['label']}",
+                        "parent_id": parent, "definition": code["definition"]})
+    return {"id": codebook_id, "version": version, "name": name, "codes": entries}

@@ -263,3 +263,17 @@ def test_outline_labels_v4_reads_compound_numbers_and_parenthesised_parents(tmp_
     # v3 stays as it was for indexes made with it: it does not read these forms.
     frozen = _label_records(tmp_path, codes, {'Individuals': ['H.4 Motivation']}, 'outline_labels_v3')
     assert frozen[0].proposed_code_id is None
+
+
+def test_reference_catalogue_becomes_a_qualframe_codebook_with_the_same_ids(tmp_path):
+    from qualframe.cfir_import import reference_codebook_spec
+    from qualframe.models import CodebookSpec
+    codes = _outline_book(tmp_path)
+    spec = CodebookSpec.model_validate(reference_codebook_spec(codes, codebook_id='cfir-amn', name='CFIR'))
+    assert [c.id for c in spec.codes] == [c['id'] for c in codes]
+    by_id = {c.id: c for c in spec.codes}
+    child = next(c for c in codes if c['raw_label'] == '1. Adoption')
+    assert by_id[child['id']].label == 'Outcomes Addendum (Implementation Outcomes): B. Actual Implementation Outcomes / 1. Adoption'
+    assert by_id[by_id[child['id']].parent_id].label.endswith(': B. Actual Implementation Outcomes')
+    need = next(c for c in codes if c['raw_label'] == '1. Need' and c['parent_label'] == 'H. Innovation Deliverers')
+    assert by_id[need['id']].label == 'Individuals: H. Innovation Deliverers / 1. Need'

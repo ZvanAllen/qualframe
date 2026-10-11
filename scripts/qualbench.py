@@ -71,7 +71,15 @@ def compare(args) -> None:
     project, repo_root = _study(args.study)
     manifest = load_project_manifest(project)
     artifacts = resolve_repo_path(repo_root, manifest.paths["artifacts"])
-    sets = [run_coding_set(repo_root, artifacts / run_id) for run_id in args.run]
+    sets = []
+    for entry in args.run:
+        # "RUN" is a run of this study; "STUDY-ID:RUN" is a run of another study in the same workspace.
+        study_id, _, run_id = entry.rpartition(":")
+        run_root = artifacts / run_id
+        if study_id:
+            other = repo_root / "studies" / study_id / "project.yaml"
+            run_root = resolve_repo_path(repo_root, load_project_manifest(other).paths["artifacts"]) / run_id
+        sets.append(run_coding_set(repo_root, run_root))
     reference = None
     if args.reference:
         path = reference_folder(project, args.reference) / "reference.json"
@@ -104,7 +112,8 @@ def main() -> None:
     one.set_defaults(func=import_reference)
     two = sub.add_parser("compare", help="Compare runs with each other and with a reference.")
     two.add_argument("--study", required=True)
-    two.add_argument("--run", action="append", default=[], help="Run ID (repeat)")
+    two.add_argument("--run", action="append", default=[],
+                     help="Run ID (repeat); STUDY-ID:RUN-ID for a run of another study with the same transcripts")
     two.add_argument("--reference", help="Reference ID")
     two.add_argument("--stability", action="append", help="Comma-separated run IDs that repeat one configuration")
     two.add_argument("--out", help="Folder for the report (default: the study's exports/qualbench)")

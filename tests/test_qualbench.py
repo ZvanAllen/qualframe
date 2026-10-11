@@ -302,3 +302,15 @@ def test_reference_coding_can_be_imported_from_the_qualbench_page(tmp_path):
     assert [p.parent.name for p in list_references(project)] == ["earlier-coding", "earlier-coding-2"]
     with pytest.raises(ValueError, match="name"):
         app.handle_upload("/import/reference-coding", {"label": [""], "statement": ["x"]}, {"upload": [upload]})
+
+
+def test_runs_from_another_study_are_matched_by_transcript_content():
+    here = _set("here", [("t/one.txt", "p", 0, 10)])
+    there = _set("there", [("other/one copy.txt", "p", 0, 10)])
+    there["sources"] = {"other/one copy.txt": "h1", "other/two copy.txt": "h2"}
+    report = build_qualbench([here, there])
+    assert report["transcripts"] == ["t/one.txt", "t/two.txt"]
+    overall = next(r for r in report["presence"] if r["scope_kind"] == "all" and r["level"] == "code")
+    assert overall["both"] == 1 and overall["percent_agreement"] == 1.0
+    passages = next(r for r in report["passages"] if r["scope_kind"] == "all")
+    assert passages["matched_exact"] == 1

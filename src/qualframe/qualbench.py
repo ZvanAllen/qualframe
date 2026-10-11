@@ -196,6 +196,31 @@ def _restrict(coding_set: dict, sources: set[str]) -> dict:
     return trimmed
 
 
+def same_transcripts_by_content(sets: list[dict]) -> list[dict]:
+    """Key every coding set's transcripts by the first set's path for the same file content.
+
+    Runs from different studies (for example the same transcripts coded with different
+    instructions in a second study) store the transcripts under different paths. Files with the
+    same SHA-256 hash are the same transcript.
+    """
+    names: dict[str, str] = {}
+    for coding_set in sets:
+        for path, digest in coding_set["sources"].items():
+            names.setdefault(digest, path)
+    rekeyed = []
+    for coding_set in sets:
+        mapping = {path: names[digest] for path, digest in coding_set["sources"].items()}
+        if all(old == new for old, new in mapping.items()):
+            rekeyed.append(coding_set)
+            continue
+        moved = dict(coding_set, sources={mapping[path]: digest for path, digest in coding_set["sources"].items()})
+        for key in ("included", "excluded", "absences"):
+            moved[key] = [dict(item, source=mapping.get(item.get("source"), item.get("source")))
+                          for item in coding_set.get(key, [])]
+        rekeyed.append(moved)
+    return rekeyed
+
+
 def common_sources(sets: list[dict]) -> list[str]:
     common = set(sets[0]["sources"].items())
     for coding_set in sets[1:]:
@@ -330,6 +355,7 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
     code_ids = [_known(s) for s in everything]
     if any(ids_ != code_ids[0] for ids_ in code_ids[1:]):
         raise ValueError("All coding sets must use the same codebook.")
+    everything = same_transcripts_by_content(everything)
     sources = common_sources(everything)
     if not sources:
         raise ValueError("These coding sets have no transcripts in common.")
