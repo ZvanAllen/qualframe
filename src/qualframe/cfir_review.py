@@ -73,6 +73,8 @@ def reference_codes(path: Path) -> list[dict[str, str]]:
                     continue
                 if definition.lower() == 'construct definition' or label.lower() == 'name' or not label:
                     continue
+                if re.fullmatch(r'notes?\s*:?', label, re.IGNORECASE):
+                    continue  # explanatory notes between constructs (for example in the Inner Setting domain)
                 if re.match(r'^[IVX]+\.\s+[A-Z ]+$', label):
                     parent = ''
                     continue

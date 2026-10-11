@@ -36,6 +36,16 @@ def test_repeated_child_names_have_distinct_code_ids(tmp_path):
     assert not any(c['raw_label'] == 'Name' for c in codes)
 
 
+def test_note_rows_between_constructs_are_not_codes(tmp_path):
+    book = Workbook(); sheet = book.active
+    for row in [('III. INNER SETTING DOMAIN', None), ('Construct Name', 'Construct Definition'),
+                ('Note: ', 'Constructs A - D apply to the inner setting as a whole.'), ('A. Structure', 'Structure'),
+                ('Note:', 'Constructs E - K are specific to the innovation.'), ('E. Tension for Change', 'Tension')]:
+        sheet.append(row)
+    path = tmp_path/'book.xlsx'; book.save(path)
+    assert [c['raw_label'] for c in reference_codes(path)] == ['A. Structure', 'E. Tension for Change']
+
+
 def test_review_advances_and_rejects_unknown_edit_codes(tmp_path):
     project, run_id, root, review = _completed_synthetic_run(tmp_path)
     index = write_evidence_review_index(project_manifest_path=project, run_id=run_id)
