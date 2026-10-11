@@ -44,7 +44,7 @@ from qualframe.models import (
 )
 from qualframe.prompts import get_prompt_text
 from qualframe.providers import build_provider
-from qualframe.providers.base import LLMProvider, LLMResponse, estimate_tokens
+from qualframe.providers.base import LLMProvider, LLMResponse, LLMUsage, estimate_tokens
 from qualframe.qa.rules import ReviewQueueItem, run_qa_on_artifact
 from qualframe.qa.inventory import write_run_qa_inventory
 from qualframe.structured_output import scoped_contract_sha256, validate_stage_output
@@ -141,6 +141,13 @@ class ProjectRunner:
         response_schema: dict | None = None,
     ) -> LLMResponse:
         cost_prompt = system_prompt + (json.dumps(response_schema) if response_schema else "")
+        identity = sha256_for_text("\x00".join(
+            (system_prompt, user_prompt, json.dumps(response_schema, sort_keys=True) if response_schema else "")))
+        if cost_controller is not None:
+            # A resumed run reuses answers it already paid for: the same request in the same run.
+            saved = self._saved_responses(cost_controller.artifact_root / "requests").get((input_label, identity))
+            if saved is not None:
+                return saved
         request_id = ""
         estimated_cost = 0.0
         if cost_controller is not None:
@@ -164,6 +171,7 @@ class ProjectRunner:
                 attempts.mkdir(parents=True, exist_ok=True)
                 (attempts / f"{request_id}.json").write_text(json.dumps({
                     "request_id": request_id, "status": "usage_unresolved",
+                    "input_label": input_label, "prompt_sha256": identity,
                     "error_type": type(exc).__name__, "error_message": reason,
                     "cause_type": type(exc.__cause__).__name__ if exc.__cause__ else None,
                     "cause_errno": getattr(exc.__cause__, "errno", None),
@@ -179,7 +187,8 @@ class ProjectRunner:
             attempts = cost_controller.artifact_root / "requests"
             attempts.mkdir(parents=True, exist_ok=True)
             (attempts / f"{request_id}.json").write_text(json.dumps({
-                "request_id": request_id, "response": dataclasses.asdict(response),
+                "request_id": request_id, "input_label": input_label, "prompt_sha256": identity,
+                "response": dataclasses.asdict(response),
                 "elapsed_seconds": time.monotonic() - started,
             }, indent=2), encoding="utf-8")
             cost_controller.record_response(
@@ -201,6 +210,31 @@ class ProjectRunner:
                 )
             raise RuntimeError("Provider returned incomplete or empty output; usage was recorded. Review before resuming.")
         return response
+
+    def _saved_responses(self, requests_dir: Path) -> dict[tuple[str, str], LLMResponse]:
+        """Completed answers already recorded for this run, by request label and prompt identity.
+
+        Read once per run folder. Only complete, non-empty answers whose prompt matches exactly are
+        reused, so a resumed run does not pay twice for requests it finished before stopping.
+        """
+        cache = self.__dict__.setdefault("_saved_response_cache", {})
+        key = str(requests_dir)
+        if key not in cache:
+            found: dict[tuple[str, str], LLMResponse] = {}
+            for path in sorted(requests_dir.glob("*.json")) if requests_dir.exists() else []:
+                try:
+                    record = json.loads(path.read_text(encoding="utf-8"))
+                    raw = record.get("response")
+                    if not isinstance(raw, dict) or not record.get("input_label") or not record.get("prompt_sha256"):
+                        continue
+                    usage = raw.get("usage")
+                    response = LLMResponse(**{**raw, "usage": LLMUsage(**usage) if isinstance(usage, dict) else None})
+                except (OSError, ValueError, TypeError):
+                    continue
+                if response.status == "completed" and response.text.strip():
+                    found[(record["input_label"], record["prompt_sha256"])] = response
+            cache[key] = found
+        return cache[key]
 
     @staticmethod
     def _check_prompt_was_read(provider: LLMProvider, response: LLMResponse, prompt: str, input_label: str) -> None:

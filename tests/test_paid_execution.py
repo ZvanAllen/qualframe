@@ -452,3 +452,32 @@ def test_spending_check_is_approved_and_the_run_continues_in_one_step(tmp_path, 
     assert run_id == "paid-test" and "Coding has resumed" in message and len(dispatched) == 1
     approvals = (app.logs_dir / "cost_approvals.jsonl").read_text(encoding="utf-8").splitlines()
     assert len(approvals) == 1 and json.loads(approvals[0])["rationale"] == "Approved continuing past $20"
+
+
+def test_a_resumed_run_reuses_answers_it_already_paid_for(tmp_path):
+    cost = controller(tmp_path, max_output_tokens=10)
+    calls = []
+
+    def answer(**kwargs):
+        calls.append(kwargs["user_prompt"])
+        return LLMResponse(text=f"answer to {kwargs['user_prompt']}", usage=LLMUsage(output_tokens=3))
+
+    first = object.__new__(ProjectRunner)
+    first._complete(provider=NS(complete=answer), cost_controller=cost, stage_id="coding",
+                    input_label="t1::Innovation", user_prompt="domain one")
+    assert calls == ["domain one"] and cost.project_cost_usd() == 3
+
+    def must_not_be_called(**kwargs):
+        raise AssertionError("A completed request was sent again.")
+
+    resumed = object.__new__(ProjectRunner)  # a new process after a pause or failure
+    again = resumed._complete(provider=NS(complete=must_not_be_called), cost_controller=cost, stage_id="coding",
+                              input_label="t1::Innovation", user_prompt="domain one")
+    assert again.text == "answer to domain one" and again.usage.output_tokens == 3
+    assert cost.project_cost_usd() == 3
+    # A different prompt, or the same prompt under another label, is a new request.
+    resumed._complete(provider=NS(complete=answer), cost_controller=cost, stage_id="coding",
+                      input_label="t1::Innovation", user_prompt="domain one, edited")
+    resumed._complete(provider=NS(complete=answer), cost_controller=cost, stage_id="coding",
+                      input_label="t2::Innovation", user_prompt="domain one")
+    assert calls == ["domain one", "domain one, edited", "domain one"]

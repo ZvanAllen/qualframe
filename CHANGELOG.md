@@ -13,6 +13,7 @@
 - **CFIR workbooks** with explanatory "Note:" rows between constructs now import.
 - **Recovering from a failed paid request.** When a request fails (for example the account runs out of credit), the run's details page now asks whether it was charged: one click for "no", or the token counts from the provider's usage page for "yes". The run can then resume where it stopped; this used to need the command line. The error message is saved with the request.
 - **Spending checks in one step.** When a run pauses at a spending check (every $20 by default), its page now offers *Approve and continue*, which records the approval and resumes the run, or *Stop the run here*. Before, approving and resuming were two separate forms, and resuming without approving paused the run again.
+- **Resuming never pays twice.** A resumed run reuses every answer it already received, including the finished parts of a transcript coded one domain or category at a time. Before, those parts were requested again.
 - **Resuming after changing spending settings.** Raising the spending limit or saving the model again no longer stops a run from resuming, as long as everything that shapes the coding (model and its settings, instructions, codebook, options) is unchanged. Other changes still need a new run, and the page now says so.
 - **Clearer errors.** A failed model request now says why (for example a missing key) instead of only that it failed.
 - The placeholder name "Unnamed researcher" is no longer saved as your name.
