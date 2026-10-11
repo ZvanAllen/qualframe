@@ -117,3 +117,84 @@ def test_typography_only_acceptance_and_reviewer_retention(tmp_path):
     assert '<summary>Why the model proposed this' in page
     assert 'id="code-search"' not in page
     assert 'id="edit-controls"' in page
+
+
+def _outline_book(tmp_path):
+    book = Workbook(); sheet = book.active
+    for row in [('II. OUTER SETTING DOMAIN', None), ('Construct Name', 'Construct Definition'),
+                ('D. Partnerships & Connections', 'Partnerships'),
+                ('IV. INDIVIDUALS DOMAIN', None), ('Construct Name', 'Construct Definition'),
+                ('C. Opinion Leaders', 'Opinion leaders'), ('1. Need', 'Opinion leader need'),
+                ('H. Innovation Deliverers', 'Deliverers'), ('1. Need', 'Deliverer need'), ('4. Motivation', 'Deliverer motivation'),
+                ('V. IMPLEMENTATION PROCESS DOMAIN \nProcess', None), ('Construct Name', 'Construct Definition'),
+                ('B. Assessing Needs', 'Assessing'), ('1. Innovation Deliverers', 'Assessing deliverers'),
+                ('F. Engaging', 'Engaging'), ('1. Innovation Deliverers', 'Engaging deliverers'),
+                ('H. Reflecting & Evaluating', 'Reflecting'), ('2. Innovation', 'Reflecting on the innovation'),
+                ('CFIR OUTCOMES ADDENDUM', None), ('I. ANTECEDENT ASSESSMENTS', 'Group'), ('Name', 'Definition'),
+                ('A. Acceptability', 'Acceptability'),
+                ('II. IMPLEMENTATION OUTCOMES', 'Group'), ('Name', 'Definition'),
+                ('A. Anticipated Implementation Outcomes', 'Anticipated'), ('1. Adoptability', 'Adoptability'),
+                ('B. Actual Implementation Outcomes', 'Actual'), ('1. Adoption', 'Adoption'),
+                ('III. INNOVATION OUTCOMES', 'Group'), ('Name', 'Definition'),
+                ('A. Innovation Recipient Impact', 'Recipient impact')]:
+        sheet.append(row)
+    path = tmp_path / 'book.xlsx'; book.save(path)
+    return reference_codes(path)
+
+
+def _label_records(tmp_path, codes, rows_by_domain, policy):
+    from types import SimpleNamespace
+    from qualframe.cfir_review import cfir_records
+    source = tmp_path / 'transcript.txt'
+    source.write_text('Participant: We met every week.', encoding='utf-8')
+    artifact_path = tmp_path / 'artifact.json'; artifact_path.write_text('{}', encoding='utf-8')
+    parsed = {domain: [{'CFIR Construct': label, 'Quote': 'We met every week.'} for label in labels]
+              for domain, labels in rows_by_domain.items()}
+    artifact = SimpleNamespace(parsed_output=parsed, stage_id='transcript_to_cfir', model='m', provider='p', prompt_sha256='0' * 64)
+    manifest = SimpleNamespace(run_id='run', configuration_fingerprint='f')
+    return cfir_records(artifact=artifact, artifact_rel='artifact.json', artifact_path=artifact_path, source_path=source,
+                        repo_root=tmp_path, manifest=manifest, codes=codes, codebook_hash='h', code_label_policy=policy)
+
+
+def test_outline_labels_match_parent_child_and_outcomes_groups(tmp_path):
+    codes = _outline_book(tmp_path)
+    by_id = {c['id']: c for c in codes}
+    assert {c['section'] for c in codes if c['domain'] == 'OUTCOMES ADDENDUM'} == {
+        'ANTECEDENT ASSESSMENTS', 'IMPLEMENTATION OUTCOMES', 'INNOVATION OUTCOMES'}
+    rows = {
+        'Outer Setting': ['Partnerships and Connections'],
+        'Individuals': ['H. Innovation Deliverers: 4. Motivation', 'C. Opinion Leaders', '1. Need',
+                        'H. Innovation Deliverers – 1. Need', 'Z. Somebody Else: 1. Need'],
+        'Implementation Process': ['F. Engaging: 1. Innovation Deliverers', 'H. Reflecting and Evaluating: 2. Innovation',
+                                   'B. Assessing Needs / 1. Innovation Deliverers'],
+        'Outcomes Addendum': ['I.A. Antecedent Assessments: Acceptability',
+                              'II.A. Implementation Outcomes: Anticipated Implementation Outcomes',
+                              'II.B.1. Actual Implementation Outcomes: Adoption',
+                              'III.A. Innovation Outcomes: Innovation Recipient Impact',
+                              'II.B.1. Anticipated Implementation Outcomes: Adoption'],
+    }
+    records = _label_records(tmp_path, codes, rows, 'outline_labels_v3')
+    matched = [(by_id[r.proposed_code_id]['parent_label'] or by_id[r.proposed_code_id].get('section'),
+                by_id[r.proposed_code_id]['raw_label']) if r.proposed_code_id else None for r in records]
+    assert matched == [
+        ('', 'D. Partnerships & Connections'),
+        ('H. Innovation Deliverers', '4. Motivation'),
+        ('', 'C. Opinion Leaders'),
+        ('C. Opinion Leaders', '1. Need'),          # unqualified child follows the preceding construct
+        ('H. Innovation Deliverers', '1. Need'),
+        None,                                       # a qualifier that names no parent is not guessed
+        ('F. Engaging', '1. Innovation Deliverers'),
+        ('H. Reflecting & Evaluating', '2. Innovation'),
+        ('B. Assessing Needs', '1. Innovation Deliverers'),
+        ('ANTECEDENT ASSESSMENTS', 'A. Acceptability'),
+        ('IMPLEMENTATION OUTCOMES', 'A. Anticipated Implementation Outcomes'),
+        ('B. Actual Implementation Outcomes', '1. Adoption'),
+        ('INNOVATION OUTCOMES', 'A. Innovation Recipient Impact'),
+        None,                                       # Adoption sits under Actual, not Anticipated
+    ]
+    assert [r.validation_issues for r in records if r.proposed_code_id is None] == [
+        ['Construct could not be identified uniquely in the reference codebook.']] * 2
+    # The frozen benchmark policies are unchanged: they still miss these forms.
+    legacy = _label_records(tmp_path, codes, {'Individuals': ['H. Innovation Deliverers: 4. Motivation']}, 'legacy_v1')
+    assert legacy[0].proposed_code_id is None
+

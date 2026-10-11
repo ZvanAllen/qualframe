@@ -32,6 +32,12 @@ _PROMPT_OVERHEAD_TOKENS = 900
 _INPUT_TOKEN_FACTOR = 1.5
 _OUTPUT_PER_TRANSCRIPT_TOKEN = 1.2
 _REASONING_TOKENS_PER_REQUEST = 1800
+# The CFIR reference prompts ask for a row for every construct in each domain, so each domain's
+# answer is long whatever the transcript says. Calibrated on the AMN Study A sample runs
+# (October 2026): Claude Sonnet 5.5 wrote about 9,000 tokens per domain for an 8,500-word
+# transcript; GPT-6.1 Sol wrote far less. Kept at the Sonnet figure.
+_CFIR_OUTPUT_PER_TRANSCRIPT_TOKEN = 0.55
+_CFIR_OUTPUT_PER_REQUEST = 2500
 
 
 def load_presets(app) -> tuple[str, list[dict]]:
@@ -55,17 +61,23 @@ def estimate_study(app) -> dict:
     runner = app.runner
     files = runner._transcript_files()
     transcript_tokens = [estimate_tokens(transcript_to_text(path)) for path in files]
+    per_domain = False
     if runner.codebook is not None and runner.method is not None:
         groups = partition_codebook(runner.codebook, runner.method.partitioning)
         codebook_tokens = [estimate_tokens(json.dumps([c.model_dump() for c in codes])) for codes in groups.values()]
     else:
         reference = runner._load_reference_file("codebook") or ""
-        codebook_tokens = [estimate_tokens(reference)] * (6 if any(s.domain_iterations for s in runner.pipeline.stages) else 1)
+        per_domain = any(s.domain_iterations for s in runner.pipeline.stages)
+        codebook_tokens = [estimate_tokens(reference)] * (6 if per_domain else 1)
     requests = len(files) * len(codebook_tokens)
     groups = max(1, len(codebook_tokens))
     input_tokens = int(_INPUT_TOKEN_FACTOR * sum(t + c + _PROMPT_OVERHEAD_TOKENS for t in transcript_tokens for c in codebook_tokens))
-    output_tokens = sum(int(_OUTPUT_PER_TRANSCRIPT_TOKEN * t / groups) + _REASONING_TOKENS_PER_REQUEST
-                        for t in transcript_tokens for _ in codebook_tokens)
+    if per_domain:
+        output_tokens = sum(int(_CFIR_OUTPUT_PER_TRANSCRIPT_TOKEN * t) + _CFIR_OUTPUT_PER_REQUEST
+                            for t in transcript_tokens for _ in codebook_tokens)
+    else:
+        output_tokens = sum(int(_OUTPUT_PER_TRANSCRIPT_TOKEN * t / groups) + _REASONING_TOKENS_PER_REQUEST
+                            for t in transcript_tokens for _ in codebook_tokens)
     return {"transcripts": len(files), "requests": requests, "input_tokens": input_tokens, "output_tokens": output_tokens}
 
 

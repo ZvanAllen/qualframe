@@ -58,6 +58,7 @@ def reference_codes(path: Path) -> list[dict[str, str]]:
     codes: list[dict[str, str]] = []
     domain = ''
     parent = ''
+    section = ''  # Outcomes Addendum groups, such as "ANTECEDENT ASSESSMENTS"
     try:
         for sheet in workbook:
             for row in sheet.iter_rows(values_only=True):
@@ -66,10 +67,10 @@ def reference_codes(path: Path) -> list[dict[str, str]]:
                 if not definition:
                     heading = label.splitlines()[0] if label else ''
                     if 'OUTCOMES ADDENDUM' in heading.upper():
-                        domain, parent = 'OUTCOMES ADDENDUM', ''
+                        domain, parent, section = 'OUTCOMES ADDENDUM', '', ''
                     elif re.match(r'^[IVX]+\.', heading):
                         domain = re.sub(r'^[IVX]+\.\s*', '', heading).split(':')[0].strip()
-                        parent = ''
+                        parent, section = '', ''
                     continue
                 if definition.lower() == 'construct definition' or label.lower() == 'name' or not label:
                     continue
@@ -77,6 +78,7 @@ def reference_codes(path: Path) -> list[dict[str, str]]:
                     continue  # explanatory notes between constructs (for example in the Inner Setting domain)
                 if re.match(r'^[IVX]+\.\s+[A-Z ]+$', label):
                     parent = ''
+                    section = re.sub(r'^[IVX]+\.\s*', '', label).strip()
                     continue
                 is_child = bool(re.match(r'^\d+\.', label))
                 if not is_child:
@@ -85,16 +87,75 @@ def reference_codes(path: Path) -> list[dict[str, str]]:
                 identity = sha256_for_text(domain + ':' + parent_label + ':' + label)[:20]
                 display = f'{parent_label} / {label}' if parent_label else label
                 codes.append(dict(id='cfir-' + identity, label=display, raw_label=label,
-                    parent_label=parent_label, definition=definition, domain=domain))
+                    parent_label=parent_label, definition=definition, domain=domain, section=section))
     finally:
         workbook.close()
     return codes
 
 
+# How a model's "CFIR Construct" label is matched to the reference codebook.
+# legacy_v1 and qualified_delimiters_v2 are frozen: historical benchmarks were normalized with them.
+# outline_labels_v3 is used for review. It reads the forms models write when copying the
+# codebook's outline: "H. Innovation Deliverers: 4. Motivation", "F. Engaging – 1. Innovation
+# Deliverers", "II.B.1. Actual Implementation Outcomes: Adoption". Outline numbers, case, spacing,
+# dash and quote typography and "&"/"and" are ignored; names must otherwise match exactly, and a
+# qualifier must name the code's parent construct, its Outcomes Addendum group or its domain.
+LABEL_POLICIES = ("legacy_v1", "qualified_delimiters_v2", "outline_labels_v3")
+REVIEW_LABEL_POLICY = "outline_labels_v3"
+_OUTLINE_NUMBER = re.compile(r'^\s*(?:(?:[IVX]+|[A-Z]\d*|\d+)\.)+\s*')
+_QUALIFIER = re.compile(r'\s*:\s*|\s+[/>-]\s+')
+
+
+def construct_name(value: str) -> str:
+    """A construct name without its outline number, for comparison."""
+    value = normalized_with_offsets(str(value or ''))[0]
+    value = _OUTLINE_NUMBER.sub('', value).replace('&', ' and ')
+    return ' '.join(value.casefold().split())
+
+
+def _outline_candidates(label: str, in_domain: list[dict[str, str]], current_parent: str) -> list[dict[str, str]]:
+    parts = [part for part in _QUALIFIER.split(normalized_with_offsets(label.strip())[0]) if part.strip()]
+    if not parts:
+        return []
+    child = construct_name(parts[-1])
+    candidates = [c for c in in_domain if construct_name(c['raw_label']) == child]
+    if len(parts) > 1:
+        qualifier = construct_name(parts[-2])
+        candidates = [c for c in candidates if qualifier in {
+            construct_name(c['parent_label']), construct_name(c.get('section', '')),
+            construct_name(re.sub(r'\s+domain$', '', c['domain'], flags=re.IGNORECASE))} - {''}]
+    elif len(candidates) > 1 and current_parent:
+        candidates = [c for c in candidates if c['parent_label'] == current_parent]
+    return candidates
+
+
+def _frozen_policy_code(label: str, in_domain: list[dict[str, str]], current_parent: str, policy: str):
+    """legacy_v1 and qualified_delimiters_v2, unchanged so historical benchmarks reproduce."""
+    def name(value):
+        return re.sub(r'^(?:[A-Z]\d*|\d+)\.\s*', '', value).strip().casefold()
+    qualified = re.split(r"\s+[–—-]\s+", label) if policy == "qualified_delimiters_v2" else []
+    if len(qualified) == 2:
+        # Delimiter-only sensitivity: both literal parent and child must
+        # match. This does not map synonyms or broad "(general)" labels.
+        candidates = [c for c in in_domain if name(c['raw_label']) == name(qualified[1])
+                      and name(c['parent_label']) == name(qualified[0])]
+    else:
+        candidates = [c for c in in_domain if name(c['raw_label']) == name(label.split(':')[-1])]
+        if ':' in label:
+            parent_name = name(label.split(':')[0])
+            candidates = [c for c in candidates if name(c['parent_label']) == parent_name]
+    if len(candidates) > 1 and current_parent:
+        candidates = [c for c in candidates if c['parent_label'] == current_parent]
+    code = candidates[0] if len(candidates) == 1 else None
+    if code and not code['parent_label']:
+        current_parent = code['raw_label']
+    return code, current_parent
+
+
 def cfir_records(*, artifact, artifact_rel: str, artifact_path: Path, source_path: Path,
                  repo_root: Path, manifest, codes: list[dict[str, str]], codebook_hash: str,
                  code_label_policy: str = "legacy_v1"):
-    if code_label_policy not in {"legacy_v1", "qualified_delimiters_v2"}:
+    if code_label_policy not in LABEL_POLICIES:
         raise ValueError("Unknown CFIR code-label normalization policy.")
     source = transcript_to_text(source_path)
     source_hash = sha256_for_file(source_path)
@@ -105,25 +166,14 @@ def cfir_records(*, artifact, artifact_rel: str, artifact_path: Path, source_pat
             if not {'CFIR Construct', 'Quote'} <= row.keys():
                 continue
             label = str(row['CFIR Construct']).strip()
-            def name(value):
-                return re.sub(r'^(?:[A-Z]\d*|\d+)\.\s*', '', value).strip().casefold()
             in_domain = [c for c in codes if domain.lower().replace(' addendum', '') in c['domain'].lower()]
-            qualified = re.split(r"\s+[–—-]\s+", label) if code_label_policy == "qualified_delimiters_v2" else []
-            if len(qualified) == 2:
-                # Delimiter-only sensitivity: both literal parent and child must
-                # match. This does not map synonyms or broad "(general)" labels.
-                candidates = [c for c in in_domain if name(c['raw_label']) == name(qualified[1])
-                              and name(c['parent_label']) == name(qualified[0])]
+            if code_label_policy == "outline_labels_v3":
+                candidates = _outline_candidates(label, in_domain, current_parent)
+                code = candidates[0] if len(candidates) == 1 else None
+                if code:
+                    current_parent = code['parent_label'] or code['raw_label']
             else:
-                candidates = [c for c in in_domain if name(c['raw_label']) == name(label.split(':')[-1])]
-                if ':' in label:
-                    parent_name = name(label.split(':')[0])
-                    candidates = [c for c in candidates if name(c['parent_label']) == parent_name]
-            if len(candidates) > 1 and current_parent:
-                candidates = [c for c in candidates if c['parent_label'] == current_parent]
-            code = candidates[0] if len(candidates) == 1 else None
-            if code and not code['parent_label']:
-                current_parent = code['raw_label']
+                code, current_parent = _frozen_policy_code(label, in_domain, current_parent, code_label_policy)
             quote = str(row['Quote'])
             absent = quote.strip().strip('"“”').lower() == 'no relevant quote found'
             start, end, method = (-1, -1, 'no_evidence') if absent else locate_quote(source, quote)

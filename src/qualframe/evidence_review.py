@@ -13,7 +13,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from qualframe.config import load_codebook_spec, load_project_manifest, resolve_repo_path
 from qualframe.directed_analysis import validate_evidence_span_against_source
 from qualframe.evidence_anchoring import anchor_exact_quote
-from qualframe.cfir_review import cfir_records, reference_codes
+from qualframe.cfir_review import REVIEW_LABEL_POLICY, cfir_records, reference_codes
 from qualframe.governance import assert_export_allowed
 from qualframe.io.files import sha256_for_file, sha256_for_text
 from qualframe.io.transcript_io import transcript_to_text
@@ -187,9 +187,20 @@ def build_evidence_review_records(
         current_hash = sha256_for_file(source_path)
         if artifact.stage_id == 'transcript_to_cfir':
             reference = resolve_repo_path(repo_root, project.paths['reference']) / 'codebook.xlsx'
-            review_records.extend(cfir_records(artifact=artifact, artifact_rel=artifact_rel,
-                artifact_path=artifact_path, source_path=source_path, repo_root=repo_root, manifest=manifest,
-                codes=reference_codes(reference), codebook_hash=sha256_for_file(reference) if reference.exists() else 'unknown'))
+            for record in cfir_records(artifact=artifact, artifact_rel=artifact_rel,
+                    artifact_path=artifact_path, source_path=source_path, repo_root=repo_root, manifest=manifest,
+                    codes=reference_codes(reference), codebook_hash=sha256_for_file(reference) if reference.exists() else 'unknown',
+                    code_label_policy=REVIEW_LABEL_POLICY):
+                span = record.evidence_span
+                if span is not None:
+                    # Keep the run's chosen amount of surrounding text, as for other workflows.
+                    context_start, context_end = _context_offsets(
+                        source_text, span.start_offset, span.end_offset, method_before, method_after, method_unit)
+                    record = record.model_copy(update={
+                        'evidence_span': span.model_copy(update={
+                            'context_start_offset': context_start, 'context_end_offset': context_end}),
+                        'context_text': source_text[context_start:context_end]})
+                review_records.append(record)
             continue
         for sheet_name, rows in artifact.parsed_output.items():
             for row_index, row in enumerate(rows, start=1):
@@ -346,6 +357,7 @@ def write_evidence_review_index(
                 "run_id": run_id,
                 "generated_at_utc": _utc_now(),
                 "record_count": len(records),
+                **({} if project.codebook else {"code_label_policy": REVIEW_LABEL_POLICY}),
                 "codebook": (load_codebook_spec(resolve_repo_path(repo_root, project.codebook)).model_dump(mode='json') if project.codebook else
                     {'id': 'cfir-reference', 'version': sha256_for_file(resolve_repo_path(repo_root, project.paths['reference']) / 'codebook.xlsx') if (resolve_repo_path(repo_root, project.paths['reference']) / 'codebook.xlsx').exists() else 'unknown',
                      'codes': reference_codes(resolve_repo_path(repo_root, project.paths['reference']) / 'codebook.xlsx')}),
