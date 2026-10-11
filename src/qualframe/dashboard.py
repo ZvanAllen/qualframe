@@ -108,6 +108,24 @@ class DashboardApp:
         self.logs_dir = resolve_repo_path(
             self.repo_root, runner.project.paths.get("logs", "logs")
         )
+        self._refresh_unreviewed_cfir_runs()
+
+    def _refresh_unreviewed_cfir_runs(self) -> None:
+        """Once per study and session, re-check CFIR runs prepared before the current construct matching."""
+        checked = self.__dict__.setdefault("_checked_cfir_studies", set())
+        project_path = self.runner.project_manifest_path.resolve()
+        if project_path in checked or not self.artifacts_dir.exists():
+            return
+        checked.add(project_path)
+        from qualframe.evidence_review import refresh_unreviewed_cfir_index
+        for run_root in sorted(self.artifacts_dir.iterdir()):
+            if not (run_root / "evidence_review/index.json").exists():
+                continue
+            try:
+                refresh_unreviewed_cfir_index(project_manifest_path=project_path, run_id=run_root.name,
+                                              review_dir=self.review_dir)
+            except Exception:  # never stop a study opening; the earlier index stays in use
+                continue
 
     def create_study(self, form: dict[str, list[str]]) -> CreatedStudy:
         request = StudyCreationRequest(

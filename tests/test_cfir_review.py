@@ -198,3 +198,33 @@ def test_outline_labels_match_parent_child_and_outcomes_groups(tmp_path):
     legacy = _label_records(tmp_path, codes, {'Individuals': ['H. Innovation Deliverers: 4. Motivation']}, 'legacy_v1')
     assert legacy[0].proposed_code_id is None
 
+
+
+def test_unreviewed_cfir_index_from_earlier_matching_is_rebuilt_once(tmp_path):
+    from qualframe.evidence_review import refresh_unreviewed_cfir_index
+    project, run_id, root, review = _completed_synthetic_run(tmp_path)
+    index = write_evidence_review_index(project_manifest_path=project, run_id=run_id)
+
+    def make_earlier_cfir_index():
+        payload = json.loads(index.read_text(encoding='utf-8'))
+        payload.pop('code_label_policy', None)
+        payload['codebook'] = {'id': 'cfir-reference', 'version': 'v', 'codes': []}
+        index.write_text(json.dumps(payload, indent=2), encoding='utf-8')
+        return index.read_text(encoding='utf-8')
+
+    earlier = make_earlier_cfir_index()
+    assert refresh_unreviewed_cfir_index(project_manifest_path=project, run_id=run_id, review_dir=review.parent)
+    kept = list((index.parent / 'superseded').glob('index-*.json'))
+    assert len(kept) == 1 and kept[0].read_text(encoding='utf-8') == earlier
+    assert index.exists() and '"cfir-reference"' not in index.read_text(encoding='utf-8')[:4096]
+    assert not refresh_unreviewed_cfir_index(project_manifest_path=project, run_id=run_id, review_dir=review.parent)
+
+    # Once anyone has recorded a decision, the index in use is never replaced.
+    record = load_evidence_review_records(index)[0]
+    app = DashboardApp(ProjectRunner(project))
+    app.handle_action('/evidence-action', {'run_id': [run_id], 'item': [record.record_id],
+                                           'decision': ['accept'], 'reviewer': ['Researcher']})
+    (index.parent / 'superseded' / kept[0].name).unlink()
+    reviewed = make_earlier_cfir_index()
+    assert not refresh_unreviewed_cfir_index(project_manifest_path=project, run_id=run_id, review_dir=review.parent)
+    assert index.read_text(encoding='utf-8') == reviewed

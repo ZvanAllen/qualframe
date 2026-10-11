@@ -370,6 +370,51 @@ def write_evidence_review_index(
     return output
 
 
+def refresh_unreviewed_cfir_index(*, project_manifest_path: Path, run_id: str, review_dir: Path) -> bool:
+    """Rebuild a CFIR review index made before the current construct matching, if nobody has reviewed it.
+
+    Review indexes are otherwise never rebuilt. This applies only while the run has no decisions,
+    additions or repeat-experiment record, and keeps the earlier index in evidence_review/superseded/.
+    The model's saved answers are not changed and nothing is sent to a provider.
+    """
+    project_path = project_manifest_path.resolve()
+    repo_root = project_path.parents[2]
+    project = load_project_manifest(project_path)
+    artifact_root = resolve_repo_path(repo_root, project.paths["artifacts"]) / run_id
+    index = artifact_root / "evidence_review" / "index.json"
+    if not index.exists():
+        return False
+    with index.open(encoding="utf-8") as handle:
+        head = handle.read(4096)
+    if '"cfir-reference"' not in head or '"code_label_policy"' in head:
+        return False  # not a CFIR index, or already made with the current policy
+    review_root = review_dir / run_id
+    if review_root.exists() and any(path.is_file() for path in review_root.rglob("*")):
+        return False
+    if (artifact_root / "reviewed_evidence").exists():
+        return False
+    experiments = project_path.parent / "experiments"
+    if experiments.exists() and any(experiments.glob(f"*/completed/{run_id}.json")):
+        return False
+    payload = json.loads(index.read_text(encoding="utf-8"))
+    if (payload.get("codebook") or {}).get("id") != "cfir-reference" or payload.get("code_label_policy"):
+        return False
+    stamp = re.sub(r"[^0-9A-Za-z]", "", str(payload.get("generated_at_utc", ""))) or "earlier"
+    superseded = artifact_root / "evidence_review" / "superseded"
+    superseded.mkdir(exist_ok=True)
+    kept = superseded / f"index-{stamp}.json"
+    if kept.exists():
+        return False
+    index.replace(kept)
+    try:
+        write_evidence_review_index(project_manifest_path=project_path, run_id=run_id)
+    except Exception:
+        if not index.exists():
+            kept.replace(index)
+        raise
+    return True
+
+
 def load_evidence_review_records(index_path: Path) -> list[EvidenceReviewRecord]:
     payload = json.loads(index_path.read_text(encoding="utf-8"))
     return [EvidenceReviewRecord.model_validate(item) for item in payload.get("records", [])]
