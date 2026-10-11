@@ -404,6 +404,10 @@ class DashboardApp:
             uploads = [uploads]
         if not uploads:
             raise ValueError("Choose a file to import.")
+        if path == "/import/reference-coding":
+            from qualframe.qualbench_ui import import_reference_upload
+            self.fill_identity(fields, "Imported an earlier coding")
+            return import_reference_upload(self, fields, uploads)
         defaults = {"/import/transcript": "Added transcript", "/import/codebook": "Imported codebook",
                     "/import/cfir": "Imported CFIR reference workbook", "/import/metadata": "Imported participant information"}
         self.fill_identity(fields, defaults.get(path, "Imported file"))
@@ -1374,7 +1378,7 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
             if parsed.path == '/qualbench':
                 from qualframe.qualbench_ui import render_qualbench
                 try:
-                    content = render_qualbench(app, query.get('report', [''])[0], query.get('message', [''])[0])
+                    content = render_qualbench(app, query.get('report', [''])[0], query.get('message', [''])[0], query.get('error', [''])[0])
                 except (ValueError, OSError, KeyError) as exc:
                     content = app._render_workspace_page(title='QualBench', intro='The report could not be shown.', active='qualbench',
                                                          body=f'<p>{html.escape(str(exc))}</p><a href="/qualbench">Back to QualBench</a>')
@@ -1478,7 +1482,8 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
                 self._redirect("/home")
                 return
             if request_path.startswith("/import/"):
-                back = "/codebook" if request_path in {"/import/codebook", "/import/cfir", "/import/excel"} else "/imports"
+                back = ("/codebook" if request_path in {"/import/codebook", "/import/cfir", "/import/excel"}
+                        else "/qualbench" if request_path == "/import/reference-coding" else "/imports")
                 fetch = self.headers.get("X-Requested-With") == "fetch"
                 try:
                     fields, files = parse_multipart_form(

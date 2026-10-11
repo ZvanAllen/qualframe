@@ -111,7 +111,7 @@ QualBench measures agreement among coding runs, and between runs and an earlier 
 
 Comparisons use the model's original proposals, before review, on the transcripts every chosen run coded. An earlier coding is compared as another coding, not as the right answer, and its description appears with every report. Each report is saved in the study's `exports/qualbench` folder with a README defining every measure.
 
-**Importing an earlier coding.** An earlier CFIR coding in the published table format (one sheet per domain, with CFIR Construct, Quote and Explanation columns) can be imported with `scripts/qualbench.py import-reference`, giving each transcript its workbook. Construct names are matched to the study's codebook, quotations are located in the transcripts, and reviewer note columns are kept. Copies of the workbooks are stored with the reference.
+**Importing an earlier coding.** In a CFIR study, open *Import an earlier coding of these transcripts* on the QualBench page. Choose the workbooks (the published CFIR table format: one sheet per domain with CFIR Construct, Quote and Explanation columns, one workbook per transcript, each named so it includes the transcript's ID, such as *12A coding.xlsx*), give the coding a name, and say how it was coded and reviewed. Construct names are matched to the study's codebook, quotations are located in the transcripts, and reviewer note columns are kept. Copies of the workbooks are stored with the reference in the study's `references` folder. The same import is available from the command line as `scripts/qualbench.py import-reference`.
 
 ## The CFIR reference workflow
 

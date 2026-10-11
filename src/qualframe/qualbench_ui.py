@@ -10,7 +10,13 @@ from urllib.parse import urlencode
 
 from qualframe.comparison_ui import _run_label, _run_setup
 from qualframe.qualbench import build_qualbench, reference_coding_set, run_coding_set, write_qualbench
-from qualframe.reference_coding import list_references, load_reference_coding
+from qualframe.reference_coding import (
+    build_reference_coding,
+    list_references,
+    load_reference_coding,
+    reference_folder,
+    save_reference_coding,
+)
 
 e = html.escape
 
@@ -64,6 +70,103 @@ def build_qualbench_form(app, form: dict[str, list[str]]) -> tuple[str, str]:
     write_qualbench(report, _reports_root(app) / stamp)
     count = len(report["transcripts"])
     return stamp, f"Built a QualBench report on {count} transcript{'' if count == 1 else 's'}."
+
+
+def _tokens(name: str) -> set[str]:
+    return {token.casefold() for token in re.findall(r"[A-Za-z0-9]+", name)}
+
+
+def match_workbooks(transcripts: list[Path], workbooks: list[str]) -> dict[str, Path]:
+    """Pair each workbook with the transcript it codes, from the file names.
+
+    A transcript whose name starts with an ID containing a digit (such as 12A) matches a workbook
+    whose name contains that ID; otherwise the workbook name must contain the transcript's name.
+    """
+    def matches(transcript: Path, workbook: str) -> bool:
+        first = re.match(r"[A-Za-z0-9]+", transcript.stem)
+        if first and re.search(r"\d", first.group(0)):
+            return first.group(0).casefold() in _tokens(Path(workbook).stem)
+        squash = lambda text: re.sub(r"[^a-z0-9]", "", text.casefold())
+        return squash(transcript.stem) in squash(Path(workbook).stem)
+
+    paired: dict[str, Path] = {}
+    problems = []
+    for workbook in workbooks:
+        found = [t for t in transcripts if matches(t, workbook)]
+        if len(found) != 1:
+            problems.append(f"{workbook} matches {'no transcript' if not found else f'{len(found)} transcripts'}")
+        else:
+            paired[workbook] = found[0]
+    taken = [t for t in paired.values()]
+    doubled = sorted({t.name for t in taken if taken.count(t) > 1})
+    if doubled:
+        problems.append("more than one workbook for " + ", ".join(doubled))
+    if problems:
+        raise ValueError("Each workbook needs one transcript, named so it includes the transcript's ID "
+                         "(for example 12A): " + "; ".join(problems) + ".")
+    return paired
+
+
+def import_reference_upload(app, fields: dict[str, list[str]], uploads: list) -> str:
+    """Import uploaded CFIR coding workbooks as a reference coding. Returns a message."""
+    import shutil
+    from uuid import uuid4
+
+    project = app._managed_project_path()
+    label = " ".join(fields.get("label", [""])[0].split())
+    statement = " ".join(fields.get("statement", [""])[0].split())
+    if not label or not statement:
+        raise ValueError("Give the earlier coding a name and say how it was coded and reviewed.")
+    base = re.sub(r"[^a-z0-9]+", "-", label.casefold()).strip("-")[:48] or "reference"
+    base = base if len(base) >= 3 else f"{base}-ref"
+    reference_id, number = base, 2
+    while reference_folder(project, reference_id).exists():
+        reference_id, number = f"{base}-{number}", number + 1
+    names = [app.study_workspace._safe_filename(u.filename, {".xlsx", ".xlsm"}) for u in uploads]
+    if len(set(names)) != len(names):
+        raise ValueError("Two workbooks have the same name.")
+    paired = match_workbooks(app.runner._transcript_files(), names)
+    staging = project.parent / "references" / ".staging" / uuid4().hex
+    staging.mkdir(parents=True)
+    try:
+        files = {}
+        for name, upload in zip(names, uploads):
+            path = staging / name
+            path.write_bytes(upload.content)
+            files[paired[name].resolve().relative_to(app.repo_root).as_posix()] = path
+        payload = build_reference_coding(repo_root=app.repo_root, project_path=project, reference_id=reference_id,
+                                         label=label, statement=statement, files=files,
+                                         created_by=fields.get("actor", [""])[0] or app.researcher)
+        for source, entry in payload["files"].items():
+            entry["original_path"] = entry["workbook"]
+        save_reference_coding(project, payload, files)
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+    counts = payload["counts"]
+    count = len(payload["sources"])
+    return (f"Imported {label}: {count} transcript{'' if count == 1 else 's'}, {counts['included']} quotations found in the "
+            f"transcripts, {counts['quotations_not_found']} not found, {counts['unmatched_constructs']} construct names "
+            f"not matched to the codebook.")
+
+
+def _import_form(app, references: list[dict]) -> str:
+    if app.runner.codebook is not None or not any(s.domain_iterations for s in app.runner.pipeline.stages):
+        return ""
+    listed = "".join(f'<li><strong>{e(r["label"])}</strong> ({r["transcripts"]} transcript{"" if r["transcripts"] == 1 else "s"}). '
+                     f'<span class="muted">{e(r["statement"])}</span></li>' for r in references)
+    listed = f'<h2>Earlier codings</h2><ul>{listed}</ul>' if listed else ""
+    return (f'<section>{listed}<details><summary>Import an earlier coding of these transcripts</summary>'
+            '<p>Workbooks in the published CFIR table format: one sheet per domain with CFIR Construct, Quote and '
+            'Explanation columns, one workbook per transcript. Name each file so it includes the transcript\'s ID, '
+            'for example <em>12A coding.xlsx</em>. Construct names are matched to the codebook and quotations are '
+            'found in the transcripts; reviewer note columns are kept.</p>'
+            '<form method="post" action="/import/reference-coding" enctype="multipart/form-data">'
+            '<label>Name<input name="label" required placeholder="Phase 1a transcript coding"></label>'
+            '<label>How it was coded and reviewed<textarea name="statement" rows="3" required '
+            'placeholder="For example: model output from the published prompts, reviewed by two team members."></textarea>'
+            '<small>Shown with every report that uses it.</small></label>'
+            '<label>Workbooks<input type="file" name="upload" accept=".xlsx,.xlsm" multiple required></label>'
+            '<button class="secondary">Import</button></form></details></section>')
 
 
 def _pct(value) -> str:
@@ -178,10 +281,11 @@ def _report_html(app, folder: Path) -> str:
     return re.sub(r"<td>((?:n/a|\$?[\d.,]+%?(?: / [\d.,]+)?(?: min| s)?)?)</td>", r'<td class="n">\1</td>', out)
 
 
-def render_qualbench(app, report_id: str = "", message: str = "") -> str:
+def render_qualbench(app, report_id: str = "", message: str = "", error: str = "") -> str:
     app._managed_project_path()
     runs, references = _runs(app), _references(app)
     body = f'<div class="message" role="status">{e(message)}</div>' if message else ""
+    body += f'<div class="error" role="alert">{e(error)}</div>' if error else ""
     root = _reports_root(app)
     saved = sorted((p for p in root.glob("*/report.json")), reverse=True) if root.exists() else []
     if report_id and not re.fullmatch(r"\d{8}T\d{6}Z", report_id):
@@ -190,7 +294,7 @@ def render_qualbench(app, report_id: str = "", message: str = "") -> str:
     if current is not None and (current / "report.json").exists():
         when = datetime.strptime(current.name, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
         body += f'<p class="muted">Report built {e(when.strftime("%d %B %Y, %H:%M UTC"))}.</p>' + _report_html(app, current)
-    body += _chooser(app, runs, references)
+    body += _chooser(app, runs, references) + _import_form(app, references)
     if len(saved) > 1:
         items = "".join(f'<li><a href="/qualbench?{urlencode({"report": p.parent.name})}">{e(p.parent.name)}</a></li>' for p in saved)
         body += f'<section><details><summary>Earlier reports ({len(saved)})</summary><ul>{items}</ul></details></section>'

@@ -254,3 +254,45 @@ def test_qualbench_page_builds_and_shows_a_report(tmp_path):
     assert "/file?" in app_page and "presence.csv" in app_page
     with pytest.raises(ValueError):
         render_qualbench(app, "../../etc")
+
+
+def test_workbooks_are_paired_with_transcripts_by_id(tmp_path):
+    from qualframe.qualbench_ui import match_workbooks
+    transcripts = [tmp_path / "HE/12A_Transcript[cleaned]_CIHRAMN.docx", tmp_path / "HE/13A_Transcript.docx",
+                   tmp_path / "ON/1A_Transcript.docx", tmp_path / "Interview with Ana.txt"]
+    paired = match_workbooks(transcripts, ["Jayne 12A.xlsx", "CFIR - 13A - Zack.xlsx", "1A_CFIR_AllDomains.xlsx",
+                                           "interview-with-ana coding.xlsx"])
+    assert {k: v.name for k, v in paired.items()} == {
+        "Jayne 12A.xlsx": "12A_Transcript[cleaned]_CIHRAMN.docx", "CFIR - 13A - Zack.xlsx": "13A_Transcript.docx",
+        "1A_CFIR_AllDomains.xlsx": "1A_Transcript.docx", "interview-with-ana coding.xlsx": "Interview with Ana.txt"}
+    with pytest.raises(ValueError, match="no transcript"):
+        match_workbooks(transcripts, ["Summary.xlsx"])
+    with pytest.raises(ValueError, match="more than one workbook"):
+        match_workbooks(transcripts, ["Jayne 12A.xlsx", "Michelle 12A.xlsx"])
+
+
+def test_reference_coding_can_be_imported_from_the_qualbench_page(tmp_path):
+    from qualframe.dashboard import DashboardApp
+    from qualframe.pipeline.project_runner import ProjectRunner
+    from qualframe.qualbench_ui import render_qualbench
+    from qualframe.web_forms import UploadedFile
+    root, project, transcript = _cfir_study(tmp_path)
+    app = DashboardApp(ProjectRunner(project))
+    assert "Import an earlier coding" in render_qualbench(app)
+    coding = Workbook(); sheet = coding.active; sheet.title = "Inner Setting"
+    sheet.append(("CFIR Construct", "Quote", "Explanation"))
+    sheet.append(("A. Structure", "We met every week in the old library.", "Neutral"))
+    path = tmp_path / "upload.xlsx"; coding.save(path)
+    upload = UploadedFile(filename="1A earlier coding.xlsx", content_type="application/octet-stream", content=path.read_bytes())
+    fields = {"label": ["Earlier coding"], "statement": ["Model output reviewed by the team."]}
+    message = app.handle_upload("/import/reference-coding", fields, {"upload": [upload]})
+    assert "Imported Earlier coding: 1 transcript, 1 quotations found" in message
+    saved = list_references(project)
+    assert [p.parent.name for p in saved] == ["earlier-coding"]
+    assert not any((project.parent / "references" / ".staging").iterdir())
+    page = render_qualbench(app)
+    assert "Earlier coding" in page and "Model output reviewed by the team." in page
+    app.handle_upload("/import/reference-coding", fields, {"upload": [upload]})
+    assert [p.parent.name for p in list_references(project)] == ["earlier-coding", "earlier-coding-2"]
+    with pytest.raises(ValueError, match="name"):
+        app.handle_upload("/import/reference-coding", {"label": [""], "statement": ["x"]}, {"upload": [upload]})
