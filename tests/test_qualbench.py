@@ -314,3 +314,33 @@ def test_runs_from_another_study_are_matched_by_transcript_content():
     assert overall["both"] == 1 and overall["percent_agreement"] == 1.0
     passages = next(r for r in report["passages"] if r["scope_kind"] == "all")
     assert passages["matched_exact"] == 1
+
+
+def test_qualbench_page_offers_runs_from_another_study_with_the_same_transcripts(tmp_path):
+    from qualframe.dashboard import DashboardApp
+    from qualframe.evidence_review import write_evidence_review_index
+    from qualframe.models import StudyCreationRequest
+    from qualframe.pipeline.project_runner import ProjectRunner
+    from qualframe.qualbench_ui import render_qualbench
+    from qualframe.study_setup import StudyWorkspace
+    project, run_id, _, _ = _completed_synthetic_run(tmp_path)
+    write_evidence_review_index(project_manifest_path=project, run_id=run_id)
+    root = project.parents[2]
+    second = StudyWorkspace(root).create(StudyCreationRequest(
+        title="Second study", data_classification="synthetic", include_synthetic_fixtures=True))
+    other = root / second.project_manifest_path
+    runner = ProjectRunner(other)
+    plan = runner.build_run_plan()
+    runner.save_run_plan(plan, "other-run")
+    runner.execute_run_plan(plan, "other-run")
+    write_evidence_review_index(project_manifest_path=other, run_id="other-run")
+    app = DashboardApp(ProjectRunner(project))
+    page = render_qualbench(app)
+    key = f"{second.study_id}:other-run"
+    assert "Runs in other studies with the same transcripts" in page and key in page and "Second study" in page
+    stamp, message = app.handle_action("/qualbench/build", {"study_identity": [app.runner.project.project_id],
+                                                             "run": [run_id, key]})
+    report = json.loads((app.exports_dir / "qualbench" / stamp / "report.json").read_text(encoding="utf-8"))
+    assert {s["set_id"] for s in report["coding_sets"]} == {run_id, key}
+    overall = next(r for r in report["presence"] if r["scope_kind"] == "all" and r["level"] == "code")
+    assert overall["n_units"] > 0 and overall["percent_agreement"] == 1.0

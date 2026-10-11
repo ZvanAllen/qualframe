@@ -42,6 +42,42 @@ def _runs(app) -> list[str]:
             and (app.artifacts_dir / r / "run_manifest.json").exists()]
 
 
+def _other_study_runs(app) -> dict[str, tuple[Path, str]]:
+    """Completed runs in other studies of this workspace that coded some of the same transcripts.
+
+    Keyed "study-id:run-id"; transcripts are matched by file content.
+    """
+    from qualframe.config import load_project_manifest, resolve_repo_path
+    from qualframe.io.files import sha256_for_file
+    from qualframe.ui_kit import friendly_time, provider_display, run_model
+
+    here = app._managed_project_path().resolve()
+    mine = {sha256_for_file(path) for path in app.runner._transcript_files()}
+    found: dict[str, tuple[Path, str]] = {}
+    for project in sorted((app.repo_root / "studies").glob("*/project.yaml")):
+        if project.resolve() == here:
+            continue
+        try:
+            manifest = load_project_manifest(project)
+            artifacts = resolve_repo_path(app.repo_root, manifest.paths["artifacts"])
+        except (OSError, ValueError, KeyError):
+            continue
+        for run_root in sorted(artifacts.glob("*/evidence_review/index.json"), reverse=True):
+            run_root = run_root.parents[1]
+            try:
+                plan = json.loads((run_root / "run_plan.json").read_text(encoding="utf-8"))
+                done = json.loads((run_root / "run_manifest.json").read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            hashes = {i.get("sha256") for i in plan.get("discovered_inputs", []) if i.get("kind") == "transcript"}
+            if not hashes & mine:
+                continue
+            provider, model = run_model(run_root)
+            label = f"{manifest.title or manifest.project_id}: {provider_display(provider, model)}, {friendly_time(done.get('completed_at_utc')) or run_root.name}"
+            found[f"{project.parent.name}:{run_root.name}"] = (run_root, label)
+    return found
+
+
 def build_qualbench_form(app, form: dict[str, list[str]]) -> tuple[str, str]:
     """Build a report from the chosen runs and reference. Returns (report id, message)."""
     if form.get("study_identity", [""])[0] != app.runner.project.project_id:
@@ -51,11 +87,17 @@ def build_qualbench_form(app, form: dict[str, list[str]]) -> tuple[str, str]:
     reference_id = form.get("reference", [""])[0]
     if reference_id and reference_id not in references:
         raise ValueError("Choose a reference coding from this study.")
-    if len(chosen) + (1 if reference_id else 0) < 2:
+    others = _other_study_runs(app) if any(":" in r for r in form.get("run", [])) else {}
+    elsewhere = [r for r in form.get("run", []) if r in others]
+    if len(chosen) + len(elsewhere) + (1 if reference_id else 0) < 2:
         raise ValueError("Choose at least two runs, or one run and a reference coding.")
     sets = [run_coding_set(app.repo_root, app.artifacts_dir / r) for r in chosen]
     for coding_set in sets:
         coding_set["label"] = _run_label(app, coding_set["set_id"])
+    for key in elsewhere:
+        run_root, label = others[key]
+        coding_set = run_coding_set(app.repo_root, run_root)
+        sets.append(dict(coding_set, set_id=key, label=label))
     reference = None
     if reference_id:
         reference = reference_coding_set(load_reference_coding(references[reference_id]["path"], app.repo_root))
@@ -203,9 +245,16 @@ def _chooser(app, runs: list[str], references: list[dict]) -> str:
     else:
         reference_field = ('<p class="muted">No earlier coding of these transcripts has been imported. With one, QualBench also '
                            'reports how closely each run reproduces it.</p>')
+    others = _other_study_runs(app)
+    other_field = ""
+    if others:
+        boxes = "".join(f'<label class="check"><input type="checkbox" name="run" value="{e(key)}"><span>{e(label)}</span></label>'
+                        for key, (_, label) in others.items())
+        other_field = (f'<fieldset><legend>Runs in other studies with the same transcripts</legend>'
+                       f'<div class="sample-groups">{boxes}</div></fieldset>')
     return (f'<section><h2>Build a report</h2><form method="post" action="/qualbench/build">'
             f'<input type="hidden" name="study_identity" value="{e(app.runner.project.project_id)}">'
-            f'<fieldset><legend>Coding runs</legend><div class="sample-groups">{run_boxes}</div></fieldset>{reference_field}'
+            f'<fieldset><legend>Coding runs</legend><div class="sample-groups">{run_boxes}</div></fieldset>{other_field}{reference_field}'
             f'<p class="muted">Runs with the same model, instructions and options are treated as repeats, and their stability is reported. '
             f'Comparisons use the transcripts every chosen run coded, and the model\'s proposals before review.</p>'
             f'<button>Build report</button></form></section>')
