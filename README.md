@@ -1,5 +1,7 @@
 # QualFrame
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23300233.svg)](https://doi.org/10.5281/zenodo.23300233)
+
 **AI-assisted directed content analysis you can check.**
 
 QualFrame applies your codebook to interview transcripts with a large language model, then puts every proposed code beside the exact passage it came from so you can accept, change or reject it. It runs on your own computer, works with hosted or local models, and keeps a full record of what the model proposed and what you decided.
@@ -78,7 +80,7 @@ QualFrame grew out of the AI-assisted CFIR analysis in the Adaptive Mentorship N
 
 If you use QualFrame in your research, please cite the version you used:
 
-> van Allen, Z. (2026). *QualFrame: AI-assisted directed content analysis you can check* (Version 0.9.0) [Computer software]. https://github.com/ZvanAllen/qualframe
+> van Allen, Z. (2026). *QualFrame: AI-assisted directed content analysis you can check* (Version 0.9.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23300233
 
 ```bibtex
 @software{vanallen_qualframe_2026,
@@ -86,11 +88,13 @@ If you use QualFrame in your research, please cite the version you used:
   title   = {{QualFrame}: {AI}-assisted directed content analysis you can check},
   version = {0.9.0},
   year    = {2026},
-  url     = {https://github.com/ZvanAllen/qualframe}
+  publisher = {Zenodo},
+  doi     = {10.5281/zenodo.23300233},
+  url     = {https://doi.org/10.5281/zenodo.23300233}
 }
 ```
 
-Each release is archived on Zenodo with its own DOI; GitHub's **Cite this repository** button (from [CITATION.cff](CITATION.cff)) gives the same citation in other formats. Please also cite the framework your codebook comes from.
+Releases are archived on [Zenodo](https://doi.org/10.5281/zenodo.23300233) and the Zenodo record lists the DOI of each version; GitHub's **Cite this repository** button (from [CITATION.cff](CITATION.cff)) gives the same citation in other formats. Please also cite the framework your codebook comes from.
 
 ## Contributing
 

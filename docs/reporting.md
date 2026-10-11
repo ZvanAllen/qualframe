@@ -28,9 +28,9 @@ Adapt this to your study; replace the bracketed parts.
 
 ## Citing the software
 
-van Allen, Z. (2026). *QualFrame: AI-assisted directed content analysis you can check* (Version 0.9) [Computer software]. https://github.com/ZvanAllen/qualframe
+van Allen, Z. (2026). *QualFrame: AI-assisted directed content analysis you can check* (Version 0.9.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23300233
 
-GitHub's **Cite this repository** button gives the same citation in other formats. If a DOI is listed on the repository page, cite the DOI for the version you used.
+Replace the version with the one you used (the Methods record page shows it). GitHub's **Cite this repository** button gives the same citation in other formats, and the [Zenodo record](https://doi.org/10.5281/zenodo.23300233) lists each version's own DOI.
 
 ## Being clear about what the software did
 
