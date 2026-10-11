@@ -177,7 +177,7 @@ def present_units(coding_set: dict, projection: dict[str, str] | None = None) ->
     """(transcript, code) -> number of proposals applying that code, located or not."""
     known = _known(coding_set)
     counts: Counter = Counter()
-    for item in coding_set["included"] + coding_set["excluded"]:
+    for item in coding_set["included"] + coding_set["excluded"] + coding_set.get("presence_only", []):
         code = item.get("code_id")
         if code in known:
             counts[(item["source"], projection[code] if projection else code)] += 1
@@ -191,30 +191,46 @@ def _mean(values: list) -> float | None:
 
 def _restrict(coding_set: dict, sources: set[str]) -> dict:
     trimmed = dict(coding_set, sources={k: v for k, v in coding_set["sources"].items() if k in sources})
-    for key in ("included", "excluded", "absences"):
+    for key in ("included", "excluded", "absences", "presence_only"):
         trimmed[key] = [item for item in coding_set.get(key, []) if item.get("source") in sources]
     return trimmed
 
 
 def same_transcripts_by_content(sets: list[dict]) -> list[dict]:
-    """Key every coding set's transcripts by the first set's path for the same file content.
+    """Key every coding set's transcripts by the first set's path for the same transcript.
 
     Runs from different studies (for example the same transcripts coded with different
-    instructions in a second study) store the transcripts under different paths. Files with the
-    same SHA-256 hash are the same transcript.
+    instructions in a second study) store the transcripts under different paths. A transcript at
+    the same path with the same SHA-256 hash is the same; otherwise a file with the same hash is
+    paired one to one with the first set's files, preferring the same file name, so two identical
+    files within a study stay two transcripts.
     """
-    names: dict[str, str] = {}
-    for coding_set in sets:
+    base = sets[0]["sources"]
+    by_digest: dict[str, list[str]] = {}
+    for path, digest in sorted(base.items()):
+        by_digest.setdefault(digest, []).append(path)
+    rekeyed = [sets[0]]
+    for coding_set in sets[1:]:
+        free = {digest: list(paths) for digest, paths in by_digest.items()}
+        mapping: dict[str, str] = {}
         for path, digest in coding_set["sources"].items():
-            names.setdefault(digest, path)
-    rekeyed = []
-    for coding_set in sets:
-        mapping = {path: names[digest] for path, digest in coding_set["sources"].items()}
+            if base.get(path) == digest:
+                mapping[path] = path
+                free[digest].remove(path)
+        for path, digest in sorted(coding_set["sources"].items()):
+            if path in mapping:
+                continue
+            options = free.get(digest, [])
+            same_name = [p for p in options if p.rsplit("/", 1)[-1] == path.rsplit("/", 1)[-1]]
+            chosen = (same_name or options or [path])[0]
+            if chosen in options:
+                options.remove(chosen)
+            mapping[path] = chosen
         if all(old == new for old, new in mapping.items()):
             rekeyed.append(coding_set)
             continue
         moved = dict(coding_set, sources={mapping[path]: digest for path, digest in coding_set["sources"].items()})
-        for key in ("included", "excluded", "absences"):
+        for key in ("included", "excluded", "absences", "presence_only"):
             moved[key] = [dict(item, source=mapping.get(item.get("source"), item.get("source")))
                           for item in coding_set.get(key, [])]
         rekeyed.append(moved)
@@ -252,6 +268,7 @@ def coding_profile(coding_set: dict) -> dict:
         quotations_not_found=len(not_located),
         unknown_codes=len(unknown),
         no_evidence_rows=len(coding_set.get("absences", [])),
+        codes_without_quotation=len(coding_set.get("presence_only", [])),
         share_located=len(included) / proposals if proposals else None,
         codes_present=len(present),
         codes_present_per_transcript=len(present) / len(sources) if sources else None,

@@ -149,21 +149,68 @@ def match_workbooks(transcripts: list[Path], workbooks: list[str]) -> dict[str, 
     return paired
 
 
-def import_reference_upload(app, fields: dict[str, list[str]], uploads: list) -> str:
-    """Import uploaded CFIR coding workbooks as a reference coding. Returns a message."""
+def _new_reference_id(project: Path, label: str) -> str:
+    base = re.sub(r"[^a-z0-9]+", "-", label.casefold()).strip("-")[:48] or "reference"
+    base = base if len(base) >= 3 else f"{base}-ref"
+    reference_id, number = base, 2
+    while reference_folder(project, reference_id).exists():
+        reference_id, number = f"{base}-{number}", number + 1
+    return reference_id
+
+
+def import_reference_table_upload(app, fields: dict[str, list[str]], uploads: list) -> str:
+    """Import an uploaded coding table (CSV or Excel) as a reference coding. Returns a message."""
     import shutil
     from uuid import uuid4
+
+    from qualframe.reference_coding import build_reference_from_table
 
     project = app._managed_project_path()
     label = " ".join(fields.get("label", [""])[0].split())
     statement = " ".join(fields.get("statement", [""])[0].split())
     if not label or not statement:
         raise ValueError("Give the earlier coding a name and say how it was coded and reviewed.")
-    base = re.sub(r"[^a-z0-9]+", "-", label.casefold()).strip("-")[:48] or "reference"
-    base = base if len(base) >= 3 else f"{base}-ref"
-    reference_id, number = base, 2
-    while reference_folder(project, reference_id).exists():
-        reference_id, number = f"{base}-{number}", number + 1
+    if len(uploads) != 1:
+        raise ValueError("Choose one coding table.")
+    name = app.study_workspace._safe_filename(uploads[0].filename, {".csv", ".xlsx"})
+    staging = project.parent / "references" / ".staging" / uuid4().hex
+    staging.mkdir(parents=True)
+    try:
+        table = staging / name
+        table.write_bytes(uploads[0].content)
+        payload = build_reference_from_table(repo_root=app.repo_root, project_path=project,
+                                             reference_id=_new_reference_id(project, label), label=label,
+                                             statement=statement, table=table,
+                                             created_by=fields.get("actor", [""])[0] or app.researcher)
+        if not payload["sources"]:
+            raise ValueError("None of the table's documents matched a transcript in this study. The Document column "
+                             "should hold each transcript's file name, or an ID such as 12A.")
+        payload["files"]["table"]["original_path"] = name
+        save_reference_coding(project, payload, {"table": table})
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+    counts = payload["counts"]
+    count = len(payload["sources"])
+    skipped = f" {counts['documents_not_found']} document name{'s' if counts['documents_not_found'] != 1 else ''} matched no transcript." \
+        if counts["documents_not_found"] else ""
+    return (f"Imported {label}: {count} transcript{'' if count == 1 else 's'}, {counts['included']} quotations found, "
+            f"{counts['presence_only']} codes without a quotation, {counts['quotations_not_found']} quotations not found, "
+            f"{counts['unmatched_constructs']} codes not matched to the codebook.{skipped}")
+
+
+def import_reference_upload(app, fields: dict[str, list[str]], uploads: list) -> str:
+    """Import uploaded CFIR coding workbooks as a reference coding. Returns a message."""
+    import shutil
+    from uuid import uuid4
+
+    if fields.get("kind", [""])[0] == "table":
+        return import_reference_table_upload(app, fields, uploads)
+    project = app._managed_project_path()
+    label = " ".join(fields.get("label", [""])[0].split())
+    statement = " ".join(fields.get("statement", [""])[0].split())
+    if not label or not statement:
+        raise ValueError("Give the earlier coding a name and say how it was coded and reviewed.")
+    reference_id = _new_reference_id(project, label)
     names = [app.study_workspace._safe_filename(u.filename, {".xlsx", ".xlsm"}) for u in uploads]
     if len(set(names)) != len(names):
         raise ValueError("Two workbooks have the same name.")
@@ -192,12 +239,26 @@ def import_reference_upload(app, fields: dict[str, list[str]], uploads: list) ->
 
 
 def _import_form(app, references: list[dict]) -> str:
-    if app.runner.codebook is not None or not any(s.domain_iterations for s in app.runner.pipeline.stages):
-        return ""
+    cfir = app.runner.codebook is None and any(s.domain_iterations for s in app.runner.pipeline.stages)
+    table_form = ('<details><summary>Import an earlier coding from a table</summary>'
+                  '<p>A CSV or Excel file with one row per coded passage: a <em>Document</em> column with the transcript\'s '
+                  'file name (or an ID such as 12A), a <em>Code</em> column with the code\'s ID or name, and optionally a '
+                  '<em>Quotation</em> column. Rows without a quotation count as the code being present in that document. '
+                  'Other columns are kept as notes.</p>'
+                  '<form method="post" action="/import/reference-coding" enctype="multipart/form-data">'
+                  '<input type="hidden" name="kind" value="table">'
+                  '<label>Name<input name="label" required placeholder="Second coder"></label>'
+                  '<label>How it was coded and reviewed<textarea name="statement" rows="3" required '
+                  'placeholder="For example: coded independently by a second researcher, blind to the model\'s coding."></textarea>'
+                  '<small>Shown with every report that uses it.</small></label>'
+                  '<label>Coding table<input type="file" name="upload" accept=".csv,.xlsx" required></label>'
+                  '<button class="secondary">Import</button></form></details>')
     listed = "".join(f'<li><strong>{e(r["label"])}</strong> ({r["transcripts"]} transcript{"" if r["transcripts"] == 1 else "s"}). '
                      f'<span class="muted">{e(r["statement"])}</span></li>' for r in references)
     listed = f'<h2>Earlier codings</h2><ul>{listed}</ul>' if listed else ""
-    return (f'<section>{listed}<details><summary>Import an earlier coding of these transcripts</summary>'
+    if not cfir:
+        return f'<section>{listed}{table_form}</section>'
+    return (f'<section>{listed}{table_form}<details><summary>Import CFIR coding workbooks</summary>'
             '<p>Workbooks in the published CFIR table format: one sheet per domain with CFIR Construct, Quote and '
             'Explanation columns, one workbook per transcript. Name each file so it includes the transcript\'s ID, '
             'for example <em>12A coding.xlsx</em>. Construct names are matched to the codebook and quotations are '

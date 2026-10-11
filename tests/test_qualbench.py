@@ -344,3 +344,43 @@ def test_qualbench_page_offers_runs_from_another_study_with_the_same_transcripts
     assert {s["set_id"] for s in report["coding_sets"]} == {run_id, key}
     overall = next(r for r in report["presence"] if r["scope_kind"] == "all" and r["level"] == "code")
     assert overall["n_units"] > 0 and overall["percent_agreement"] == 1.0
+
+
+def test_an_earlier_coding_in_a_table_becomes_a_reference(tmp_path):
+    import csv
+    from qualframe.dashboard import DashboardApp
+    from qualframe.evidence_review import write_evidence_review_index
+    from qualframe.pipeline.project_runner import ProjectRunner
+    from qualframe.reference_coding import build_reference_from_table, read_coding_table
+    from qualframe.web_forms import UploadedFile
+    project, run_id, run_root, _ = _completed_synthetic_run(tmp_path)
+    write_evidence_review_index(project_manifest_path=project, run_id=run_id)
+    table = tmp_path / "second coder.csv"
+    with table.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["Document", "Code", "Quotation", "Coder note"])
+        writer.writerow(["SYN-01.txt", "access_availability", "Appointments were rarely available when the fictional clinic was needed.", "clear"])
+        writer.writerow(["SYN-01", "1.2 Communication", "Staff explained the fictional next steps clearly and respectfully.", ""])
+        writer.writerow(["SYN-02.txt", "Affordability", "", "no quote copied"])
+        writer.writerow(["SYN-02.txt", "Access", "A sentence that is not in this transcript at all.", ""])
+        writer.writerow(["SYN-09.txt", "Access", "Anything.", ""])
+        writer.writerow(["SYN-01.txt", "Not a code", "Anything.", ""])
+    rows, used = read_coding_table(table)
+    assert used == {"document": "Document", "code": "Code", "quotation": "Quotation"} and rows[0]["notes"] == {"Coder note": "clear"}
+    payload = build_reference_from_table(repo_root=project.parents[2], project_path=project, reference_id="second-coder",
+                                         label="Second coder", statement="Coded independently.", table=table, created_by="R")
+    assert payload["counts"] == dict(included=2, excluded=3, absences=0, presence_only=1, unmatched_constructs=1,
+                                     quotations_not_found=1, documents_not_found=1)
+    assert {i["code_id"] for i in payload["included"]} == {"access_availability", "experience_communication"}
+    assert payload["presence_only"][0]["code_id"] == "access_affordability"
+    report = build_qualbench([run_coding_set(project.parents[2], run_root)], reference=reference_coding_set(payload))
+    overall = next(r for r in report["presence"] if r["scope_kind"] == "all" and r["level"] == "code")
+    assert overall["n_units"] == 2 * len(payload["codebook"]["codes"]) and overall["recall"] is not None
+    # The same import from the QualBench page.
+    app = DashboardApp(ProjectRunner(project))
+    upload = UploadedFile(filename="second coder.csv", content_type="text/csv", content=table.read_bytes())
+    message = app.handle_upload("/import/reference-coding", {"kind": ["table"], "label": ["Second coder"],
+                                                             "statement": ["Coded independently."]}, {"upload": [upload]})
+    assert "2 quotations found, 1 codes without a quotation" in message and "1 document name matched no transcript" in message
+    saved = list_references(project)
+    assert len(saved) == 1 and load_reference_coding(saved[0], project.parents[2])["presence_only"]
