@@ -258,7 +258,7 @@ def _report_html(app, folder: Path) -> str:
     lines = "".join(
         f'<tr><td>{name(r["left"])}</td><td>{name(r["right"])}</td><td>{r["left_passages"]} / {r["right_passages"]}</td>'
         f'<td>{_num(r["f1_exact"])}</td><td>{_num(r["f1_iou_half"])}</td><td>{_num(r["f1_any_overlap"])}</td>'
-        f'<td>{_pct(r["coded_text_jaccard"])}</td></tr>' for r in report["passages"])
+        f'<td>{_pct(r["coded_text_jaccard"])}</td></tr>' for r in report["passages"] if r.get("scope_kind", "all") == "all")
     out += (f'<section><div class="section-head"><h2>Which passages were coded</h2><span class="muted">Same code, same transcript</span></div>'
             f'<div class="progress-table"><table><thead><tr><th>Coding</th><th>Compared with</th><th>Passages</th><th>F1, exact</th>'
             f'<th>F1, mostly overlapping</th><th>F1, any overlap</th><th>Same text coded</th></tr></thead><tbody>{lines}</tbody></table></div>'

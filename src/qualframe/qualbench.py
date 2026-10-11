@@ -30,9 +30,9 @@ from qualframe.benchmark_metrics import _Span, _maximum_matching
 from qualframe.run_comparison import interval_overlap, raw_coding_payload
 
 KIND = "qualframe_qualbench_v1"
-_ANY_OVERLAP = (1, 10**12)
-_IOU_HALF = (1, 2)
-_EXACT = (1, 1)
+# Passage matching thresholds as ratios (shared / combined extent), to avoid rounding at the boundary.
+MATCH_THRESHOLDS = (("exact", (1, 1)), ("iou_quarter", (1, 4)), ("iou_half", (1, 2)),
+                    ("iou_three_quarters", (3, 4)), ("any_overlap", (1, 10**12)))
 
 
 # ---------------------------------------------------------------- statistics
@@ -268,34 +268,48 @@ def _presence_rows(left: dict, right: dict, sources: list[str], codes: list[dict
         row.update(reference_statistics(both, left_only, right_only) if versus_reference
                    else dict(precision=None, recall=None, f1=None))
         rows.append(row)
+    per_transcript = [r for r in rows if r["scope_kind"] == "transcript"]
+    if len(per_transcript) > 1:
+        # Each transcript weighted equally: the mean of the per-transcript figures.
+        macro = dict(per_transcript[0], scope_kind="transcript mean", scope="Mean of transcripts",
+                     n_units=sum(r["n_units"] for r in per_transcript))
+        for key in ("both", "left_only", "right_only", "neither"):
+            macro[key] = None
+        for key in ("percent_agreement", "cohen_kappa", "gwet_ac1", "pabak", "jaccard", "precision", "recall", "f1"):
+            macro[key] = _mean([r[key] for r in per_transcript])
+        rows.append(macro)
     return rows
 
 
-def passage_agreement(left: dict, right: dict, *, versus_reference: bool) -> dict:
-    def spans(coding_set: dict) -> list[_Span]:
-        return [_Span(i["source"], i["code_id"], i["start"], i["end"], (i["record_id"],))
-                for i in coding_set["included"]]
+def passage_agreement(left: dict, right: dict, *, versus_reference: bool, source: str | None = None) -> dict:
+    """Passage agreement over all transcripts, or within one transcript."""
+    def located(coding_set: dict) -> list[dict]:
+        return [i for i in coding_set["included"] if source is None or i["source"] == source]
 
-    a, b = spans(left), spans(right)
-    row = dict(left=left["set_id"], right=right["set_id"],
+    left_items, right_items = located(left), located(right)
+    a = [_Span(i["source"], i["code_id"], i["start"], i["end"], (i["record_id"],)) for i in left_items]
+    b = [_Span(i["source"], i["code_id"], i["start"], i["end"], (i["record_id"],)) for i in right_items]
+    row = dict(scope_kind="all" if source is None else "transcript",
+               scope="All" if source is None else source.rsplit("/", 1)[-1],
+               left=left["set_id"], right=right["set_id"],
                comparison="versus reference" if versus_reference else "between coding sets",
                left_passages=len(a), right_passages=len(b))
-    for name, ratio in (("exact", _EXACT), ("iou_half", _IOU_HALF), ("any_overlap", _ANY_OVERLAP)):
+    for name, ratio in MATCH_THRESHOLDS:
         matched = len(_maximum_matching(a, b, ratio))
         row[f"matched_{name}"] = matched
         row[f"f1_{name}"] = 2 * matched / (len(a) + len(b)) if a or b else None
     groups: dict[tuple[str, str], tuple[list, list]] = {}
-    for item in left["included"]:
+    for item in left_items:
         groups.setdefault((item["source"], item["code_id"]), ([], []))[0].append(item)
-    for item in right["included"]:
+    for item in right_items:
         groups.setdefault((item["source"], item["code_id"]), ([], []))[1].append(item)
     shared = union = left_chars = right_chars = 0
-    for left_items, right_items in groups.values():
-        common, total = interval_overlap(left_items, right_items)
+    for in_left, in_right in groups.values():
+        common, total = interval_overlap(in_left, in_right)
         shared += common
         union += total
-        left_chars += interval_overlap(left_items, [])[1]
-        right_chars += interval_overlap([], right_items)[1]
+        left_chars += interval_overlap(in_left, [])[1]
+        right_chars += interval_overlap([], in_right)[1]
     row.update(
         coded_text_jaccard=shared / union if union else None,
         left_text_also_coded_by_right=shared / left_chars if left_chars else None,
@@ -333,6 +347,8 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
         if merged_levels:
             presence += _presence_rows(left, right, sources, codes, "parent code", projection, versus)
         passages.append(passage_agreement(left, right, versus_reference=versus))
+        if len(sources) > 1:
+            passages += [passage_agreement(left, right, versus_reference=versus, source=source) for source in sources]
     stability = []
     by_id = {s["set_id"]: s for s in everything}
     for group in stability_groups or []:
@@ -422,8 +438,11 @@ Definitions
   units that the reference also has; recall is the share of the reference's present units that the
   set also has; F1 is their harmonic mean.
 - Passage F1: passages for the same code in the same transcript matched one to one: exactly
-  (same start and end), at an overlap of at least half their combined extent (IoU ≥ 0.5), or with
-  any overlap. F1 = 2 × matched / (passages in left + passages in right).
+  (same start and end), with shared text at least a quarter, half or three quarters of their
+  combined extent (IoU ≥ 0.25, 0.5, 0.75), or with any overlap.
+  F1 = 2 × matched / (passages in left + passages in right).
+- Scopes: "all" pools every unit or passage; "transcript" rows give each transcript separately;
+  "transcript mean" weights each transcript equally (the mean of the transcript rows).
 - Coded-text Jaccard: characters both sets coded with the same code, out of characters either did.
 - Krippendorff's alpha (nominal): agreement among several coding sets on the same units, corrected
   for chance. 1 is perfect agreement; 0 is agreement at chance.

@@ -87,8 +87,14 @@ def test_build_qualbench_presence_passages_levels_and_stability(tmp_path):
     # Sub-codes merged into parents: the reference's two/c becomes two/p, which left has.
     merged = rows[("parent code", "all", "All", "left", "reference:ref")]
     assert (merged["both"], merged["left_only"], merged["right_only"]) == (2, 1, 0)
-    passages = {(r["left"], r["right"]): r for r in report["passages"]}
+    passages = {(r["left"], r["right"]): r for r in report["passages"] if r["scope_kind"] == "all"}
     lr = passages[("left", "right")]
+    per_transcript = [r for r in report["passages"] if r["scope_kind"] == "transcript" and r["right"] == "right"]
+    assert [r["scope"] for r in per_transcript if r["left"] == "left"] == ["one.txt", "two.txt"]
+    assert lr["matched_iou_quarter"] == 2 and lr["matched_iou_three_quarters"] == 1
+    macro = rows[("code", "transcript mean", "Mean of transcripts", "left", "right")]
+    by_transcript = [rows[("code", "transcript", name, "left", "right")]["percent_agreement"] for name in ("one.txt", "two.txt")]
+    assert macro["percent_agreement"] == pytest.approx(sum(by_transcript) / 2) and macro["both"] is None
     assert (lr["matched_exact"], lr["matched_iou_half"], lr["matched_any_overlap"]) == (1, 1, 2)
     assert lr["coded_text_jaccard"] == pytest.approx((10 + 5) / (10 + 20 + 5))
     [stability_code, stability_parent] = report["stability"]
