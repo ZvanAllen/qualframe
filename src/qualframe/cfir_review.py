@@ -9,13 +9,21 @@ from qualframe.io.transcript_io import transcript_to_text
 from qualframe.models import CodeAssignment, EvidenceReviewRecord, EvidenceSpan
 
 
+# Characters models often substitute when copying a quotation. Each maps to one character,
+# so offsets in the normalized text still point at the original source characters.
+_TYPOGRAPHY = {
+    '\u2018': "'", '\u2019': "'", '\u201a': "'", '\u2032': "'",
+    '\u201c': '"', '\u201d': '"', '\u201e': '"', '\u2033': '"',
+    '\u2010': '-', '\u2011': '-', '\u2012': '-', '\u2013': '-', '\u2014': '-', '\u2212': '-',
+}
+
+
 def normalized_with_offsets(text: str) -> tuple[str, list[tuple[int, int]]]:
-    """Collapse whitespace and quote typography while retaining source offsets."""
+    """Collapse whitespace, quote and hyphen typography while retaining source offsets."""
     chars: list[str] = []
     offsets: list[tuple[int, int]] = []
-    quotes = {'‘': "'", '’': "'", '“': '"', '”': '"'}
     for index, char in enumerate(text):
-        value = ' ' if char.isspace() else quotes.get(char, char)
+        value = ' ' if char.isspace() else _TYPOGRAPHY.get(char, char)
         if value == ' ' and chars and chars[-1] == ' ':
             offsets[-1] = (offsets[-1][0], index + 1)
         else:

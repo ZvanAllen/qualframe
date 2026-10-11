@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 
 from qualframe.config import resolve_repo_path
-from qualframe.evidence_review import load_evidence_review_actions, latest_evidence_action_by_record, load_evidence_review_records
+from qualframe.evidence_review import is_researcher_addition, load_evidence_review_actions, latest_evidence_action_by_record, load_review_timing, load_run_records
 from qualframe.ui_kit import provider_display, run_model
 
 _DECISIONS = {"accept": "accepted", "edit": "changed", "reject": "rejected", "defer": "left for later"}
@@ -53,9 +53,15 @@ def build_methods_record(app, run_id: str) -> dict:
         for item in plan.get("discovered_inputs", []) if item.get("kind") == "transcript"
     ]
     index = root / "evidence_review/index.json"
-    records = load_evidence_review_records(index) if index.exists() else []
+    everything = load_run_records(index, review_root) if index.exists() else []
+    records = [r for r in everything if not is_researcher_addition(r)]
     latest = latest_evidence_action_by_record(review_root) if review_root.exists() else {}
     all_actions = load_evidence_review_actions(review_root) if review_root.exists() else []
+    additions = [r for r in everything if is_researcher_addition(r)
+                 and not (r.record_id in latest and latest[r.record_id].decision == "reject")]
+    timing = load_review_timing(review_root) if review_root.exists() else {}
+    proposal_ids = {r.record_id for r in records}
+    seconds = sorted(timing[a.action_id] for a in all_actions if a.action_id in timing and a.record_id in proposal_ids)
     decisions = Counter(latest[r.record_id].decision if r.record_id in latest else "undecided" for r in records)
     needs_location = [r for r in records if r.anchoring_method in {"unresolved_exact_quote", "normalized_quote_candidate"}]
     resolved_location = Counter(latest[r.record_id].decision if r.record_id in latest else "undecided" for r in needs_location)
@@ -90,6 +96,10 @@ def build_methods_record(app, run_id: str) -> dict:
             "decision_events": len(all_actions),
             "needed_manual_location": len(needs_location),
             "needed_manual_location_outcomes": dict(resolved_location),
+            "added_by_researchers": len(additions),
+            "added_by_code": dict(Counter(r.code_label or r.proposed_code_id for r in additions)),
+            "timed_decisions": len(seconds),
+            "median_seconds_per_decision": seconds[len(seconds) // 2] if seconds else None,
         },
         "saved_comparisons": comparisons,
     }
@@ -121,6 +131,9 @@ def methods_paragraph(record: dict) -> str:
         f"{decisions.get('reject', 0)}"
         + (f"; {decisions.get('defer', 0) + decisions.get('undecided', 0)} were not yet decided" if decisions.get('defer', 0) + decisions.get('undecided', 0) else "")
         + "."
+        + (f" The reviewer{'s' if len(review['reviewers']) > 1 else ''} also coded {review['added_by_researchers']} "
+           f"passage{'s' if review['added_by_researchers'] != 1 else ''} that the model had not proposed."
+           if review.get("added_by_researchers") else "")
     )
 
 
@@ -165,6 +178,10 @@ def methods_markdown(record: dict) -> str:
         f"({record['review']['decision_events']} decision events, including revisions)",
         f"- Proposals whose quotation needed manual location: {record['review']['needed_manual_location']} "
         f"(outcomes: {record['review']['needed_manual_location_outcomes']})",
+        f"- Passages coded by reviewers that the model had not proposed: {record['review']['added_by_researchers']}"
+        + (f" ({', '.join(f'{k}: {v}' for k, v in record['review']['added_by_code'].items())})" if record['review']['added_by_code'] else ""),
+        f"- Median time per decision: {record['review']['median_seconds_per_decision']} seconds "
+        f"({record['review']['timed_decisions']} timed decisions)" if record['review']['timed_decisions'] else "- Decision times: not recorded",
         "",
     ]
     if record["saved_comparisons"]:
@@ -192,6 +209,8 @@ def render_methods_page(app, run_id: str) -> str:
             ("Reviewers", ", ".join(review["reviewers"]) or "None yet"),
             ("Decisions", ", ".join(f"{v} {_DECISIONS.get(k, k)}" for k, v in review["decisions"].items())),
             ("Quotations located by hand", review["needed_manual_location"]),
+            ("Codes added by reviewers", review["added_by_researchers"]),
+            ("Median time per decision", f'{review["median_seconds_per_decision"]} seconds' if review["median_seconds_per_decision"] is not None else "Not recorded"),
             ("QualFrame version", record["qualframe_version"] or "not recorded (run started before version 0.9)"),
         ])
     body = f'''<section><h2>Suggested methods paragraph</h2><p class="muted">Generated from this run's records. Edit it to fit your study and journal.</p>

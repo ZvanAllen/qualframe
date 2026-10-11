@@ -16,6 +16,8 @@ Open **Results**, then **Methods record**. It fills in a draft methods paragraph
 | Transcripts | `run_plan.json`, with each file's SHA-256 hash |
 | Human review | `review_queue/<run>/`: every decision with reviewer, time and note; summarised in the reviewed export |
 | Quotations located by hand | Review records whose location method is not `unique exact quote`, and their decisions |
+| Codes reviewers added | `review_queue/<run>/evidence/additions.jsonl`; marked "Added by researcher" in exports |
+| Time spent reviewing | `review_queue/<run>/evidence/timing.jsonl` (seconds per decision, while the window was visible) |
 | Agreement between runs, if used | A comparison saved from Compare runs |
 
 ## Template paragraph
@@ -33,7 +35,7 @@ GitHub's **Cite this repository** button gives the same citation in other format
 ## Being clear about what the software did
 
 - Say that a human reviewed every proposal, and who.
-- Report rejected and changed proposals, not only accepted ones.
+- Report rejected and changed proposals, not only accepted ones, and how many codes reviewers added that the model missed.
 - Avoid describing agreement between runs as accuracy or reliability against a human standard.
 - If you used the optional summary drafts, say so, and that they were edited and checked against the cited passages.
 - Note any transcripts excluded from results and why.

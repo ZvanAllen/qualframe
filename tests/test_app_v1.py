@@ -215,3 +215,85 @@ def test_compatible_endpoint_streams_and_reads_usage() -> None:
     assert seen["body"]["stream"] is True and seen["body"]["stream_options"] == {"include_usage": True}
     assert response.text == '{"codings": []}' and response.status == "completed"
     assert response.usage.input_tokens == 5000 and response.usage.output_tokens == 900
+
+
+def _accept_all(app: DashboardApp, run_id: str) -> None:
+    from qualframe.evidence_review import latest_evidence_action_by_record
+
+    records = load_evidence_review_records(app.artifacts_dir / run_id / "evidence_review/index.json")
+    decided = latest_evidence_action_by_record(app.review_dir / run_id)
+    for record in records:
+        if record.record_id not in decided:
+            app.handle_action("/evidence-action", {"run_id": [run_id], "item": [record.record_id],
+                                                   "decision": ["accept"], "reviewer": ["Ada"]})
+
+
+def test_reviewers_can_add_and_remove_codes_the_model_missed(tmp_path: Path) -> None:
+    from qualframe.evidence_review import export_evidence_review_package, load_run_records
+    from qualframe.io.transcript_io import transcript_to_text
+    from qualframe.methods_record import build_methods_record, methods_paragraph
+    from qualframe.reviewed_analysis import reviewed_snapshot_payload
+    from qualframe.review_ui import render_review
+
+    root = ensure_workspace(tmp_path / "ws").root
+    _, project_path, run_id = create_demo_study(root, with_comparison=False)
+    app = DashboardApp(ProjectRunner(project_path))
+    index = app.artifacts_dir / run_id / "evidence_review/index.json"
+    first = load_evidence_review_records(index)[0]
+    text = transcript_to_text(app.repo_root / first.source_path)
+    sentence = "Ask the people who'll use it, before signing up."
+    start = text.index(sentence)
+    form = {"run_id": [run_id], "item": [first.record_id], "source_path": [first.source_path], "reviewer": ["Ada"],
+            "added_start": [str(start)], "added_end": [str(start + len(sentence))],
+            "added_code_id": ["org_leadership"], "rationale": ["Advice about involving users in the decision."]}
+    app.handle_action("/evidence-add", form)
+    app.handle_action("/evidence-add", {**form, "added_code_id": ["people_trust"], "rationale": [""]})
+    with pytest.raises(ValueError, match="codebook"):
+        app.handle_action("/evidence-add", {**form, "added_code_id": ["not-a-code"]})
+    with pytest.raises(ValueError, match="Select the passage"):
+        app.handle_action("/evidence-add", {**form, "added_start": ["5"], "added_end": ["5"]})
+    records = load_run_records(index, app.review_dir / run_id)
+    added = [r for r in records if r.anchoring_method == "researcher_selection"]
+    assert len(records) == 94 and len(added) == 2
+    assert added[0].evidence_span.exact_text == sentence and added[0].assignment.origin == "human"
+    # Removing an addition is a recorded decision, like rejecting a proposal.
+    app.handle_action("/evidence-action", {"run_id": [run_id], "item": [added[1].record_id],
+                                           "decision": ["reject"], "reviewer": ["Ada"], "seconds_on_item": ["4.2"]})
+    page = render_review(app, run_id=run_id, item_id=added[0].record_id)
+    assert "Added by Ada during review" in page and "Remove this code" in page and "Add a code the model missed" in page
+    assert "0 of 92 decided, 2 added" in page
+
+    _accept_all(app, run_id)
+    payload = reviewed_snapshot_payload(app.repo_root, app.artifacts_dir / run_id, app.review_dir / run_id)
+    kept = [item for item in payload["evidence"] if item["record_id"] == added[0].record_id]
+    assert len(payload["evidence"]) == 93 and kept and kept[0]["code_id"] == "org_leadership"
+    assert added[1].record_id in {item["record_id"] for item in payload["rejected"]}
+    record = build_methods_record(app, run_id)
+    assert record["review"]["added_by_researchers"] == 1 and record["review"]["decisions"]["accept"] == 92
+    assert "coded 1 passage that the model had not proposed" in methods_paragraph(record)
+    exported = json.loads(export_evidence_review_package(project_manifest_path=project_path, run_id=run_id)[0].read_text(encoding="utf-8"))
+    origins = [row["Origin"] for row in exported["evidence"]]
+    assert origins.count("Added by researcher") == 2 and origins.count("Model proposal") == 92
+
+
+def test_quotations_that_differ_only_in_typography_are_suggested(tmp_path: Path, monkeypatch) -> None:
+    """gpt-oss-20b wrote non-breaking hyphens (lunch‑and‑learn) where the transcript has plain ones."""
+    import qualframe.demo_study as demo
+    from qualframe.evidence_review import blocking_review_issues
+    from qualframe.io.transcript_io import transcript_to_text
+
+    monkeypatch.setattr(demo, "PRIMARY_RECORDING", "gpt-oss-20b-ollama-2026-10")
+    root = ensure_workspace(tmp_path / "ws").root
+    _, project_path, run_id = demo.create_demo_study(root, with_comparison=False)
+    app = DashboardApp(ProjectRunner(project_path))
+    records = load_evidence_review_records(app.artifacts_dir / run_id / "evidence_review/index.json")
+    suggested = [r for r in records if r.anchoring_method == "normalized_quote_candidate"]
+    assert len(records) == 89 and len(suggested) == 5
+    for record in suggested:
+        source = transcript_to_text(app.repo_root / record.source_path)
+        assert "‑" in record.proposed_exact_text and "‑" not in record.evidence_span.exact_text
+        assert blocking_review_issues(record, source) == []
+    app.handle_action("/evidence-action", {"run_id": [run_id], "item": [suggested[0].record_id],
+                                           "decision": ["accept"], "reviewer": ["Ada"], "seconds_on_item": ["12.5"]})
+    from qualframe.evidence_review import load_review_timing
+    assert list(load_review_timing(app.review_dir / run_id).values()) == [12.5]

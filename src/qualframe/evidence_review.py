@@ -51,6 +51,10 @@ def _review_project(project_path: Path, artifact_root: Path):
     return project
 
 
+TYPOGRAPHY_NOTICE = 'Formatting differs from the model quotation. Confirm the highlighted source passage with Save changes.'
+RESEARCHER_ADDED = "researcher_selection"
+
+
 def _context_offsets(source_text: str, start: int, end: int, before: int, after: int, unit: str = "sentences") -> tuple[int, int]:
     if before == 0 and after == 0:
         return start, end
@@ -168,7 +172,15 @@ def build_evidence_review_records(
                     anchor_match_count = anchor.match_count
                     start, end = anchor.start if anchor.start is not None else -1, anchor.end if anchor.end is not None else -1
                     anchoring_method = "unique_exact_quote" if anchor.match_count == 1 else "unresolved_exact_quote"
-                    if anchor.match_count != 1:
+                    if anchor.match_count == 0:
+                        # Same words, different typography (curly quotes, hyphen variants, spacing):
+                        # suggest the transcript's passage; accepting rechecks it against the source.
+                        from qualframe.cfir_review import locate_quote
+                        located_start, located_end, located = locate_quote(source_text, exact_text)
+                        if located == "normalized_quote_candidate":
+                            start, end, anchoring_method = located_start, located_end, located
+                            issues.append(TYPOGRAPHY_NOTICE)
+                    if anchoring_method == "unresolved_exact_quote":
                         issues.append("Exact quotation is missing or occurs more than once; locate evidence through review.")
                 else:
                     try:
@@ -212,7 +224,9 @@ def build_evidence_review_records(
                             source_sha256=source_text_hash,
                             start_offset=start,
                             end_offset=end,
-                            exact_text=exact_text,
+                            # A typography-only match keeps the transcript's characters; the
+                            # model's quotation stays in proposed_exact_text.
+                            exact_text=source_text[start:end] if anchoring_method == "normalized_quote_candidate" else exact_text,
                             context_start_offset=context_start,
                             context_end_offset=context_end,
                             creation_method="automatic" if automatic else "model_proposed",
@@ -333,7 +347,7 @@ def latest_evidence_action_by_record(review_dir: Path) -> dict[str, EvidenceRevi
 def blocking_review_issues(record: EvidenceReviewRecord, source_text: str) -> list[str]:
     """Accept itself confirms uniquely located typography-only differences."""
     issues = list(record.validation_issues)
-    legacy_notice = 'Formatting differs from the model quotation. Confirm the highlighted source passage with Save changes.'
+    legacy_notice = TYPOGRAPHY_NOTICE
     if record.anchoring_method == 'normalized_quote_candidate' and record.evidence_span:
         from qualframe.cfir_review import locate_quote
         span = record.evidence_span
@@ -459,9 +473,10 @@ def export_evidence_review_package(
     index_path = artifact_root / "evidence_review" / "index.json"
     if not index_path.exists():
         raise ValueError("Prepare the exact-evidence review index before exporting.")
-    records = load_evidence_review_records(index_path)
     review_dir = resolve_repo_path(repo_root, project.paths["review_queue"]) / run_id
+    records = load_run_records(index_path, review_dir)
     actions = load_evidence_review_actions(review_dir)
+    timing = load_review_timing(review_dir)
     latest = {action.record_id: action for action in actions}
     unresolved = [
         record.record_id
@@ -490,7 +505,10 @@ def export_evidence_review_package(
         evidence_rows.append(
             {
                 "Record ID": record.record_id,
+                "Origin": "Added by researcher" if is_researcher_addition(record) else "Model proposal",
                 "Review decision": action.decision if action else "unreviewed",
+                "Reviewer": action.reviewer if action else "",
+                "Seconds on decision": timing.get(action.action_id, "") if action else "",
                 "Source ID": record.source_id,
                 "Source path": record.source_path,
                 "Source SHA-256": record.source_sha256,
@@ -582,3 +600,160 @@ def _write_sheet(workbook: Workbook, title: str, rows: list[dict[str, object]]) 
         for cell in column:
             cell.alignment = Alignment(wrap_text=True, vertical="top")
     worksheet.freeze_panes = "A2"
+
+
+# --- Codings researchers add during review ------------------------------------------------
+#
+# A model only proposes what it finds; reviewers also need to record what it missed. Each
+# addition is a review record of its own: its span and code are written once to an immutable
+# file under reviewed_evidence/ (so the record can carry that file's hash like a model
+# artifact), the record is appended to review_queue/<run>/evidence/additions.jsonl, and an
+# "accept" decision by the researcher is appended to the usual decision log. Rejecting the
+# record later removes it from results, like any proposal.
+
+
+def additions_log(review_dir: Path) -> Path:
+    return review_dir / "evidence" / "additions.jsonl"
+
+
+def load_researcher_additions(review_dir: Path | None) -> list[EvidenceReviewRecord]:
+    path = additions_log(review_dir) if review_dir else None
+    if path is None or not path.exists():
+        return []
+    return [EvidenceReviewRecord.model_validate_json(line)
+            for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def load_run_records(index_path: Path, review_dir: Path | None) -> list[EvidenceReviewRecord]:
+    """Model proposals in their review order, followed by codings researchers added."""
+    records = load_evidence_review_records(index_path) if index_path.exists() else []
+    return records + load_researcher_additions(review_dir)
+
+
+def is_researcher_addition(record: EvidenceReviewRecord) -> bool:
+    return record.anchoring_method == RESEARCHER_ADDED
+
+
+def add_researcher_coding(
+    *,
+    project_manifest_path: Path,
+    run_id: str,
+    source_path: str,
+    start: int,
+    end: int,
+    code_id: str,
+    reviewer: str,
+    rationale: str = "",
+) -> EvidenceReviewRecord:
+    project_path = project_manifest_path.resolve()
+    repo_root = project_path.parents[2]
+    project = load_project_manifest(project_path)
+    artifact_root = resolve_repo_path(repo_root, project.paths["artifacts"]) / run_id
+    review_dir = resolve_repo_path(repo_root, project.paths["review_queue"]) / run_id
+    index_path = artifact_root / "evidence_review" / "index.json"
+    if not index_path.exists():
+        raise ValueError("Prepare this run for review before adding codes.")
+    if not reviewer.strip():
+        raise ValueError("Add your name before recording codes.")
+    catalog = json.loads(index_path.read_text(encoding="utf-8")).get("codebook") or {}
+    codes = {code["id"]: code for code in catalog.get("codes", [])}
+    if code_id not in codes:
+        raise ValueError("Choose a code from this study's codebook.")
+    proposals = load_evidence_review_records(index_path)
+    wanted = source_path.replace("\\", "/")
+    sibling = next((r for r in proposals if r.source_path.replace("\\", "/") == wanted), None)
+    if sibling is None:
+        plan = json.loads((artifact_root / "run_plan.json").read_text(encoding="utf-8"))
+        planned = {Path(item["path"]).as_posix() for item in plan.get("discovered_inputs", []) if item.get("kind") == "transcript"}
+        if wanted not in planned:
+            raise ValueError("That transcript is not part of this run.")
+    source_file = resolve_repo_path(repo_root, wanted)
+    source_id, file_hash = ((sibling.source_id, sibling.source_sha256) if sibling
+                            else _source_identity(repo_root, source_file, _source_records(repo_root, project_path)))
+    if sha256_for_file(source_file) != file_hash:
+        raise ValueError("The transcript changed after coding; restore the original before adding codes.")
+    source_text = transcript_to_text(source_file)
+    if not (0 <= start < end <= len(source_text)) or not source_text[start:end].strip():
+        raise ValueError("Select the passage in the transcript first.")
+    exact = source_text[start:end]
+    before = after = 0
+    unit = "sentences"
+    if project.method:
+        import yaml
+
+        method = yaml.safe_load(resolve_repo_path(repo_root, project.method).read_text(encoding="utf-8")) or {}
+        before = int(method.get("context", {}).get("before", 0))
+        after = int(method.get("context", {}).get("after", 0))
+        unit = method.get("context", {}).get("unit", "sentences")
+    context_start, context_end = _context_offsets(source_text, start, end, before, after, unit)
+    record_id = f"added-{uuid4().hex[:20]}"
+    meaning_unit_id = f"meaning-{record_id}"
+    span = EvidenceSpan(
+        id=f"span-{record_id}", meaning_unit_id=meaning_unit_id, source_id=source_id,
+        source_sha256=sha256_for_text(source_text), start_offset=start, end_offset=end, exact_text=exact,
+        context_start_offset=context_start, context_end_offset=context_end, creation_method="researcher_added",
+    )
+    validate_evidence_span_against_source(span, source_text)
+    assignment = CodeAssignment(
+        id=f"assignment-{record_id}", meaning_unit_id=meaning_unit_id, evidence_span_id=span.id,
+        codebook_id=str(catalog.get("id") or "unknown"), codebook_version=str(catalog.get("version") or "unknown"),
+        code_id=code_id, origin="human", rationale=rationale.strip() or None, run_id=run_id, review_status="accepted",
+    )
+    artifact = artifact_root / "reviewed_evidence" / f"{record_id}.json"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text(json.dumps({
+        "kind": "researcher_added_coding", "record_id": record_id, "reviewer": reviewer.strip(),
+        "evidence_span": span.model_dump(mode="json"), "assignment": assignment.model_dump(mode="json"),
+        "created_at_utc": _utc_now(),
+    }, indent=2), encoding="utf-8")
+    existing = load_researcher_additions(review_dir)
+    record = EvidenceReviewRecord(
+        record_id=record_id, run_id=run_id,
+        stage_id=sibling.stage_id if sibling else (proposals[0].stage_id if proposals else "coding"),
+        artifact_path=artifact.relative_to(artifact_root).as_posix(), artifact_sha256=sha256_for_file(artifact),
+        sheet_name="Researcher additions", row_index=len(existing) + 1,
+        source_id=source_id, source_path=sibling.source_path if sibling else wanted, source_sha256=file_hash,
+        meaning_unit_id=meaning_unit_id, proposed_start_offset=start, proposed_end_offset=end,
+        proposed_exact_text=exact, anchoring_method=RESEARCHER_ADDED, record_kind="evidence",
+        proposed_code_id=code_id, proposed_rationale=rationale.strip(),
+        context_text=source_text[context_start:context_end], evidence_span=span, assignment=assignment,
+        code_label=codes[code_id].get("label"), code_definition=codes[code_id].get("definition"),
+        model=None, provider="researcher", prompt_sha256="none",
+        configuration_fingerprint=sibling.configuration_fingerprint if sibling else None,
+    )
+    log = additions_log(review_dir)
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with log.open("a", encoding="utf-8") as handle:
+        handle.write(record.model_dump_json() + "\n")
+    append_evidence_review_action(
+        record=record, source_path=source_file, review_dir=review_dir, artifact_root=artifact_root,
+        decision="accept", reviewer=reviewer, rationale=rationale.strip() or "Added a code the model did not propose.",
+    )
+    return record
+
+
+# --- Time spent on each decision ------------------------------------------------------------
+#
+# Kept apart from the decision log so decision records keep their established format.
+
+
+def record_review_timing(review_dir: Path, action_id: str, seconds: float) -> None:
+    if not (0 < seconds < 6 * 3600):
+        return
+    path = review_dir / "evidence" / "timing.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps({"action_id": action_id, "seconds_on_item": round(seconds, 1),
+                                 "timestamp_utc": _utc_now()}) + "\n")
+
+
+def load_review_timing(review_dir: Path) -> dict[str, float]:
+    path = review_dir / "evidence" / "timing.jsonl"
+    if not path.exists():
+        return {}
+    timing: dict[str, float] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            row = json.loads(line)
+            timing[row["action_id"]] = float(row["seconds_on_item"])
+    return timing

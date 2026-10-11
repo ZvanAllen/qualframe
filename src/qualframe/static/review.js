@@ -6,8 +6,19 @@
   const editControls = document.getElementById('edit-controls');
   let dirty = false, selection = null;
 
+  // Time on this item, counting only while the page is visible (recorded with the decision).
+  let visibleMs = 0, visibleSince = document.hidden ? null : performance.now();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && visibleSince !== null) { visibleMs += performance.now() - visibleSince; visibleSince = null; }
+    else if (!document.hidden && visibleSince === null) { visibleSince = performance.now(); }
+  });
+  const secondsOnItem = () => (visibleMs + (visibleSince === null ? 0 : performance.now() - visibleSince)) / 1000;
+
   form.addEventListener('input', () => { dirty = true; });
-  form.addEventListener('submit', () => { dirty = false; });
+  form.addEventListener('submit', () => {
+    dirty = false;
+    if (form.elements.seconds_on_item) form.elements.seconds_on_item.value = secondsOnItem().toFixed(1);
+  });
   window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
 
   // Character offsets are counted in Unicode code points over the transcript text, matching the engine.
@@ -33,6 +44,33 @@
     feedback.textContent = 'New passage selected. Choose Save change and continue to record it.';
   }
   document.getElementById('use-selection').addEventListener('click', useSelection);
+
+  // Adding a code the model missed: the current transcript selection becomes a new coding.
+  const addForm = document.getElementById('add-form');
+  const addControls = document.getElementById('add-controls');
+  const addFeedback = document.getElementById('add-feedback');
+  const addPreview = document.getElementById('add-preview');
+  function captureForAdd() {
+    if (!addForm) return false;
+    addControls.open = true;
+    if (!selection || selection[1] <= selection[0]) {
+      addFeedback.textContent = 'Select a passage in this transcript first, then choose its code.';
+      return false;
+    }
+    addForm.elements.added_start.value = selection[0]; addForm.elements.added_end.value = selection[1];
+    addPreview.textContent = Array.from(source.textContent).slice(...selection).join('');
+    addPreview.hidden = false;
+    addFeedback.textContent = 'Passage selected. Choose its code, then Add code.';
+    return true;
+  }
+  if (addForm) {
+    addControls.addEventListener('toggle', () => { if (addControls.open && selection) captureForAdd(); });
+    document.addEventListener('mouseup', () => setTimeout(() => { if (addControls.open && selection) captureForAdd(); }, 0));
+    addForm.addEventListener('submit', event => {
+      if (!addForm.elements.added_start.value && !captureForAdd()) event.preventDefault();
+      else dirty = false;
+    });
+  }
 
   form.elements.edited_code_id.addEventListener('change', () => {
     if (accept) accept.disabled = true;
@@ -62,6 +100,7 @@
       a: () => click('accept-button'), r: () => click('reject-button'), l: () => click('defer-button'),
       c: () => { editControls.open = true; document.getElementById('code-select').focus(); },
       u: useSelection,
+      n: () => { captureForAdd(); document.getElementById('add-code-select').focus(); },
       j: () => { const n = document.getElementById('next-link'); if (n) location.href = n.href; },
       k: () => { const p = document.getElementById('prev-link'); if (p) location.href = p.href; },
     };

@@ -72,7 +72,25 @@ QualFrame is research software for **directed (deductive) content analysis** wit
 
 QualFrame grew out of the AI-assisted CFIR analysis in the Adaptive Mentorship Networks (AMN) study. Two papers about that work are in preparation: one on developing the human-in-the-loop workflow and its prompt library, and one evaluating model performance. The CFIR prompts from that work are in [`prompts/cfir/final`](prompts/cfir/final).
 
-If you use QualFrame, please cite it (see [CITATION.cff](CITATION.cff) or GitHub's **Cite this repository**). [Reporting QualFrame in your methods](docs/reporting.md) includes a template paragraph and the details reviewers usually ask about.
+[Reporting QualFrame in your methods](docs/reporting.md) includes a template paragraph and the details reviewers usually ask about. The app's **Methods record** page drafts that paragraph from your study's records.
+
+## How to cite
+
+If you use QualFrame in your research, please cite the version you used:
+
+> van Allen, Z. (2026). *QualFrame: AI-assisted directed content analysis you can check* (Version 0.9.0) [Computer software]. https://github.com/ZvanAllen/qualframe
+
+```bibtex
+@software{vanallen_qualframe_2026,
+  author  = {van Allen, Zack},
+  title   = {{QualFrame}: {AI}-assisted directed content analysis you can check},
+  version = {0.9.0},
+  year    = {2026},
+  url     = {https://github.com/ZvanAllen/qualframe}
+}
+```
+
+Each release is archived on Zenodo with its own DOI; GitHub's **Cite this repository** button (from [CITATION.cff](CITATION.cff)) gives the same citation in other formats. Please also cite the framework your codebook comes from.
 
 ## Contributing
 

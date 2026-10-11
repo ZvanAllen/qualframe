@@ -12,7 +12,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILES = {"README.md", "AGENTS.md", "CONTRIBUTING.md", "LICENSE", "LICENSE.md", "CITATION.cff",
               ".gitignore", ".env.example", "pyproject.toml", "ruff.toml", "Makefile", "CLAUDE.md",
-              "Start QualFrame.bat", "start-qualframe.command", "demo/README.md", "uv.lock"}
+              "Start QualFrame.bat", "start-qualframe.command", "demo/README.md", "uv.lock", "CHANGELOG.md"}
 DIRECTORIES = ("src", "config", "prompts", "tests", "examples", "scripts", "docs", ".github",
                "demo/fixtures", "demo/cached_responses", "demo/config", "demo/project",
                "demo/datasets", "demo/recordings")

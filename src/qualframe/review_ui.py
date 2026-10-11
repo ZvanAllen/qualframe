@@ -8,14 +8,15 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 from qualframe.config import resolve_repo_path
-from qualframe.evidence_review import load_evidence_review_records, latest_evidence_action_by_record, blocking_review_issues
+from qualframe.evidence_review import load_run_records, latest_evidence_action_by_record, blocking_review_issues, is_researcher_addition
 from qualframe.io.transcript_io import transcript_to_text
 from qualframe.models import EvidenceSpan, CodeAssignment
 from qualframe.ui_kit import provider_display
 
 e = html.escape
 _SPEAKER = re.compile(r"(?m)^([A-Z][A-Za-z .'-]{0,40}:)(?=\s)")
-_DECISION_WORDS = {"accept": "Accepted", "edit": "Changed", "reject": "Rejected", "defer": "Later", "unreviewed": "To do"}
+_DECISION_WORDS = {"accept": "Accepted", "edit": "Changed", "reject": "Rejected", "defer": "Later", "unreviewed": "To do",
+                   "added": "Added by you", "removed": "Removed"}
 
 
 def _mark_speakers(escaped: str) -> str:
@@ -60,7 +61,7 @@ def render_review(app, *, run_id: str, item_id: str = '', message: str = '', err
     if not index.exists():
         raise FileNotFoundError('This run has no proposals prepared for review yet. Open the run details to prepare them.')
     payload = json.loads(index.read_text(encoding='utf-8'))
-    records = load_evidence_review_records(index)
+    records = load_run_records(index, app.review_dir / run_id)
     actions = latest_evidence_action_by_record(app.review_dir / run_id)
     if not records:
         return app._render_workspace_page(
@@ -94,7 +95,10 @@ def render_review(app, *, run_id: str, item_id: str = '', message: str = '', err
         guidance += f'<p class="guidance"><strong>Include:</strong> {e(chosen["inclusion_guidance"])}</p>'
     if chosen.get('exclusion_guidance'):
         guidance += f'<p class="guidance"><strong>Exclude:</strong> {e(chosen["exclusion_guidance"])}</p>'
-    resolved = len(records) - len(pending)
+    proposals = [r for r in records if not is_researcher_addition(r)]
+    resolved = sum(1 for r in proposals if r.record_id in actions and actions[r.record_id].decision != 'defer')
+    added_count = len(records) - len(proposals)
+    is_added = is_researcher_addition(record)
     reviewer = app.researcher
     if not reviewer:
         profile = app.review_dir / 'reviewer.json'
@@ -109,6 +113,9 @@ def render_review(app, *, run_id: str, item_id: str = '', message: str = '', err
                    + '</ul><p>Select the right passage in the transcript, then use <em>Change code or passage</em>, or reject the proposal.</p></div>')
     if record.record_kind == 'absence':
         warning += '<p class="review-guidance">The model proposes that there is no evidence for this code. Check the transcript before accepting.</p>'
+    if record.anchoring_method == 'normalized_quote_candidate' and not needs_edit:
+        warning += ('<p class="review-guidance">The model\'s quotation differs from the transcript only in punctuation or spacing. '
+                    'The highlighted passage is the transcript\'s own text.</p>')
     if reviewer:
         who = (f'<input type="hidden" name="reviewer" value="{e(reviewer)}">'
                f'<p class="reviewer-line">Recording decisions as {e(reviewer)}. <a href="/home#name-form">Change</a></p>')
@@ -120,6 +127,8 @@ def render_review(app, *, run_id: str, item_id: str = '', message: str = '', err
     queue = []
     for i, r in enumerate(records):
         decision = actions[r.record_id].decision if r.record_id in actions else 'unreviewed'
+        if is_researcher_addition(r):
+            decision = 'removed' if decision == 'reject' else 'added'
         current = ' aria-current="true"' if r.record_id == record.record_id else ''
         queue.append(
             f'<li data-status="{e(decision)}"><a href="{e(url(r))}"{current}>{i+1}. {e(r.code_label or "Unknown code")}'
@@ -139,15 +148,29 @@ def render_review(app, *, run_id: str, item_id: str = '', message: str = '', err
     model_reason = record.proposed_rationale or (record.assignment.rationale if record.assignment else '') or ''
     codebook = ''.join(
         f'<details class="code-entry"><summary>{e(c["label"])}</summary><p>{e(c.get("definition", ""))}</p></details>' for c in codes)
-    script = (Path(__file__).parent / 'static/review.js').read_text(encoding='utf-8')
     accept_label = 'Accept: no evidence' if record.record_kind == 'absence' else 'Accept'
+    position_label = (f'Your addition {position - len(proposals) + 1} of {added_count}' if is_added
+                      else f'Proposal {position + 1} of {len(proposals)}')
+    who_hidden = f'<input type="hidden" name="reviewer" value="{e(reviewer)}">' if reviewer else ''
+    if is_added:
+        origin_note = (f'<p class="origin-note">Added by {e(action.reviewer if action else "a researcher")} during review'
+                       + (f': {e(record.proposed_rationale)}' if record.proposed_rationale else '.') + '</p>')
+        decision_buttons = ('<div class="decision-buttons"><button name="decision" formnovalidate value="reject" class="secondary" id="reject-button">'
+                            'Remove this code <kbd>R</kbd></button></div>')
+    else:
+        origin_note = (f'<details{" open" if model_reason else ""}><summary>Why the model proposed this</summary>'
+                       f'<p>{e(model_reason) or "No reason given."}</p></details>')
+        decision_buttons = (f'<div class="decision-buttons"><button name="decision" formnovalidate value="accept" id="accept-button"{accept_disabled}>{accept_label} <kbd>A</kbd></button>\n'
+                            '<button name="decision" formnovalidate value="reject" class="secondary" id="reject-button">Reject <kbd>R</kbd></button>\n'
+                            '<button name="decision" formnovalidate value="defer" class="secondary" id="defer-button">Later <kbd>L</kbd></button></div>')
+    script = (Path(__file__).parent / 'static/review.js').read_text(encoding='utf-8')
     body = f'''{notices}{done}
-<div class="review-top"><div class="record-navigation">{prev_link}<strong>Proposal {position+1} of {len(records)}</strong>{next_link}</div>
-<div class="review-meter"><label for="review-progress">{resolved} of {len(records)} decided</label><progress id="review-progress" value="{resolved}" max="{len(records)}"></progress></div></div>
+<div class="review-top"><div class="record-navigation">{prev_link}<strong>{position_label}</strong>{next_link}</div>
+<div class="review-meter"><label for="review-progress">{resolved} of {len(proposals)} decided{f", {added_count} added" if added_count else ""}</label><progress id="review-progress" value="{resolved}" max="{len(proposals)}"></progress></div></div>
 <div class="review-grid">
 <nav class="proposal-rail" aria-label="All proposals"><h2>Proposals</h2>
 <label>Search<input type="search" id="queue-search" placeholder="Code or transcript"></label>
-<label>Show<select id="queue-filter"><option value="all">All</option><option value="unreviewed">To do</option><option value="defer">Later</option><option value="accept">Accepted</option><option value="edit">Changed</option><option value="reject">Rejected</option></select></label>
+<label>Show<select id="queue-filter"><option value="all">All</option><option value="unreviewed">To do</option><option value="defer">Later</option><option value="accept">Accepted</option><option value="edit">Changed</option><option value="reject">Rejected</option><option value="added">Added by you</option></select></label>
 <ul id="proposal-list">{"".join(queue)}</ul></nav>
 <div class="transcript-col"><div class="sheet">
 <div class="sheet-head"><span>{e(Path(record.source_path).name)}</span><span>{e(Path(record.source_path).parent.name)}</span></div>
@@ -155,13 +178,12 @@ def render_review(app, *, run_id: str, item_id: str = '', message: str = '', err
 <div class="select-hint"><button type="button" id="use-selection" class="secondary">Use selected passage</button><span id="selection-feedback" role="status">To change the passage, select text in the transcript, then press <kbd>U</kbd>.</span></div>
 </div></div>
 <div class="decision-panel"><section>
-<p class="code-path">{e(parents) if parents else "Proposed code"}</p><h2>{e(code_label)}</h2><p>{e(definition)}</p>{guidance}{warning}
-<details{" open" if model_reason else ""}><summary>Why the model proposed this</summary><p>{e(model_reason) or "No reason given."}</p></details>
+<p class="code-path">{e(parents) if parents else ("Added code" if is_added else "Proposed code")}</p><h2>{e(code_label)}</h2><p>{e(definition)}</p>{guidance}{warning}
+{origin_note}
 <form id="decision-form" method="post" action="/evidence-action"><input type="hidden" name="run_id" value="{e(run_id)}"><input type="hidden" name="item" value="{e(record.record_id)}"><input type="hidden" name="advance" value="yes"><input type="hidden" name="study_identity" value="{e(app.runner.project.project_id)}">
 {who}
-<div class="decision-buttons"><button name="decision" formnovalidate value="accept" id="accept-button"{accept_disabled}>{accept_label} <kbd>A</kbd></button>
-<button name="decision" formnovalidate value="reject" class="secondary" id="reject-button">Reject <kbd>R</kbd></button>
-<button name="decision" formnovalidate value="defer" class="secondary" id="defer-button">Later <kbd>L</kbd></button></div>
+<input type="hidden" name="seconds_on_item" id="seconds-on-item" value="">
+{decision_buttons}
 <details id="edit-controls"{" open" if needs_edit else ""}><summary>Change code or passage <kbd>C</kbd></summary>
 <label>Code<select name="edited_code_id" id="code-select">{_code_options(codes, code_id)}</select></label>
 <p class="muted">To change the passage, select it in the transcript and press <strong>Use selected passage</strong>.</p>
@@ -169,9 +191,17 @@ def render_review(app, *, run_id: str, item_id: str = '', message: str = '', err
 <button name="decision" value="edit" id="save-edit">Save change and continue</button></details>
 <details class="note-field"><summary>Add a note</summary><label>Note<textarea name="rationale" rows="2" placeholder="Optional. Saved with this decision."></textarea></label></details>
 </form>
-<p class="shortcut-help"><kbd>A</kbd> accept, <kbd>R</kbd> reject, <kbd>L</kbd> later, <kbd>C</kbd> change, <kbd>J</kbd>/<kbd>K</kbd> next and previous</p>
+<p class="shortcut-help"><kbd>A</kbd> accept, <kbd>R</kbd> reject, <kbd>L</kbd> later, <kbd>C</kbd> change, <kbd>N</kbd> add a missed code, <kbd>J</kbd>/<kbd>K</kbd> next and previous</p>
 </section>
+<section class="add-code"><details id="add-controls"><summary>Add a code the model missed <kbd>N</kbd></summary>
+<form id="add-form" method="post" action="/evidence-add"><input type="hidden" name="run_id" value="{e(run_id)}"><input type="hidden" name="item" value="{e(record.record_id)}"><input type="hidden" name="study_identity" value="{e(app.runner.project.project_id)}"><input type="hidden" name="source_path" value="{e(record.source_path)}">{who_hidden}
+<input type="hidden" name="added_start" value=""><input type="hidden" name="added_end" value="">
+<p class="muted" id="add-feedback">Select a passage in this transcript, then choose its code.</p>
+<blockquote id="add-preview" hidden></blockquote>
+<label>Code<select name="added_code_id" id="add-code-select" required><option value="">Choose a code</option>{_code_options(codes, "")}</select></label>
+<label>Note<textarea name="rationale" rows="2" placeholder="Optional. Why this passage fits the code."></textarea></label>
+<button id="add-button">Add code</button></form></details></section>
 <section><h2>Codebook</h2><label>Search<input type="search" id="book-search" placeholder="Find a code or definition"></label><div class="codebook-panel">{codebook}</div></section>
-<details class="review-details"><summary>Record details</summary>{history}<dl><dt>Model</dt><dd>{e(provider_display(record.provider, record.model))}</dd><dt>Located by</dt><dd>{e(record.anchoring_method.replace("_", " "))}</dd><dt>Source file hash</dt><dd><code>{e(record.source_sha256)}</code></dd><dt>Run</dt><dd>{e(run_id)}</dd></dl></details>
+<details class="review-details"><summary>Record details</summary>{history}<dl><dt>{"Origin" if is_added else "Model"}</dt><dd>{"Added by a researcher during review" if is_added else e(provider_display(record.provider, record.model))}</dd><dt>Located by</dt><dd>{e(record.anchoring_method.replace("_", " "))}</dd><dt>Source file hash</dt><dd><code>{e(record.source_sha256)}</code></dd><dt>Run</dt><dd>{e(run_id)}</dd></dl></details>
 </div></div><script>{script}</script>'''
     return app._render_workspace_page(title='Review', intro='', body=body, active='evidence', wide=True)

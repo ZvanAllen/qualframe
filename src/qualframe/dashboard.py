@@ -17,10 +17,13 @@ from qualframe.config import resolve_repo_path
 from qualframe.cost_control import append_cost_approval
 from qualframe.cost_control import CostApprovalRequired
 from qualframe.evidence_review import (
+    add_researcher_coding,
     append_evidence_review_action,
     export_evidence_review_package,
     latest_evidence_action_by_record,
     load_evidence_review_records,
+    load_run_records,
+    record_review_timing,
     write_evidence_review_index,
 )
 from qualframe.governance import append_gate_action, append_release_action, approved_gate_ids
@@ -946,7 +949,7 @@ class DashboardApp:
             self.fill_identity(form, "")
             item_id = required("item")
             index_path = artifact_root / "evidence_review" / "index.json"
-            records = load_evidence_review_records(index_path)
+            records = load_run_records(index_path, review_root)
             record = next((item for item in records if item.record_id == item_id), None)
             if record is None:
                 raise ValueError("Evidence review item was not found in this run.")
@@ -981,6 +984,10 @@ class DashboardApp:
                 edited_code_id=edited_code_id,
                 codebook_id=catalog.get("id"), codebook_version=catalog.get("version"),
             )
+            try:
+                record_review_timing(review_root, action.action_id, float(form.get('seconds_on_item', ['0'])[0] or 0))
+            except ValueError:
+                pass
             self.review_dir.mkdir(parents=True, exist_ok=True)
             (self.review_dir / 'reviewer.json').write_text(json.dumps({'name': required('reviewer')}), encoding='utf-8')
             if form.get('advance', [''])[0] == 'yes':
@@ -990,6 +997,23 @@ class DashboardApp:
                 next_record = next((r for r in ordered if r.record_id not in latest or latest[r.record_id].decision == 'defer'), None)
                 form['item'] = [next_record.record_id if next_record else record.record_id]
             return run_id, f"Recorded evidence decision {action.decision}."
+
+        if path == "/evidence-add":
+            self.fill_identity(form, "")
+            if form.get('study_identity', [self.runner.project.project_id])[0] != self.runner.project.project_id:
+                raise ValueError('This tab belongs to another study. Reopen it before adding a code.')
+            try:
+                start, end = int(required("added_start")), int(required("added_end"))
+            except ValueError:
+                raise ValueError("Select the passage in the transcript first.") from None
+            added = add_researcher_coding(
+                project_manifest_path=self._managed_project_path(), run_id=run_id,
+                source_path=required("source_path"), start=start, end=end,
+                code_id=required("added_code_id"), reviewer=required("reviewer"),
+                rationale=form.get("rationale", [""])[0],
+            )
+            form['item'] = [form.get('item', [added.record_id])[0] or added.record_id]
+            return run_id, f"Added {added.code_label or added.proposed_code_id}."
 
         if path == '/synthesis/start':
             from qualframe.synthesis_workspace import start_synthesis_job
@@ -1518,7 +1542,7 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
             if request_path == "/export-evidence" and form.get("return_to", [""])[0] == "analysis":
                 self._redirect("/analysis?" + urlencode({"run_id": run_id, "message": message}))
                 return
-            if request_path in {"/prepare-evidence", "/evidence-action", "/export-evidence"}:
+            if request_path in {"/prepare-evidence", "/evidence-action", "/evidence-add", "/export-evidence"}:
                 params = {
                     "run_id": run_id,
                     "item": form.get("item", [""])[0],

@@ -59,11 +59,16 @@ Each proposal shows the code, its definition and guidance, the model's reason, a
 | L | Leave it for later |
 | C | Change the code |
 | U | Use the text you selected in the transcript as the passage |
+| N | Add a code the model missed, for the text you selected |
 | J / K | Next / previous proposal |
 
 To change a passage, select the right text in the transcript, press **U**, then **Save change and continue**. You can change the code and the passage together. A note is optional and is saved with the decision.
 
-**Proposals that need your help.** If the model's quotation can't be found in the transcript, or appears more than once, the proposal can't be accepted as it is. Select the passage yourself or reject it. Small differences in quotation marks or spaces are flagged rather than silently matched.
+**Codes the model missed.** Reviewing proposals only catches codes the model applied wrongly; it can't show what the model left out. When you notice a passage that should be coded, select it, press **N** (or open *Add a code the model missed*), choose the code and add it. Your additions appear at the end of the proposal list, count in Results and exports like accepted proposals, and are reported separately in the methods record. You can remove an addition later; the removal is recorded too.
+
+**Proposals that need your help.** If the model's quotation can't be found in the transcript, or appears more than once, the proposal can't be accepted as it is. Select the passage yourself or reject it. If the quotation differs from the transcript only in punctuation or spacing (curly quotes, hyphen variants, extra spaces), QualFrame highlights the transcript's own text and says so; accepting it records the transcript's wording, never the model's.
+
+**Time per decision.** QualFrame notes how long each proposal was open (only while the window is visible) and saves it alongside the decision. The methods record reports the median, which is useful when describing review effort.
 
 **Nothing is overwritten.** Every decision is added to the study's review record with your name and the time. Changing your mind adds a new decision; the history is kept.
 

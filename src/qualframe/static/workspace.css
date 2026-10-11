@@ -164,6 +164,8 @@ progress{width:100%;height:10px;accent-color:var(--pen)}
 .status.edit::before{background:var(--pen)}
 .status.reject::before{background:var(--bad)}
 .status.defer::before,.status.pending::before{background:#C78A00}
+.status.added::before{background:var(--pen);border-radius:2px}
+.status.removed::before{background:var(--rule-strong)}
 
 /* The transcript page: the one memorable element. */
 .sheet{background:var(--page);border:1px solid var(--rule);border-radius:4px;box-shadow:0 1px 2px rgba(23,33,51,.05),0 10px 30px rgba(23,33,51,.07);position:relative}
@@ -255,6 +257,11 @@ mark,.hl{background:linear-gradient(transparent 6%,var(--mark) 6%,var(--mark) 94
 .select-hint button{padding:6px 12px;font-size:14px}
 .decision-panel{position:sticky;top:76px;display:grid;gap:14px;max-height:calc(100vh - 96px);overflow:auto;padding-bottom:4px}
 .decision-panel section{margin:0;padding:18px 20px}
+.add-code summary{font-weight:700}
+.origin-note{background:var(--pen-wash);border-radius:8px;padding:10px 12px;font-size:14px;margin:0}
+.add-code form{display:grid;gap:10px;margin-top:10px}
+.add-code form>button{justify-self:start}
+#add-preview{margin:0;max-height:9em;overflow:auto}
 .decision-panel h2{font-size:22px;margin-bottom:4px}
 .decision-panel .code-path{font-size:13px;color:var(--ink-2);margin-bottom:6px}
 .decision-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}

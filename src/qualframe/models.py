@@ -370,6 +370,7 @@ class EvidenceSpan(BaseModel):
         "researcher_presegmented",
         "automatic",
         "reviewer_edited",
+        "researcher_added",
     ]
     derived_from_span_id: str | None = None
 
@@ -428,7 +429,7 @@ class EvidenceReviewRecord(BaseModel):
     proposed_exact_text: str
     raw_start_value: str | None = None
     raw_end_value: str | None = None
-    anchoring_method: Literal["model_offsets", "unique_exact_quote", "unresolved_exact_quote", "normalized_quote_candidate", "no_evidence"] = "model_offsets"
+    anchoring_method: Literal["model_offsets", "unique_exact_quote", "unresolved_exact_quote", "normalized_quote_candidate", "no_evidence", "researcher_selection"] = "model_offsets"
     record_kind: Literal["evidence", "absence"] = "evidence"
     proposed_code_id: str | None = None
     proposed_rationale: str | None = None

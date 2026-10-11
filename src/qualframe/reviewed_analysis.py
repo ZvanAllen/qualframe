@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from qualframe.directed_analysis import validate_evidence_span_against_source
-from qualframe.evidence_review import load_evidence_review_records, latest_evidence_action_by_record, blocking_review_issues
+from qualframe.evidence_review import load_run_records, latest_evidence_action_by_record, blocking_review_issues
 from qualframe.io.files import sha256_for_file, sha256_for_text
 from qualframe.io.transcript_io import transcript_to_text
 from qualframe.models import EvidenceSpan, CodeAssignment
@@ -42,7 +42,7 @@ def reviewed_snapshot_payload(repo_root: Path, run_root: Path, review_root: Path
     manifest = _json(run_root / 'run_manifest.json')
     catalog = _json(index).get('codebook', {})
     codes = {code['id']: code for code in catalog.get('codes', [])}
-    records = load_evidence_review_records(index)
+    records = load_run_records(index, review_root)
     actions = latest_evidence_action_by_record(review_root)
     evidence, absences, rejected, lineage = [], [], [], []
     checked_sources, checked_artifacts, source_hashes = {}, {}, {}
