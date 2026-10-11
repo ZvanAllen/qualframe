@@ -15,6 +15,7 @@
 - **Spending checks in one step.** When a run pauses at a spending check (every $20 by default), its page now offers *Approve and continue*, which records the approval and resumes the run, or *Stop the run here*. Before, approving and resuming were two separate forms, and resuming without approving paused the run again.
 - **Resuming never pays twice.** A resumed run reuses every answer it already received, including the finished parts of a transcript coded one domain or category at a time. Before, those parts were requested again.
 - **Resuming after changing spending settings.** Raising the spending limit or saving the model again no longer stops a run from resuming, as long as everything that shapes the coding (model and its settings, instructions, codebook, options) is unchanged. Other changes still need a new run, and the page now says so.
+- **Claude Haiku 5.5 preset** allows 64,000 output tokens. Haiku thinks before answering and the thinking counts toward the limit, so 32,000 was too few for a large CFIR domain. The output-limit error now says so and where to change the setting.
 - **Clearer errors.** A failed model request now says why (for example a missing key) instead of only that it failed.
 - The placeholder name "Unnamed researcher" is no longer saved as your name.
 - **Demo:** a third recorded run, gpt-oss-20b running locally through Ollama.

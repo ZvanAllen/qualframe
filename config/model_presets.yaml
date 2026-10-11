@@ -52,7 +52,9 @@ presets:
     provider: anthropic
     model: claude-haiku-5-5
     temperature: null
-    max_tokens: 32000
+    # Haiku thinks before answering, and thinking counts toward this limit. 32,000 was too few for
+    # the CFIR Individuals domain (45 constructs) in AMN Study A, October 2026.
+    max_tokens: 64000
     input_rate: 0.10
     output_rate: 0.50
     pricing_source: https://platform.claude.com/docs/en/about-claude/pricing

@@ -205,8 +205,9 @@ class ProjectRunner:
             if (response.finish_reason or "") in {"max_tokens", "length", "max_output_tokens"}:
                 raise RuntimeError(
                     f"The model reached its output limit ({self.project.provider.max_tokens:,} tokens) while coding "
-                    f"{input_label}; usage was recorded. Raise the maximum output tokens in the model settings, "
-                    "or send one codebook category per request (Coding options), then start a new run."
+                    f"{input_label}; usage was recorded. Models that think before answering count that thinking "
+                    "toward the limit. Raise Maximum output tokens (Run coding, Advanced settings), or send one "
+                    "codebook category per request (Coding options), then start a new run."
                 )
             raise RuntimeError("Provider returned incomplete or empty output; usage was recorded. Review before resuming.")
         return response
