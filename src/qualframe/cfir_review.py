@@ -95,37 +95,73 @@ def reference_codes(path: Path) -> list[dict[str, str]]:
 
 # How a model's "CFIR Construct" label is matched to the reference codebook.
 # legacy_v1 and qualified_delimiters_v2 are frozen: historical benchmarks were normalized with them.
-# outline_labels_v3 is used for review. It reads the forms models write when copying the
-# codebook's outline: "H. Innovation Deliverers: 4. Motivation", "F. Engaging – 1. Innovation
-# Deliverers", "II.B.1. Actual Implementation Outcomes: Adoption". Outline numbers, case, spacing,
-# dash and quote typography and "&"/"and" are ignored; names must otherwise match exactly, and a
-# qualifier must name the code's parent construct, its Outcomes Addendum group or its domain.
-LABEL_POLICIES = ("legacy_v1", "qualified_delimiters_v2", "outline_labels_v3")
-REVIEW_LABEL_POLICY = "outline_labels_v3"
-_OUTLINE_NUMBER = re.compile(r'^\s*(?:(?:[IVX]+|[A-Z]\d*|\d+)\.)+\s*')
+# outline_labels_v3 (11 October 2026) reads the forms models write when copying the codebook's
+# outline: "H. Innovation Deliverers: 4. Motivation", "F. Engaging – 1. Innovation Deliverers",
+# "II.B.1. Actual Implementation Outcomes: Adoption". Outline numbers, case, spacing, dash and
+# quote typography and "&"/"and" are ignored; names must otherwise match exactly, and a qualifier
+# must name the code's parent construct, its Outcomes Addendum group or its domain.
+# outline_labels_v4 (used for review) adds compound outline numbers without a final full stop
+# ("A.3 Work Infrastructure", "II.A.3 Sustainability", "I.A Acceptability"), takes the parent
+# from such a number when a sub-construct name alone is ambiguous ("E.3 Opportunity" is the
+# Opportunity of E. Implementation Leads), and reads a trailing parenthesis as the parent
+# ("F2. Innovation Recipients (Engaging)"). v3 is kept unchanged for indexes made with it.
+LABEL_POLICIES = ("legacy_v1", "qualified_delimiters_v2", "outline_labels_v3", "outline_labels_v4")
+REVIEW_LABEL_POLICY = "outline_labels_v4"
+_SEGMENT = r'(?:[IVX]+|[A-Z]\d*|\d+)'
+_OUTLINE_NUMBER = re.compile(rf'^\s*(?:{_SEGMENT}\.)+\s*')
+_OUTLINE_NUMBER_V4 = re.compile(rf'^\s*(?:{_SEGMENT}\.)*{_SEGMENT}(?:\.|(?=\s))\s*')
 _QUALIFIER = re.compile(r'\s*:\s*|\s+[/>-]\s+')
 
 
-def construct_name(value: str) -> str:
+def construct_name(value: str, version: int = 4) -> str:
     """A construct name without its outline number, for comparison."""
     value = normalized_with_offsets(str(value or ''))[0]
-    value = _OUTLINE_NUMBER.sub('', value).replace('&', ' and ')
+    pattern = _OUTLINE_NUMBER_V4 if version >= 4 else _OUTLINE_NUMBER
+    value = pattern.sub('', value).replace('&', ' and ')
     return ' '.join(value.casefold().split())
 
 
-def _outline_candidates(label: str, in_domain: list[dict[str, str]], current_parent: str) -> list[dict[str, str]]:
+def _parent_letter(part: str) -> str:
+    """The parent's outline letter in a compound number: "E.3 Opportunity" or "F2. Engaging" -> "E"/"F"."""
+    number = _OUTLINE_NUMBER_V4.match(part)
+    if not number:
+        return ''
+    segments = [s for s in re.split(r'[.\s]+', number.group(0)) if s]
+    if len(segments) == 1 and re.fullmatch(r'[A-Z]\d+', segments[0]):
+        return segments[0][0]
+    if len(segments) >= 2 and re.fullmatch(r'[A-Z]', segments[-2]):
+        return segments[-2]
+    return ''
+
+
+def _outline_candidates(label: str, in_domain: list[dict[str, str]], current_parent: str,
+                        version: int = 4) -> list[dict[str, str]]:
     parts = [part for part in _QUALIFIER.split(normalized_with_offsets(label.strip())[0]) if part.strip()]
     if not parts:
         return []
-    child = construct_name(parts[-1])
-    candidates = [c for c in in_domain if construct_name(c['raw_label']) == child]
-    if len(parts) > 1:
-        qualifier = construct_name(parts[-2])
+    child_part, qualifier_part = parts[-1], parts[-2] if len(parts) > 1 else ''
+
+    def named(part: str) -> list[dict[str, str]]:
+        child = construct_name(part, version)
+        return [c for c in in_domain if construct_name(c['raw_label'], version) == child]
+
+    candidates = named(child_part)
+    if version >= 4 and not candidates and not qualifier_part:
+        bracket = re.fullmatch(r'(.*\S)\s*\(([^()]+)\)\s*', child_part)
+        if bracket:
+            candidates, qualifier_part = named(bracket.group(1)), bracket.group(2)
+    if qualifier_part:
+        qualifier = construct_name(qualifier_part, version)
         candidates = [c for c in candidates if qualifier in {
-            construct_name(c['parent_label']), construct_name(c.get('section', '')),
-            construct_name(re.sub(r'\s+domain$', '', c['domain'], flags=re.IGNORECASE))} - {''}]
-    elif len(candidates) > 1 and current_parent:
-        candidates = [c for c in candidates if c['parent_label'] == current_parent]
+            construct_name(c['parent_label'], version), construct_name(c.get('section', ''), version),
+            construct_name(re.sub(r'\s+domain$', '', c['domain'], flags=re.IGNORECASE), version)} - {''}]
+    elif len(candidates) > 1:
+        letter = _parent_letter(child_part) if version >= 4 else ''
+        narrowed = [c for c in candidates if letter and re.match(rf'{letter}\.', c['parent_label'])]
+        if len(narrowed) == 1:
+            return narrowed
+        if current_parent:
+            candidates = [c for c in candidates if c['parent_label'] == current_parent]
     return candidates
 
 
@@ -167,8 +203,9 @@ def cfir_records(*, artifact, artifact_rel: str, artifact_path: Path, source_pat
                 continue
             label = str(row['CFIR Construct']).strip()
             in_domain = [c for c in codes if domain.lower().replace(' addendum', '') in c['domain'].lower()]
-            if code_label_policy == "outline_labels_v3":
-                candidates = _outline_candidates(label, in_domain, current_parent)
+            if code_label_policy in {"outline_labels_v3", "outline_labels_v4"}:
+                candidates = _outline_candidates(label, in_domain, current_parent,
+                                                 version=int(code_label_policy[-1]))
                 code = candidates[0] if len(candidates) == 1 else None
                 if code:
                     current_parent = code['parent_label'] or code['raw_label']

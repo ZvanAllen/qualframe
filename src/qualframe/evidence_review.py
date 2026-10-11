@@ -386,7 +386,8 @@ def refresh_unreviewed_cfir_index(*, project_manifest_path: Path, run_id: str, r
         return False
     with index.open(encoding="utf-8") as handle:
         head = handle.read(4096)
-    if '"cfir-reference"' not in head or '"code_label_policy"' in head:
+    policy = re.search(r'"code_label_policy":\s*"([^"]+)"', head)
+    if '"cfir-reference"' not in head or (policy and policy.group(1) == REVIEW_LABEL_POLICY):
         return False  # not a CFIR index, or already made with the current policy
     review_root = review_dir / run_id
     if review_root.exists() and any(path.is_file() for path in review_root.rglob("*")):
@@ -397,7 +398,7 @@ def refresh_unreviewed_cfir_index(*, project_manifest_path: Path, run_id: str, r
     if experiments.exists() and any(experiments.glob(f"*/completed/{run_id}.json")):
         return False
     payload = json.loads(index.read_text(encoding="utf-8"))
-    if (payload.get("codebook") or {}).get("id") != "cfir-reference" or payload.get("code_label_policy"):
+    if (payload.get("codebook") or {}).get("id") != "cfir-reference" or payload.get("code_label_policy") == REVIEW_LABEL_POLICY:
         return False
     stamp = re.sub(r"[^0-9A-Za-z]", "", str(payload.get("generated_at_utc", ""))) or "earlier"
     superseded = artifact_root / "evidence_review" / "superseded"

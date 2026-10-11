@@ -213,6 +213,11 @@ def test_unreviewed_cfir_index_from_earlier_matching_is_rebuilt_once(tmp_path):
         return index.read_text(encoding='utf-8')
 
     earlier = make_earlier_cfir_index()
+    payload = json.loads(earlier)
+    index.write_text(json.dumps(dict(run_id=payload['run_id'], generated_at_utc=payload['generated_at_utc'],
+                                     record_count=payload['record_count'], code_label_policy='outline_labels_v3',
+                                     codebook=payload['codebook'], records=payload['records']), indent=2), encoding='utf-8')
+    earlier = index.read_text(encoding='utf-8')
     assert refresh_unreviewed_cfir_index(project_manifest_path=project, run_id=run_id, review_dir=review.parent)
     kept = list((index.parent / 'superseded').glob('index-*.json'))
     assert len(kept) == 1 and kept[0].read_text(encoding='utf-8') == earlier
@@ -228,3 +233,33 @@ def test_unreviewed_cfir_index_from_earlier_matching_is_rebuilt_once(tmp_path):
     reviewed = make_earlier_cfir_index()
     assert not refresh_unreviewed_cfir_index(project_manifest_path=project, run_id=run_id, review_dir=review.parent)
     assert index.read_text(encoding='utf-8') == reviewed
+
+
+def test_outline_labels_v4_reads_compound_numbers_and_parenthesised_parents(tmp_path):
+    codes = _outline_book(tmp_path)
+    by_id = {c['id']: c for c in codes}
+    rows = {
+        'Individuals': ['H.4 Motivation', 'C.1 Need', 'H.1 Need', 'C.4 Opinion Leaders: Need', 'I.4 Innovation Deliverers – Motivation'],
+        'Implementation Process': ['F2. Innovation Deliverers (Engaging)', 'B.1 Innovation Deliverers', 'H.2 Innovation'],
+        'Outcomes Addendum': ['I.A Acceptability', 'II.A.1 Adoptability', 'II.B.1 Adoption', 'III.A Innovation Recipient Impact'],
+    }
+    records = _label_records(tmp_path, codes, rows, 'outline_labels_v4')
+    matched = [(by_id[r.proposed_code_id]['parent_label'], by_id[r.proposed_code_id]['raw_label']) if r.proposed_code_id else None
+               for r in records]
+    assert matched == [
+        ('H. Innovation Deliverers', '4. Motivation'),
+        ('C. Opinion Leaders', '1. Need'),
+        ('H. Innovation Deliverers', '1. Need'),
+        ('C. Opinion Leaders', '1. Need'),
+        ('H. Innovation Deliverers', '4. Motivation'),
+        ('F. Engaging', '1. Innovation Deliverers'),
+        ('B. Assessing Needs', '1. Innovation Deliverers'),
+        ('H. Reflecting & Evaluating', '2. Innovation'),
+        ('', 'A. Acceptability'),
+        ('A. Anticipated Implementation Outcomes', '1. Adoptability'),
+        ('B. Actual Implementation Outcomes', '1. Adoption'),
+        ('', 'A. Innovation Recipient Impact'),
+    ]
+    # v3 stays as it was for indexes made with it: it does not read these forms.
+    frozen = _label_records(tmp_path, codes, {'Individuals': ['H.4 Motivation']}, 'outline_labels_v3')
+    assert frozen[0].proposed_code_id is None
