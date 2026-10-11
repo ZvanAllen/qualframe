@@ -103,5 +103,10 @@ def write_settings(root: Path, **updates: str) -> dict:
     return settings
 
 
+PLACEHOLDER_NAME = "Unnamed researcher"
+
+
 def researcher_name(root: Path) -> str:
-    return str(read_settings(root).get("researcher_name", "")).strip()
+    name = str(read_settings(root).get("researcher_name", "")).strip()
+    # Earlier versions could save the placeholder as if it were a name; treat it as unset.
+    return "" if name == PLACEHOLDER_NAME else name

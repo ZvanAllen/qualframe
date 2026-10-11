@@ -35,8 +35,20 @@ def test_workspace_gets_templates_once_and_never_overwrites(tmp_path: Path) -> N
 
 def test_settings_remember_the_researcher(tmp_path: Path) -> None:
     assert researcher_name(tmp_path) == ""
+    write_settings(tmp_path, researcher_name="Unnamed researcher")
+    assert researcher_name(tmp_path) == ""  # the placeholder is never a name
     write_settings(tmp_path, researcher_name="Ada")
     assert researcher_name(tmp_path) == "Ada"
+
+
+def test_placeholder_reviewer_is_not_saved_as_the_name(tmp_path: Path) -> None:
+    root = ensure_workspace(tmp_path / "ws").root
+    _, project_path, _ = create_demo_study(root, with_comparison=False)
+    app = DashboardApp(ProjectRunner(project_path))
+    form = app.fill_identity({"reviewer": ["Unnamed researcher"]}, "Saved results")
+    assert form["actor"] == ["Unnamed researcher"] and researcher_name(root) == ""
+    app.fill_identity({"actor": ["Grace"]}, "x")
+    assert researcher_name(root) == "Grace"
 
 
 def test_json_coding_output_becomes_review_rows() -> None:

@@ -83,11 +83,15 @@ class DashboardApp:
     def fill_identity(self, form: dict[str, list[str]], default_reason: str) -> dict[str, list[str]]:
         """Use the remembered researcher name and a default note when the form leaves them blank."""
         from qualframe.app_workspace import write_settings
+        from qualframe.app_workspace import PLACEHOLDER_NAME
+
         supplied = (form.get("actor", [""])[0] or form.get("reviewer", [""])[0]).strip()
+        if supplied == PLACEHOLDER_NAME:
+            supplied = ""
         name = supplied or self.researcher
         if supplied and not self.researcher:
             write_settings(self.repo_root, researcher_name=supplied)
-        name = name or "Unnamed researcher"
+        name = name or PLACEHOLDER_NAME
         form["actor"] = [name]
         form["reviewer"] = [name]
         if not form.get("rationale", [""])[0].strip():
