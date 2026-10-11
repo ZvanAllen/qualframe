@@ -276,12 +276,33 @@ def _run_section(app, estimate: dict, blockers: list[str]) -> str:
         destination = (f"Each transcript and your codebook will be sent to {e(provider_display(provider.name, provider.model))}. "
                        "Requests are not retried automatically.")
         approval = ('<label class="check"><input name="live_confirmed" type="checkbox" value="yes" required>'
-                    f'<span>Send {plural(estimate["transcripts"], "transcript")} to this provider and allow spending up to '
+                    f'<span>Send the chosen transcripts to this provider and allow spending up to '
                     f'${limit or 0:,.2f} for this study.</span></label>')
     return f'''<section><h2>2. Start coding</h2><ul class="facts">{"".join(facts)}</ul><p>{destination}</p>
-<form method="post" action="/coding/start">{approval}{identity_fields(researcher_name(app.repo_root), note_label="Add a note about this run")}
+<form method="post" action="/coding/start">{_scope_fields(app, estimate, cost)}{approval}{identity_fields(researcher_name(app.repo_root), note_label="Add a note about this run")}
 <div class="actions"><button class="big">Start coding</button></div></form>
 <p class="muted">You can watch progress here and start reviewing as soon as coding finishes.</p></section>'''
+
+
+def _scope_fields(app, estimate: dict, cost: float) -> str:
+    """Code every transcript, or a sample first to check the output and the cost."""
+    files = app.runner._transcript_files()
+    if len(files) < 2:
+        return ""
+    per = cost / max(1, estimate["transcripts"])
+    groups: dict[str, list] = {}
+    for path in files:
+        groups.setdefault(path.parent.name, []).append(path)
+    boxes = "".join(
+        f'<fieldset class="sample-group"><legend>{e(group)}</legend>' + "".join(
+            f'<label class="check"><input type="checkbox" name="sample" value="{e(path.relative_to(app.repo_root).as_posix())}">'
+            f'<span>{e(path.stem)}</span></label>' for path in members) + "</fieldset>"
+        for group, members in groups.items())
+    each = f" (about {_money(per)} each)" if per >= 0.005 else ""
+    return (f'<fieldset class="scope"><legend>Transcripts to code</legend>'
+            f'<label class="check"><input type="radio" name="scope" value="all" checked><span>All {len(files)} transcripts</span></label>'
+            f'<label class="check"><input type="radio" name="scope" value="sample"><span>A sample to check the output and cost first{each}</span></label>'
+            f'<details class="sample-picker"><summary>Choose the sample</summary><div class="sample-groups">{boxes}</div></details></fieldset>')
 
 
 def coding_blockers(app) -> list[str]:

@@ -381,3 +381,54 @@ def test_instructions_panel_saves_and_lists_versions(tmp_path: Path) -> None:
     assert "new version" in message
     page = render_coding(app)
     assert "Whole sentences" in page and "Use this version" in page and "claude-sonnet-5-5" in page
+
+
+def test_a_sample_run_codes_only_the_chosen_transcripts_and_compares_on_them(tmp_path: Path) -> None:
+    from qualframe.coding_ui import render_coding
+    from qualframe.comparison_ui import render_comparison
+    from qualframe.demo_study import PRIMARY_RECORDING, _use_recording
+
+    root = ensure_workspace(tmp_path / "ws").root
+    _, project_path, full_run = create_demo_study(root, with_comparison=False)
+    app = DashboardApp(ProjectRunner(project_path))
+    page = render_coding(app)
+    assert "A sample to check the output and cost first" in page and "P04 nurse practitioner" in page
+    files = [p.relative_to(app.repo_root).as_posix() for p in app.runner._transcript_files()]
+    runner = ProjectRunner(project_path)
+    runner.transcript_sample = set(files[:2])
+    _use_recording(project_path, PRIMARY_RECORDING)
+    plan = runner.build_run_plan()
+    assert plan.transcript_sample == sorted(files[:2]) and len(plan.planned_stage_runs) == 2
+    runner.save_run_plan(plan, "sample-run")
+    ProjectRunner(project_path).execute_run_plan(plan, "sample-run")
+    from qualframe.evidence_review import write_evidence_review_index
+    index = write_evidence_review_index(project_manifest_path=project_path, run_id="sample-run")
+    records = load_evidence_review_records(index)
+    assert records and {r.source_path.replace("\\", "/") for r in records} <= set(files[:2])
+    app = DashboardApp(ProjectRunner(project_path))
+    compared = render_comparison(app, "sample-run", full_run)
+    assert "Compared on the 2 transcripts both runs coded; 4 coded by only one run are left out." in compared
+    assert "sample of 2" in compared and "Codes in common" in compared
+
+
+def test_start_coding_with_a_sample_from_the_page(tmp_path: Path) -> None:
+    import time
+    from urllib.parse import parse_qs, urlparse
+
+    root = ensure_workspace(tmp_path / "ws").root
+    _, project_path, _ = create_demo_study(root, with_comparison=False)
+    app = DashboardApp(ProjectRunner(project_path))
+    first = app.runner._transcript_files()[0].relative_to(app.repo_root).as_posix()
+    with pytest.raises(ValueError, match="at least one"):
+        app.handle_app_action("/coding/start", {"scope": ["sample"], "actor": ["Ada"]})
+    location = app.handle_app_action("/coding/start", {"scope": ["sample"], "sample": [first], "actor": ["Ada"]})
+    run_id = parse_qs(urlparse(location).query)["run_id"][0]
+    for _ in range(100):
+        job = app._job_snapshot(run_id)
+        if job is None or job.status != "running":
+            break
+        time.sleep(0.1)
+    plan = json.loads((app.artifacts_dir / run_id / "run_plan.json").read_text(encoding="utf-8"))
+    assert plan["transcript_sample"] == [first] and len(plan["planned_stage_runs"]) == 1
+    manifest = json.loads((app.artifacts_dir / run_id / "run_manifest.json").read_text(encoding="utf-8"))
+    assert len(manifest["artifact_paths"]) == 1

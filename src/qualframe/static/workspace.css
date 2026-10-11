@@ -269,6 +269,11 @@ fieldset.kept-text legend{font-weight:700;margin-bottom:6px;padding:0}
 .instructions-form>button{justify-self:start}
 table.versions form{margin:0}
 table.setup-compare tr.differs td{background:var(--pen-wash);font-weight:700}
+fieldset.scope{border:0;padding:0;margin:0 0 14px;display:grid;gap:6px}
+fieldset.scope legend{font-weight:700;padding:0;margin-bottom:4px}
+.sample-groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:8px}
+fieldset.sample-group{border:1px solid var(--rule);border-radius:8px;padding:8px 10px;margin:0}
+fieldset.sample-group legend{font-size:13px;font-weight:700;padding:0 4px}
 .origin-note{background:var(--pen-wash);border-radius:8px;padding:10px 12px;font-size:14px;margin:0}
 .add-code form{display:grid;gap:10px;margin-top:10px}
 .add-code form>button{justify-self:start}

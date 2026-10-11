@@ -66,6 +66,8 @@ class ProjectRunner:
         self.project_manifest_path = project_manifest_path.resolve()
         self.repo_root = self.project_manifest_path.parents[2]
         self.project = load_project_manifest(self.project_manifest_path)
+        # Set to code only some transcripts (a test run); recorded in the run plan.
+        self.transcript_sample: set[str] | None = None
         self.framework = load_framework_spec(resolve_repo_path(self.repo_root, self.project.framework))
         self.pipeline = load_pipeline_spec(resolve_repo_path(self.repo_root, self.project.pipeline))
         self.prompt_set = load_prompt_set(resolve_repo_path(self.repo_root, self.framework.prompt_set))
@@ -336,7 +338,10 @@ class ProjectRunner:
             self.repo_root, self.project.paths.get("raw_transcripts", "data/raw/transcripts")
         )
         grouped = discover_transcripts(transcripts_dir)
-        return [f for files in grouped.values() for f in files]
+        files = [f for files in grouped.values() for f in files]
+        if self.transcript_sample:
+            files = [f for f in files if f.relative_to(self.repo_root).as_posix() in self.transcript_sample]
+        return files
 
     def _load_existing_artifact(self, artifact_path: Path) -> StageArtifact | None:
         """Return a StageArtifact loaded from disk, or None if the file does not exist."""
@@ -573,6 +578,7 @@ class ProjectRunner:
             mode=self.pipeline.mode,
             discovered_inputs=discovered_inputs,
             planned_stage_runs=planned_stage_runs,
+            transcript_sample=sorted(self.transcript_sample) if self.transcript_sample else None,
         )
 
     def save_run_plan(self, plan: RunPlan, run_id: str) -> Path:
@@ -608,6 +614,10 @@ class ProjectRunner:
             current = create_configuration_lock(self.project_manifest_path)
             if current.fingerprint_sha256 != plan.configuration_fingerprint:
                 raise ValueError("Study configuration changed after preflight. Create a new run plan; prior runs remain unchanged.")
+        if plan.transcript_sample:
+            self.transcript_sample = set(plan.transcript_sample)
+            if not self._transcript_files():
+                raise ValueError("None of the sampled transcripts are in the study; no request was sent.")
         if transcript_filter and not any(
             path.stem == transcript_filter or participant_id(path) == transcript_filter
             for path in self._transcript_files()

@@ -134,6 +134,28 @@ def interval_overlap(left: list[dict], right: list[dict]) -> tuple[int, int]:
     return intersection, union
 
 
+def restrict_to_common_sources(left: dict, right: dict) -> tuple[dict, dict, list[str]]:
+    """Limit two payloads to the transcripts both runs coded (same path and hash).
+
+    Used when one run coded a sample of the study. Returns the restricted payloads and the
+    transcripts left out of the comparison.
+    """
+    common = {path for path, digest in left["sources"].items() if right["sources"].get(path) == digest}
+    if not common:
+        raise ValueError("These runs have no transcripts in common, so they can't be compared.")
+    omitted = sorted((set(left["sources"]) | set(right["sources"])) - common)
+
+    def keep(payload: dict) -> dict:
+        trimmed = dict(payload)
+        trimmed["sources"] = {path: digest for path, digest in payload["sources"].items() if path in common}
+        for key in ("included", "excluded", "absences"):
+            if key in payload:
+                trimmed[key] = [item for item in payload[key] if item.get("source") in common]
+        return trimmed
+
+    return keep(left), keep(right), omitted
+
+
 def compare_raw_payloads(left: dict, right: dict) -> dict:
     if left["run_id"] == right["run_id"]:
         raise ValueError("Choose two distinct runs.")

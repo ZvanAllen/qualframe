@@ -8,7 +8,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 from qualframe.reviewed_analysis import snapshot_identity
-from qualframe.run_comparison import compare_raw_payloads, raw_coding_payload
+from qualframe.run_comparison import compare_raw_payloads, raw_coding_payload, restrict_to_common_sources
 from qualframe.ui_kit import provider_display, run_model, run_time_from_id, friendly_time
 
 e = html.escape
@@ -22,7 +22,13 @@ def _run_label(app, run_id: str) -> str:
         when = friendly_time(json.loads(manifest.read_text(encoding="utf-8")).get("completed_at_utc"))
     except (OSError, ValueError):
         when = run_time_from_id(run_id)
-    return f"{provider_display(provider, model)}, {when or run_id}"
+    sample = ""
+    try:
+        chosen = json.loads((app.artifacts_dir / run_id / "run_plan.json").read_text(encoding="utf-8")).get("transcript_sample")
+        sample = f", sample of {len(chosen)}" if chosen else ""
+    except (OSError, ValueError):
+        pass
+    return f"{provider_display(provider, model)}, {when or run_id}{sample}"
 
 
 def _run_setup(app, run_id: str, instruction_labels: dict[str, str]) -> dict[str, str]:
@@ -67,7 +73,9 @@ def render_comparison(app, left_id: str = "", right_id: str = "", message: str =
              f'<label>Run B<select name="right">{options(right_id)}</select></label><button class="secondary">Compare</button></form>')
     left_root = app._run_root(app.artifacts_dir, left_id)
     right_root = app._run_root(app.artifacts_dir, right_id)
-    report = compare_raw_payloads(raw_coding_payload(app.repo_root, left_root), raw_coding_payload(app.repo_root, right_root))
+    left_payload, right_payload, omitted = restrict_to_common_sources(
+        raw_coding_payload(app.repo_root, left_root), raw_coding_payload(app.repo_root, right_root))
+    report = compare_raw_payloads(left_payload, right_payload)
     pct = lambda value: "n/a" if value is None else f"{value:.0%}"
     summary = report["summary"]
     excluded = len(report["left"]["excluded"]) + len(report["right"]["excluded"])
@@ -82,9 +90,11 @@ def render_comparison(app, left_id: str = "", right_id: str = "", message: str =
         f'<tr{" class=differs" if left_setup[k] != right_setup[k] else ""}><th>{e(k)}</th><td>{e(left_setup[k])}</td><td>{e(right_setup[k])}</td></tr>'
         for k in left_setup)
     differs = [k.lower() for k in left_setup if left_setup[k] != right_setup[k]]
+    scope_note = (f'<p class="muted">Compared on the {len(left_payload["sources"])} transcripts both runs coded; '
+                  f'{len(omitted)} coded by only one run {"is" if len(omitted) == 1 else "are"} left out.</p>' if omitted else "")
     body += (f'<section><div class="section-head"><h2>What differs</h2><span class="muted">'
              f'{e("Different " + " and ".join(differs)) if differs else "Same model, instructions and options: a repeat run"}</span></div>'
-             f'<table class="setup-compare"><thead><tr><th></th><th>Run A</th><th>Run B</th></tr></thead><tbody>{setup_rows}</tbody></table></section>')
+             f'<table class="setup-compare"><thead><tr><th></th><th>Run A</th><th>Run B</th></tr></thead><tbody>{setup_rows}</tbody></table>{scope_note}</section>')
     body += f'''<section><div class="section-head"><h2>Agreement</h2><span class="muted">Original model proposals, before your review</span></div>
 <div class="agreement">
 <div><strong>{pct(summary["code_jaccard"])}</strong><span>Codes in common</span><small>Of the codes either run applied to a transcript, the share both applied.</small></div>

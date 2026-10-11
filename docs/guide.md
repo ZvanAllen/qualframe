@@ -52,6 +52,8 @@ Each change saves a new method version. Runs record exactly which version they u
 
 **Coding instructions.** The *Coding instructions* panel shows the instructions sent to the model with each transcript. To try a variation, edit the text, give the version a name and save it; new runs use it, earlier runs keep the version they used, and the standard instructions are never changed. Keep the Output section, which tells the model to answer in the format QualFrame reads. To test a change, code with each version and open Compare runs, which lists what differs between the two runs before showing agreement. You can switch back to any earlier version.
 
+**Code a sample first.** Under *Transcripts to code*, choose *A sample* and tick a few transcripts to check the model's output and the actual cost before coding everything. Sample runs are labelled as such, and Compare runs compares a sample with a full run on the transcripts both coded.
+
 ## Review
 
 Each proposal shows the code, its definition and guidance, the model's reason, and the highlighted passage in the transcript.

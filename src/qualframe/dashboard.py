@@ -894,9 +894,17 @@ class DashboardApp:
             if blockers:
                 raise ValueError("Finish setting up the run first.")
             self.fill_identity(form, "Started coding run")
-            run_id = self.runner._make_run_id()
-            plan = self.runner.build_run_plan()
-            self.runner.save_run_plan(plan, run_id)
+            planner = ProjectRunner(self._managed_project_path())
+            if form.get("scope", ["all"])[0] == "sample":
+                everything = {path.relative_to(planner.repo_root).as_posix() for path in planner._transcript_files()}
+                chosen = set(form.get("sample", [])) & everything
+                if not chosen:
+                    raise ValueError("Choose at least one transcript for the sample.")
+                if chosen != everything:
+                    planner.transcript_sample = chosen
+            run_id = planner._make_run_id()
+            plan = planner.build_run_plan()
+            planner.save_run_plan(plan, run_id)
             approval = {k: v[0] for k, v in form.items()}
             approval["fingerprint"] = plan.configuration_fingerprint or ""
             self.start_local_execution(run_id, approval=approval)

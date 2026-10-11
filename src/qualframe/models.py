@@ -639,6 +639,8 @@ class RunPlan(BaseModel):
     mode: str
     discovered_inputs: list[DiscoveredInput] = Field(default_factory=list)
     planned_stage_runs: list[PlannedStageRun] = Field(default_factory=list)
+    # A test run on some of the study's transcripts (paths relative to the studies folder).
+    transcript_sample: list[str] | None = None
 
 
 class WorkbookValidationResult(BaseModel):

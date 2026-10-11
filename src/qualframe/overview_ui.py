@@ -41,6 +41,12 @@ def _run_rows(app) -> str:
         if counts.total:
             links.insert(0, f'<a href="/evidence?{e(urlencode({"run_id": run_id}))}">Review</a>')
         label = provider_display(provider, model) if provider else "Not run yet"
+        try:
+            sample = json.loads((root / "run_plan.json").read_text(encoding="utf-8")).get("transcript_sample")
+        except (OSError, ValueError):
+            sample = None
+        if sample:
+            label += f" (sample of {len(sample)})"
         rows.append(
             f'<tr><td><strong>{e(label)}</strong><small>{e(when or run_time_from_id(run_id) or run_id)}</small></td>'
             f'<td>{e(state)}</td><td>{e(review)}</td><td class="row-links">{" ".join(links)}</td></tr>'
