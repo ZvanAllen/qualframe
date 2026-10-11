@@ -319,10 +319,58 @@ def project_reference_missing(app) -> bool:
     return not Path(reference).exists()
 
 
+def _runs_by_instructions(app) -> dict[str, list[str]]:
+    """Prompt hash -> run ids, from each run's configuration lock."""
+    used: dict[str, list[str]] = {}
+    if not app.artifacts_dir.exists():
+        return used
+    for lock in sorted(app.artifacts_dir.glob("*/analysis_configuration_lock.json")):
+        try:
+            assets = json.loads(lock.read_text(encoding="utf-8")).get("assets", [])
+        except (OSError, ValueError):
+            continue
+        for asset in assets:
+            if asset.get("kind") == "prompt" and asset.get("sha256"):
+                used.setdefault(asset["sha256"], []).append(lock.parent.name)
+    return used
+
+
+def _instructions_section(app) -> str:
+    from qualframe.coding_instructions import current_instructions, instruction_versions
+
+    project_path = app._managed_project_path()
+    try:
+        _, _, text, label = current_instructions(app.repo_root, project_path)
+        versions = instruction_versions(app.repo_root, project_path)
+    except ValueError as exc:
+        return f'<section><details class="method-options"><summary>Coding instructions</summary><p class="muted">{e(str(exc))}</p></details></section>'
+    used = _runs_by_instructions(app)
+    rows = ""
+    for version in versions:
+        runs = used.get(version.sha256, [])
+        when = f"{e(version.created_by or '')}, {e(version.created_at_utc[:10])}" if version.created_at_utc else "Included with QualFrame"
+        action = ("<strong>In use</strong>" if version.current else
+                  f'<form method="post" action="/instructions/use"><input type="hidden" name="framework_ref" value="{e(version.framework_ref)}">'
+                  '<button class="secondary">Use this version</button></form>')
+        rows += (f"<tr><td>{e(version.label)}<br><span class='muted'>SHA-256 {e(version.sha256[:12])}</span></td><td>{when}</td>"
+                 f"<td>{e(', '.join(runs)) if runs else '<span class=muted>None yet</span>'}</td><td>{action}</td></tr>")
+    table = (f'<table class="versions"><thead><tr><th>Version</th><th>Saved</th><th>Runs that used it</th><th></th></tr></thead><tbody>{rows}</tbody></table>'
+             if len(versions) > 1 else "")
+    return f'''<section><details class="method-options" id="instructions"><summary>Coding instructions <span class="muted">({e(label)})</span></summary>
+<p>These instructions go to the model with each transcript, followed by your coding options, the transcript and the codebook. Editing saves a new version; the standard instructions are never changed, and earlier runs keep the version they used. To see the effect of a change, code with each version and use Compare runs.</p>
+{table}
+<form method="post" action="/instructions/save" class="instructions-form">
+<label>Instructions<textarea name="instructions" rows="18" spellcheck="true">{e(text)}</textarea>
+<small>Keep the Output section: QualFrame needs the JSON format it describes. Recorded demo runs only replay the standard instructions.</small></label>
+<label>Name for this version<input name="label" required maxlength="120" placeholder="For example: Shorter quotations"></label>
+{identity_fields(researcher_name(app.repo_root), note_label="Why this change")}
+<button class="secondary">Save as a new version</button></form></details></section>'''
+
+
 def render_coding(app, message: str = "", error: str = "") -> str:
     estimate = estimate_study(app)
     body = (notices(message, error) + _model_section(app, estimate)
-            + _run_section(app, estimate, coding_blockers(app)) + _method_section(app))
+            + _run_section(app, estimate, coding_blockers(app)) + _method_section(app) + _instructions_section(app))
     return app._render_workspace_page(
         title="Run coding", intro="Choose a model and start coding. Every proposal comes back to you for review.",
         body=body, active="configure")

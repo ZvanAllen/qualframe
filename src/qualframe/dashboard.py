@@ -422,6 +422,23 @@ class DashboardApp:
             raise ValueError("Unknown import action.")
         return record
 
+    def handle_instructions(self, path: str, form: dict[str, list[str]]) -> str:
+        from qualframe.coding_instructions import save_instructions, use_instructions
+
+        project_path = self._managed_project_path()
+        if path == "/instructions/save":
+            self.fill_identity(form, "Edited the coding instructions")
+            save_instructions(self.study_workspace, project_path, text=form.get("instructions", [""])[0],
+                              label=form.get("label", [""])[0], actor=form["actor"][0], rationale=form["rationale"][0])
+            message = "Saved a new version of the coding instructions. New runs will use it."
+        else:
+            self.fill_identity(form, "Switched coding instructions")
+            use_instructions(self.study_workspace, project_path, framework_ref=form.get("framework_ref", [""])[0],
+                             actor=form["actor"][0], rationale=form["rationale"][0])
+            message = "Switched the coding instructions. New runs will use this version."
+        self._activate_runner(ProjectRunner(project_path))
+        return message
+
     def handle_method_update(self, form: dict[str, list[str]]) -> str:
         self.fill_identity(form, "Changed coding options")
 
@@ -1500,6 +1517,15 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
                     self._redirect("/configure?" + urlencode({"error": message}))
                 else:
                     self._redirect("/configure?" + urlencode({"message": "Model saved. No request has been sent."}))
+                return
+            if request_path in {"/instructions/save", "/instructions/use"}:
+                try:
+                    message = app.handle_instructions(request_path, form)
+                except (ValueError, FileExistsError) as exc:
+                    location = "/configure?" + urlencode({"error": str(exc)}) + "#instructions"
+                else:
+                    location = "/configure?" + urlencode({"message": message}) + "#instructions"
+                self._redirect(location)
                 return
             if request_path == "/method/update":
                 try:

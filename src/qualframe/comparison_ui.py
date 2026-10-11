@@ -25,6 +25,25 @@ def _run_label(app, run_id: str) -> str:
     return f"{provider_display(provider, model)}, {when or run_id}"
 
 
+def _run_setup(app, run_id: str, instruction_labels: dict[str, str]) -> dict[str, str]:
+    """What a run was coded with: model, instructions version and coding options (from its lock)."""
+    provider, model = run_model(app.artifacts_dir / run_id)
+    setup = {"Model": provider_display(provider, model), "Instructions": "Not recorded", "Coding options": "Not recorded"}
+    try:
+        lock = json.loads((app.artifacts_dir / run_id / "analysis_configuration_lock.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return setup
+    for asset in lock.get("assets", []):
+        if asset.get("kind") == "prompt":
+            sha = asset.get("sha256", "")
+            setup["Instructions"] = instruction_labels.get(sha) or f"Instructions {sha[:12]}"
+        elif asset.get("kind") == "method":
+            stem = Path(asset.get("path", "")).stem
+            number = stem.rsplit("_v", 1)[1] if "_v" in stem else ""
+            setup["Coding options"] = (f"Version {number}" if number.isdigit() else "Standard") + f" ({asset.get('sha256', '')[:8]})"
+    return setup
+
+
 def render_comparison(app, left_id: str = "", right_id: str = "", message: str = "") -> str:
     app._managed_project_path()
     runs = [r for r in app.list_runs() if (app.artifacts_dir / r / "evidence_review/index.json").exists()]
@@ -52,6 +71,20 @@ def render_comparison(app, left_id: str = "", right_id: str = "", message: str =
     pct = lambda value: "n/a" if value is None else f"{value:.0%}"
     summary = report["summary"]
     excluded = len(report["left"]["excluded"]) + len(report["right"]["excluded"])
+    try:
+        from qualframe.coding_instructions import instruction_versions
+
+        instruction_labels = {v.sha256: v.label for v in instruction_versions(app.repo_root, app._managed_project_path())}
+    except (OSError, ValueError):
+        instruction_labels = {}
+    left_setup, right_setup = _run_setup(app, left_id, instruction_labels), _run_setup(app, right_id, instruction_labels)
+    setup_rows = "".join(
+        f'<tr{" class=differs" if left_setup[k] != right_setup[k] else ""}><th>{e(k)}</th><td>{e(left_setup[k])}</td><td>{e(right_setup[k])}</td></tr>'
+        for k in left_setup)
+    differs = [k.lower() for k in left_setup if left_setup[k] != right_setup[k]]
+    body += (f'<section><div class="section-head"><h2>What differs</h2><span class="muted">'
+             f'{e("Different " + " and ".join(differs)) if differs else "Same model, instructions and options: a repeat run"}</span></div>'
+             f'<table class="setup-compare"><thead><tr><th></th><th>Run A</th><th>Run B</th></tr></thead><tbody>{setup_rows}</tbody></table></section>')
     body += f'''<section><div class="section-head"><h2>Agreement</h2><span class="muted">Original model proposals, before your review</span></div>
 <div class="agreement">
 <div><strong>{pct(summary["code_jaccard"])}</strong><span>Codes in common</span><small>Of the codes either run applied to a transcript, the share both applied.</small></div>

@@ -24,6 +24,16 @@ def _read(path: Path) -> dict:
         return {}
 
 
+def _instructions_label(app, sha256: str | None) -> str:
+    try:
+        from qualframe.coding_instructions import instruction_versions
+
+        labels = {v.sha256: v.label for v in instruction_versions(app.repo_root, app._managed_project_path())}
+    except (OSError, ValueError):
+        labels = {}
+    return labels.get(sha256 or "", "")
+
+
 def build_methods_record(app, run_id: str) -> dict:
     root = app._run_root(app.artifacts_dir, run_id)
     review_root = app.review_dir / run_id
@@ -78,7 +88,8 @@ def build_methods_record(app, run_id: str) -> dict:
         "started_at_utc": settings.get("started_at_utc"),
         "completed_at_utc": manifest.get("completed_at_utc"),
         "model": {"label": provider_display(provider, model), **{k: v for k, v in provider_settings.items() if v is not None}},
-        "prompt": {"path": prompt_asset.get("path"), "sha256": prompt_asset.get("sha256")},
+        "prompt": {"path": prompt_asset.get("path"), "sha256": prompt_asset.get("sha256"),
+                   "label": _instructions_label(app, prompt_asset.get("sha256"))},
         "codebook": {"id": settings.get("codebook_id") or plan.get("codebook_id"), "version": settings.get("codebook_version"),
                      "path": codebook_asset.get("path"), "sha256": codebook_asset.get("sha256"),
                      "codes": len(app.runner.codebook.codes) if app.runner.codebook else None},
@@ -125,7 +136,10 @@ def methods_paragraph(record: dict) -> str:
         f"Directed content analysis was supported by QualFrame {version} (van Allen, 2026), open-source software that "
         f"applies a predefined codebook to interview transcripts using a large language model and presents each proposed "
         f"code with its source passage for human review. {model['label']} coded {len(record['transcripts'])} transcripts "
-        f"against a {codes}-code codebook using QualFrame's directed-coding instructions, with {per_request}."
+        f"against a {codes}-code codebook using "
+        + ("QualFrame's directed-coding instructions" if record["prompt"].get("label") in ("", "QualFrame standard instructions")
+           else f"edited coding instructions (\"{record['prompt']['label']}\", provided as supplementary material)")
+        + f", with {per_request}."
         f"{location_sentence} {reviewers} reviewed all {review['proposals']} proposals, accepting "
         f"{decisions.get('accept', 0)}, changing the code or passage of {decisions.get('edit', 0)}, and rejecting "
         f"{decisions.get('reject', 0)}"

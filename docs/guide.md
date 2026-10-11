@@ -50,6 +50,8 @@ Each change saves a new method version. Runs record exactly which version they u
 
 **Text kept with each code.** Under *Coding options*, choose how much of the transcript is saved with each coded passage: just the quotation, a sentence either side, the whole answer (the speaker's turn), or the whole answer and the question before it. The model's quotation stays the evidence; the surrounding text is shaded around it in review, shown in Results and included in exports. More context helps later steps such as grouping codes into themes. The setting applies to new runs.
 
+**Coding instructions.** The *Coding instructions* panel shows the instructions sent to the model with each transcript. To try a variation, edit the text, give the version a name and save it; new runs use it, earlier runs keep the version they used, and the standard instructions are never changed. Keep the Output section, which tells the model to answer in the format QualFrame reads. To test a change, code with each version and open Compare runs, which lists what differs between the two runs before showing agreement. You can switch back to any earlier version.
+
 ## Review
 
 Each proposal shows the code, its definition and guidance, the model's reason, and the highlighted passage in the transcript.

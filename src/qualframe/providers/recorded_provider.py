@@ -38,6 +38,17 @@ def recording_key(user_prompt: str) -> str | None:
     return f"{digest}__{safe_partition}"
 
 
+def _starts_with_instructions(user_prompt: str, sha256: str) -> bool:
+    """True if the request begins with the instructions the recording was made with."""
+    separator = "\n\n---\n\n"
+    index = user_prompt.find(separator)
+    while index >= 0:
+        if hashlib.sha256(user_prompt[:index].encode("utf-8")).hexdigest() == sha256:
+            return True
+        index = user_prompt.find(separator, index + 1)
+    return False
+
+
 def recordings_root() -> Path:
     return _APP_ROOT / "demo" / "recordings"
 
@@ -69,6 +80,12 @@ class RecordedProvider(LLMProvider):
         attachments: Sequence[Path] | None = None,
         response_schema: dict | None = None,
     ) -> LLMResponse:
+        expected = self.info.get("prompt_sha256")
+        if expected and not _starts_with_instructions(user_prompt, expected):
+            raise ValueError(
+                "These recorded responses were made with QualFrame's standard coding instructions, "
+                "and this study now uses different ones. Choose a model to code with the edited instructions."
+            )
         key = recording_key(user_prompt)
         path = self.folder / "responses" / f"{key}.txt" if key else None
         if path is None or not path.exists():

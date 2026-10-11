@@ -167,8 +167,9 @@ class ProjectRunner:
                     "cause_winerror": getattr(exc.__cause__, "winerror", None),
                     "elapsed_seconds": time.monotonic() - started,
                 }, indent=2), encoding="utf-8")
+            reason = " ".join(str(exc).split())[:400] or type(exc).__name__
             raise RuntimeError(
-                "Provider request failed; no automatic retry was sent. "
+                f"Provider request failed ({reason}); no automatic retry was sent. "
                 "Check the request record and reconcile usage before retrying."
             ) from exc
         if cost_controller is not None:

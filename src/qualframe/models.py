@@ -565,7 +565,7 @@ class MethodPolicyUpdate(BaseModel):
 class StudyChangeAction(BaseModel):
     action_id: str
     project_id: str
-    change_kind: Literal["codebook_import", "metadata_import", "method_update"]
+    change_kind: Literal["codebook_import", "metadata_import", "method_update", "instructions_update"]
     previous_ref: str | None = None
     new_ref: str
     actor: str

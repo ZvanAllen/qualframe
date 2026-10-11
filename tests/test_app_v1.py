@@ -80,10 +80,13 @@ def test_offline_demo_study_codes_from_recordings(tmp_path: Path) -> None:
     assert list_study_manifests(root) == [project_path]
 
 
-def test_recorded_provider_only_answers_for_its_transcripts() -> None:
+def test_recorded_provider_only_answers_for_its_transcripts_and_instructions() -> None:
     provider = RecordedProvider("demo-illustrative-a")
+    instructions = (Path(__file__).resolve().parents[1] / "prompts/directed/v3/directed_coding.md").read_text(encoding="utf-8")
     with pytest.raises(FileNotFoundError):
-        provider.complete(system_prompt="", user_prompt="Transcript:\n\nSomething else\n\n---\n\nCodebook")
+        provider.complete(system_prompt="", user_prompt=f"{instructions}\n\n---\n\nTranscript:\n\nSomething else\n\n---\n\nCodebook")
+    with pytest.raises(ValueError, match="different ones"):
+        provider.complete(system_prompt="", user_prompt="Edited instructions\n\n---\n\nTranscript:\n\nSomething else")
     assert recording_key("no transcript here") is None
 
 
@@ -318,3 +321,51 @@ def test_text_kept_with_each_code_can_be_the_whole_answer_and_question(tmp_path:
     span = record.evidence_span
     kept = text[span.context_start_offset:span.context_end_offset]
     assert kept.startswith("Interviewer:") and "\n\nParticipant:" in kept and span.exact_text in kept
+
+
+def test_coding_instructions_are_edited_as_new_versions(tmp_path: Path) -> None:
+    from qualframe.coding_instructions import current_instructions, instruction_versions, save_instructions, use_instructions
+    from qualframe.configuration_lock import create_configuration_lock
+
+    root = ensure_workspace(tmp_path / "ws").root
+    _, project_path, _ = create_demo_study(root, with_comparison=False)
+    app = DashboardApp(ProjectRunner(project_path))
+    _, original_file, text, label = current_instructions(app.repo_root, project_path)
+    assert label == "QualFrame standard instructions"
+    with pytest.raises(ValueError, match="Output section"):
+        save_instructions(app.study_workspace, project_path, text=text.split("## Output")[0], label="No output",
+                          actor="Ada", rationale="test")
+    edited = text.replace("usually one to three sentences", "usually one sentence")
+    ref = save_instructions(app.study_workspace, project_path, text=edited, label="Shorter meaning units",
+                            actor="Ada", rationale="Pilot shorter quotations")
+    stage, path, now, label = current_instructions(app.repo_root, project_path)
+    assert label == "Shorter meaning units" and "usually one sentence" in now and path != original_file
+    assert original_file.read_text(encoding="utf-8") == text  # the released prompt is untouched
+    versions = instruction_versions(app.repo_root, project_path)
+    assert [v.label for v in versions] == ["QualFrame standard instructions", "Shorter meaning units"] and versions[1].current
+    lock = create_configuration_lock(project_path)
+    assert any(asset.path.endswith("coding_instructions_v1.md") for asset in lock.assets if asset.kind == "prompt")
+    # Recorded demo responses refuse to stand in for edited instructions.
+    from qualframe.demo_study import PRIMARY_RECORDING, run_recording
+    with pytest.raises(Exception, match="different ones"):
+        run_recording(project_path, PRIMARY_RECORDING, "edited-run")
+    use_instructions(app.study_workspace, project_path, framework_ref=versions[0].framework_ref, actor="Ada", rationale="Back")
+    assert current_instructions(app.repo_root, project_path)[3] == "QualFrame standard instructions"
+    assert ref in {v.framework_ref for v in instruction_versions(app.repo_root, project_path)}
+
+
+def test_instructions_panel_saves_and_lists_versions(tmp_path: Path) -> None:
+    from qualframe.coding_ui import render_coding
+
+    root = ensure_workspace(tmp_path / "ws").root
+    _, project_path, _ = create_demo_study(root, with_comparison=False)
+    app = DashboardApp(ProjectRunner(project_path))
+    page = render_coding(app)
+    assert "Coding instructions" in page and "QualFrame standard instructions" in page
+    from qualframe.coding_instructions import current_instructions
+    text = current_instructions(app.repo_root, project_path)[2]
+    message = app.handle_instructions("/instructions/save", {"instructions": [text + "\nPrefer whole sentences.\n"],
+                                                               "label": ["Whole sentences"], "actor": ["Ada"]})
+    assert "new version" in message
+    page = render_coding(app)
+    assert "Whole sentences" in page and "Use this version" in page and "claude-sonnet-5-5" in page
