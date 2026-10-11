@@ -18,6 +18,13 @@ from qualframe.providers.base import estimate_tokens
 from qualframe.ui_kit import e, identity_fields, notices, plural, provider_display
 
 OFFLINE_PROVIDERS = {"mock", "recorded", "cached_demo"}
+# How much text is kept with each coded passage: (label, (unit, before, after)).
+CONTEXT_PRESETS = {
+    "quote": ("Just the quotation", ("sentences", 0, 0)),
+    "sentence": ("The quotation and a sentence either side", ("sentences", 1, 1)),
+    "turn": ("The whole answer (speaker turn)", ("turns", 0, 0)),
+    "question": ("The whole answer and the question before it", ("turns", 1, 0)),
+}
 _PROMPT_OVERHEAD_TOKENS = 900
 # Calibrated against recorded runs (October 2026). Provider tokenizers counted about 1.5 times
 # the characters/4 heuristic; current models wrote about one output token per transcript token
@@ -210,18 +217,32 @@ def _method_section(app) -> str:
 <option value="full_codebook"{sel("full_codebook", method.partitioning.strategy)}>The whole codebook at once</option>
 <option value="per_top_level_category"{sel("per_top_level_category", method.partitioning.strategy)}>One request per top-level category</option></select>
 <small>Splitting by category means more requests but less for the model to juggle in each.</small></label>''')
+    current = (method.context.unit, method.context.before, method.context.after)
+    preset = next((key for key, (_, value) in CONTEXT_PRESETS.items() if value == current), "custom")
+    kept = CONTEXT_PRESETS[preset][0] if preset != "custom" else (
+        f"{method.context.before} before and {method.context.after} after, in {method.context.unit}")
     summary = (
         f"{'Several codes' if method.coding.cardinality == 'multi_label' else 'One code'} per passage, "
         f"{'whole codebook per request' if method.partitioning.strategy == 'full_codebook' else 'one request per category'}, "
-        f"{method.context.before} {method.context.unit.rstrip('s') if method.context.before == 1 else method.context.unit} of context saved"
+        f"keeps {kept[0].lower() + kept[1:]}"
     )
+    checked = lambda key: " checked" if key == preset else ""
+    preset_options = "".join(
+        f'<label class="check"><input type="radio" name="context_preset" value="{key}"{checked(key)}><span>{e(label)}</span></label>'
+        for key, (label, _) in CONTEXT_PRESETS.items()
+    ) + f'<label class="check"><input type="radio" name="context_preset" value="custom"{checked("custom")}><span>Custom (below)</span></label>'
     return f'''<section><details class="method-options"><summary>Coding options <span class="muted">({e(summary)})</span></summary>
-<form method="post" action="/method/update"><div class="grid">
+<form method="post" action="/method/update">
+<fieldset class="kept-text"><legend>Text kept with each code</legend>{preset_options}
+<small>The highlighted quotation stays the evidence. The surrounding text is saved with it, shown in review and results, and exported. More context helps later steps such as suggesting themes.</small>
+<details class="custom-context"><summary>Custom context</summary><div class="grid">
+<label>Before the passage<input type="number" min="0" max="10" name="context_before" value="{method.context.before}" required></label>
+<label>After the passage<input type="number" min="0" max="10" name="context_after" value="{method.context.after}" required></label>
+<label>Measured in<select name="context_unit"><option value="sentences"{sel("sentences", method.context.unit)}>Sentences</option><option value="turns"{sel("turns", method.context.unit)}>Speaker turns (always the whole turn)</option><option value="paragraphs"{sel("paragraphs", method.context.unit)}>Paragraphs</option><option value="characters"{sel("characters", method.context.unit)}>Characters</option></select></label></div></details></fieldset>
+<div class="grid">
 <label>Codes per passage<select name="coding_cardinality"><option value="multi_label"{sel("multi_label", method.coding.cardinality)}>A passage can receive several codes</option><option value="single_label"{sel("single_label", method.coding.cardinality)}>One code per passage</option></select></label>
 {partition}
-<label>Context saved before each passage<input type="number" min="0" max="10" name="context_before" value="{method.context.before}" required></label>
-<label>Context saved after<input type="number" min="0" max="10" name="context_after" value="{method.context.after}" required></label>
-<label>Context measured in<select name="context_unit"><option value="sentences"{sel("sentences", method.context.unit)}>Sentences</option><option value="paragraphs"{sel("paragraphs", method.context.unit)}>Paragraphs</option><option value="characters"{sel("characters", method.context.unit)}>Characters</option></select></label>
+
 <label>Passages chosen by<select name="segmentation_strategy"><option value="model_proposed"{sel("model_proposed", method.segmentation.strategy)}>The model</option><option value="sentence"{sel("sentence", method.segmentation.strategy)}>Sentences</option><option value="paragraph"{sel("paragraph", method.segmentation.strategy)}>Paragraphs</option><option value="researcher_presegmented"{sel("researcher_presegmented", method.segmentation.strategy)}>Pre-segmented by the researcher</option></select></label>
 </div><label class="check"><input type="checkbox" name="allow_overlapping_spans" value="yes"{" checked" if method.coding.allow_overlapping_spans else ""}><span>Coded passages may overlap</span></label>
 {identity_fields(researcher_name(app.repo_root), note_label="Add a note about this change")}

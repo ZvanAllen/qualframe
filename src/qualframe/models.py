@@ -62,7 +62,9 @@ class SegmentationPolicy(BaseModel):
 
 
 class ContextWindowPolicy(BaseModel):
-    unit: Literal["characters", "sentences", "paragraphs"] = "sentences"
+    # "turns": speaker turns. The whole turn containing the passage is always kept;
+    # before/after add whole turns (for example the question that prompted an answer).
+    unit: Literal["characters", "sentences", "paragraphs", "turns"] = "sentences"
     before: int = Field(default=2, ge=0)
     after: int = Field(default=2, ge=0)
 
@@ -546,7 +548,7 @@ class CreatedStudy(BaseModel):
 
 
 class MethodPolicyUpdate(BaseModel):
-    context_unit: Literal["characters", "sentences", "paragraphs"] = "sentences"
+    context_unit: Literal["characters", "sentences", "paragraphs", "turns"] = "sentences"
     segmentation_strategy: Literal[
         "model_proposed",
         "researcher_presegmented",

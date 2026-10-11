@@ -24,6 +24,15 @@ def _mark_speakers(escaped: str) -> str:
     return _SPEAKER.sub(r'<span class="speaker">\1</span>', escaped)
 
 
+def _segment(source: str, left: int, right: int) -> str:
+    """Escape a slice of the transcript, styling speaker labels only where a line really starts."""
+    text = source[left:right]
+    if left == 0 or source[left - 1] == "\n":
+        return _mark_speakers(e(text))
+    head, newline, tail = text.partition("\n")
+    return e(head) + (newline + _mark_speakers(e(tail)) if newline else "")
+
+
 def _code_path(codes: list[dict], code_id: str) -> list[dict]:
     by_id = {c["id"]: c for c in codes}
     path, seen = [], set()
@@ -79,8 +88,14 @@ def render_review(app, *, run_id: str, item_id: str = '', message: str = '', err
     source = transcript_to_text(resolve_repo_path(app.repo_root, record.source_path))
     start, end = (span.start_offset, span.end_offset) if span else (-1, -1)
     if span:
-        source_html = (_mark_speakers(e(source[:start])) + '<mark id="current-span">' + e(source[start:end])
-                       + '</mark>' + _mark_speakers(e(source[end:])))
+        # The text kept with the passage (its context) is shaded around the highlight.
+        before = span.context_start_offset if span.context_start_offset is not None else start
+        after = span.context_end_offset if span.context_end_offset is not None else end
+        before, after = min(before, start), max(after, end)
+        context = (f'<span class="kept-context" title="Saved with this code">{_segment(source, before, start)}' if before < start
+                   else '<span class="kept-context">')
+        source_html = (_segment(source, 0, before) + context + '<mark id="current-span">' + e(source[start:end])
+                       + '</mark>' + _segment(source, end, after) + '</span>' + _segment(source, after, len(source)))
     else:
         source_html = _mark_speakers(e(source))
     codes = payload.get('codebook', {}).get('codes') or ([c.model_dump() for c in app.runner.codebook.codes] if app.runner.codebook else [])

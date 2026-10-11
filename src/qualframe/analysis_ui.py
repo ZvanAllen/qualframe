@@ -6,6 +6,8 @@ import html
 from pathlib import Path
 from urllib.parse import urlencode
 
+from qualframe.config import resolve_repo_path
+from qualframe.io.transcript_io import transcript_to_text
 from qualframe.reviewed_analysis import load_snapshot, snapshot_freshness, evidence_matrix
 from qualframe.study_progress import transcript_progress
 from qualframe.ui_kit import friendly_time, plural
@@ -151,9 +153,20 @@ def render_analysis(
         label = next((c["label"] for c in payload["codebook"].get("codes", []) if c["id"] == code_id), code_id)
         where = f" in {Path(source_path).stem}" if source_path else " across all transcripts"
         passages = ""
+        texts: dict[str, str] = {}
         for item in items:
             query = urlencode({"run_id": run_id, "item": item["record_id"]})
-            passages += (f'<article class="passage"><blockquote>{e(item["span"]["exact_text"])}</blockquote>'
+            span = item["span"]
+            quote = f'<mark>{e(span["exact_text"])}</mark>'
+            if span.get("context_start_offset") is not None and (
+                    span["context_start_offset"] < span["start_offset"] or span["context_end_offset"] > span["end_offset"]):
+                if item["source_path"] not in texts:
+                    texts[item["source_path"]] = transcript_to_text(resolve_repo_path(app.repo_root, item["source_path"]))
+                text = texts[item["source_path"]]
+                if text[span["start_offset"]:span["end_offset"]] == span["exact_text"]:
+                    quote = (e(text[span["context_start_offset"]:span["start_offset"]]) + quote
+                             + e(text[span["end_offset"]:span["context_end_offset"]]))
+            passages += (f'<article class="passage"><blockquote class="with-context">{quote}</blockquote>'
                          f'<p class="muted">{e(Path(item["source_path"]).stem)}. <a href="/evidence?{e(query)}">Open in review</a></p></article>')
         body += (f'<section id="passages"><h2>{e(label)}{e(where)}</h2>'
                  f'{passages or "<p>No kept passages here.</p>"}</section>')

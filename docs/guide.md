@@ -48,6 +48,8 @@ Each change saves a new method version. Runs record exactly which version they u
 
 **What happens during a run.** Requests are sent one at a time. Each response is saved as soon as it arrives, then checked: every quotation is searched for in the transcript, and every code is checked against the codebook. If QualFrame is closed or a request fails, open **Run details** and resume; completed requests are not sent again. Failed requests are never retried automatically.
 
+**Text kept with each code.** Under *Coding options*, choose how much of the transcript is saved with each coded passage: just the quotation, a sentence either side, the whole answer (the speaker's turn), or the whole answer and the question before it. The model's quotation stays the evidence; the surrounding text is shaded around it in review, shown in Results and included in exports. More context helps later steps such as grouping codes into themes. The setting applies to new runs.
+
 ## Review
 
 Each proposal shows the code, its definition and guidance, the model's reason, and the highlighted passage in the transcript.

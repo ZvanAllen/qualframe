@@ -297,3 +297,24 @@ def test_quotations_that_differ_only_in_typography_are_suggested(tmp_path: Path,
                                            "decision": ["accept"], "reviewer": ["Ada"], "seconds_on_item": ["12.5"]})
     from qualframe.evidence_review import load_review_timing
     assert list(load_review_timing(app.review_dir / run_id).values()) == [12.5]
+
+
+def test_text_kept_with_each_code_can_be_the_whole_answer_and_question(tmp_path: Path) -> None:
+    from qualframe.demo_study import PRIMARY_RECORDING, run_recording
+    from qualframe.io.transcript_io import transcript_to_text
+
+    root = ensure_workspace(tmp_path / "ws").root
+    _, project_path, _ = create_demo_study(root, with_comparison=False)
+    app = DashboardApp(ProjectRunner(project_path))
+    app.handle_method_update({"segmentation_strategy": ["model_proposed"], "coding_cardinality": ["multi_label"],
+                              "partition_strategy": ["full_codebook"], "context_preset": ["question"],
+                              "context_before": ["1"], "context_after": ["1"], "context_unit": ["sentences"],
+                              "allow_overlapping_spans": ["yes"], "actor": ["Ada"]})
+    method = ProjectRunner(project_path).method
+    assert (method.context.unit, method.context.before, method.context.after) == ("turns", 1, 0)
+    run_id = run_recording(project_path, PRIMARY_RECORDING, "with-question")
+    record = load_evidence_review_records(root / "studies" / project_path.parent.name / "artifacts" / run_id / "evidence_review/index.json")[4]
+    text = transcript_to_text(root / record.source_path)
+    span = record.evidence_span
+    kept = text[span.context_start_offset:span.context_end_offset]
+    assert kept.startswith("Interviewer:") and "\n\nParticipant:" in kept and span.exact_text in kept

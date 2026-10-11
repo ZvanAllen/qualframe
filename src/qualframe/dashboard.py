@@ -24,6 +24,7 @@ from qualframe.evidence_review import (
     load_evidence_review_records,
     load_run_records,
     record_review_timing,
+    run_context_policy,
     write_evidence_review_index,
 )
 from qualframe.governance import append_gate_action, append_release_action, approved_gate_ids
@@ -433,6 +434,12 @@ class DashboardApp:
         partition_strategy = required("partition_strategy")
         if self.runner.pipeline.id.startswith("transcript_cfir"):
             partition_strategy = "per_top_level_category"
+        from qualframe.coding_ui import CONTEXT_PRESETS
+
+        preset = form.get("context_preset", ["custom"])[0]
+        if preset in CONTEXT_PRESETS:
+            unit, before, after = CONTEXT_PRESETS[preset][1]
+            form["context_unit"], form["context_before"], form["context_after"] = [unit], [str(before)], [str(after)]
         update = MethodPolicyUpdate(
             segmentation_strategy=required("segmentation_strategy"),
             context_before=int(required("context_before")),
@@ -983,6 +990,7 @@ class DashboardApp:
                 edited_end=edited_end,
                 edited_code_id=edited_code_id,
                 codebook_id=catalog.get("id"), codebook_version=catalog.get("version"),
+                context_policy=run_context_policy(self._managed_project_path(), artifact_root),
             )
             try:
                 record_review_timing(review_root, action.action_id, float(form.get('seconds_on_item', ['0'])[0] or 0))

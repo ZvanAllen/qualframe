@@ -258,6 +258,12 @@ mark,.hl{background:linear-gradient(transparent 6%,var(--mark) 6%,var(--mark) 94
 .decision-panel{position:sticky;top:76px;display:grid;gap:14px;max-height:calc(100vh - 96px);overflow:auto;padding-bottom:4px}
 .decision-panel section{margin:0;padding:18px 20px}
 .add-code summary{font-weight:700}
+.kept-context{background:#FFF9DB;border-radius:3px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+blockquote.with-context{background:#FFFCEB}
+blockquote.with-context mark{background:var(--mark);padding:0 1px}
+fieldset.kept-text{border:0;padding:0;margin:0 0 16px;display:grid;gap:6px}
+fieldset.kept-text legend{font-weight:700;margin-bottom:6px;padding:0}
+.method-options .grid{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
 .origin-note{background:var(--pen-wash);border-radius:8px;padding:10px 12px;font-size:14px;margin:0}
 .add-code form{display:grid;gap:10px;margin-top:10px}
 .add-code form>button{justify-self:start}

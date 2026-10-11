@@ -51,11 +51,59 @@ def _review_project(project_path: Path, artifact_root: Path):
     return project
 
 
+def run_context_policy(project_path: Path, artifact_root: Path) -> tuple[str, int, int]:
+    """(unit, before, after) from the method version the run used, else the study's current method."""
+    import yaml
+
+    project = load_project_manifest(project_path)
+    method_path = resolve_repo_path(project_path.parents[2], project.method) if project.method else None
+    lock_path = artifact_root / 'analysis_configuration_lock.json'
+    if lock_path.exists():
+        for asset in json.loads(lock_path.read_text(encoding='utf-8')).get('assets', []):
+            if asset.get('kind') == 'method' and asset.get('path'):
+                candidate = resolve_repo_path(project_path.parents[2], asset['path'])
+                if candidate.exists() and sha256_for_file(candidate) == asset.get('sha256'):
+                    method_path = candidate
+    if method_path is None or not method_path.exists():
+        return "sentences", 0, 0
+    context = (yaml.safe_load(method_path.read_text(encoding='utf-8')) or {}).get('context', {})
+    return context.get('unit', 'sentences'), int(context.get('before', 0)), int(context.get('after', 0))
+
+
 TYPOGRAPHY_NOTICE = 'Formatting differs from the model quotation. Confirm the highlighted source passage with Save changes.'
 RESEARCHER_ADDED = "researcher_selection"
 
 
+_SPEAKER_LINE = re.compile(r"(?m)^[ \t]*(?:\[[0-9:.]+\][ \t]*)?[A-Z][A-Za-z0-9 .'_-]{0,40}:(?=\s)")
+
+
+def speaker_turns(source_text: str) -> list[tuple[int, int]]:
+    """Character ranges of speaker turns ("Interviewer: ...", "P01: ..."); paragraphs if there are no labels."""
+    starts = [match.start() for match in _SPEAKER_LINE.finditer(source_text)]
+    if len(starts) < 2:
+        return [(m.start(), m.end()) for m in re.finditer(r"\S(?:.|\n(?!\s*\n))*", source_text)]
+    bounds = ([(0, starts[0])] if source_text[:starts[0]].strip() else []) + [
+        (begin, starts[i + 1] if i + 1 < len(starts) else len(source_text)) for i, begin in enumerate(starts)]
+    ranges = []
+    for left, right in bounds:
+        while right > left and source_text[right - 1].isspace():
+            right -= 1
+        while left < right and source_text[left].isspace():
+            left += 1
+        if right > left:
+            ranges.append((left, right))
+    return ranges
+
+
 def _context_offsets(source_text: str, start: int, end: int, before: int, after: int, unit: str = "sentences") -> tuple[int, int]:
+    if unit == "turns":
+        turns = speaker_turns(source_text)
+        overlapping = [i for i, (left, right) in enumerate(turns) if left < end and right > start]
+        if not overlapping:
+            return start, end
+        left = turns[max(0, overlapping[0] - before)][0]
+        right = turns[min(len(turns) - 1, overlapping[-1] + after)][1]
+        return min(left, start), max(right, end)
     if before == 0 and after == 0:
         return start, end
     if unit == "characters":
@@ -122,18 +170,7 @@ def build_evidence_review_records(
         else None
     )
     code_lookup = {entry.id: entry for entry in codebook.codes} if codebook else {}
-    method_before = 0
-    method_after = 0
-    method_unit = "sentences"
-    if project.method:
-        import yaml
-
-        method_data = yaml.safe_load(
-            resolve_repo_path(repo_root, project.method).read_text(encoding="utf-8")
-        )
-        method_before = int(method_data.get("context", {}).get("before", 0))
-        method_unit = method_data.get("context", {}).get("unit", "sentences")
-        method_after = int(method_data.get("context", {}).get("after", 0))
+    method_unit, method_before, method_after = run_context_policy(project_path, artifact_root)
     records = _source_records(repo_root, project_path)
     review_records: list[EvidenceReviewRecord] = []
     for artifact_rel in manifest.artifact_paths:
@@ -371,6 +408,7 @@ def append_evidence_review_action(
     edited_code_id: str | None = None,
     codebook_id: str | None = None,
     codebook_version: str | None = None,
+    context_policy: tuple[str, int, int] | None = None,
 ) -> EvidenceReviewAction:
     if decision not in {"accept", "edit", "reject", "defer"}:
         raise ValueError("Unknown evidence review decision.")
@@ -396,6 +434,9 @@ def append_evidence_review_action(
         if edited_start < 0 or edited_end <= edited_start or edited_end > len(source_text):
             raise ValueError("Edited offsets are outside the immutable source text.")
         exact_text = source_text[edited_start:edited_end]
+        context_start, context_end = (_context_offsets(source_text, edited_start, edited_end, context_policy[1],
+                                                       context_policy[2], context_policy[0])
+                                      if context_policy else (edited_start, edited_end))
         span = EvidenceSpan(
             id=f"span-{uuid4().hex}",
             meaning_unit_id=record.meaning_unit_id,
@@ -404,8 +445,8 @@ def append_evidence_review_action(
             start_offset=edited_start,
             end_offset=edited_end,
             exact_text=exact_text,
-            context_start_offset=edited_start,
-            context_end_offset=edited_end,
+            context_start_offset=context_start,
+            context_end_offset=context_end,
             creation_method="reviewer_edited",
             derived_from_span_id=(record.evidence_span.id if record.evidence_span else None),
         )
@@ -676,15 +717,7 @@ def add_researcher_coding(
     if not (0 <= start < end <= len(source_text)) or not source_text[start:end].strip():
         raise ValueError("Select the passage in the transcript first.")
     exact = source_text[start:end]
-    before = after = 0
-    unit = "sentences"
-    if project.method:
-        import yaml
-
-        method = yaml.safe_load(resolve_repo_path(repo_root, project.method).read_text(encoding="utf-8")) or {}
-        before = int(method.get("context", {}).get("before", 0))
-        after = int(method.get("context", {}).get("after", 0))
-        unit = method.get("context", {}).get("unit", "sentences")
+    unit, before, after = run_context_policy(project_path, artifact_root)
     context_start, context_end = _context_offsets(source_text, start, end, before, after, unit)
     record_id = f"added-{uuid4().hex[:20]}"
     meaning_unit_id = f"meaning-{record_id}"
