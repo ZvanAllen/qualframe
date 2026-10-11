@@ -535,9 +535,8 @@ class DashboardApp:
             )
             return self._render_cost_pause(run_id, pause, pause_path)
         if not manifest_path.exists() and any((artifact_root / "requests").glob("*.json")):
-            return ("<section><h2>Coding incomplete</h2><p>This run has recorded request "
-                    "attempts but no completed run manifest. Request records and charges are preserved. "
-                    "Resolve any uncertain usage before resuming.</p>"
+            return ("<section><h2>Coding stopped before it finished</h2><p>The coding saved so far is kept, "
+                    "with its costs. Resume the run to continue where it stopped; completed requests are not sent again.</p>"
                     + self._local_execution_control(run_id, "Resume this run") + "</section>")
         if not manifest_path.exists() and (artifact_root / "run_plan.json").exists():
             plan = RunPlan.model_validate_json(

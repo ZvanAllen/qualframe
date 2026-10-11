@@ -183,6 +183,6 @@ def test_restarted_incomplete_run_is_not_an_untouched_dry_run(tmp_path):
     (root/'run_plan.json').write_text('{}',encoding='utf-8')
     (root/'requests'/'one.json').write_text('{"status":"usage_unresolved"}',encoding='utf-8')
     page=DashboardApp(runner)._render_run('interrupted')
-    assert 'Coding incomplete' in page
+    assert 'Coding stopped before it finished' in page
     assert 'Dry-run plan' not in page
     assert 'No model request was sent.' not in page
