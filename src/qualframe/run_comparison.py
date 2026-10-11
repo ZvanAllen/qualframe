@@ -156,6 +156,13 @@ def restrict_to_common_sources(left: dict, right: dict) -> tuple[dict, dict, lis
     return keep(left), keep(right), omitted
 
 
+def _codebook_identity(codebook: dict) -> str:
+    """Codebook identity for comparison. CFIR catalogues gained an Outcomes Addendum "section"
+    field in October 2026; it does not change any code, so it is left out here."""
+    codes = [{k: v for k, v in code.items() if k != "section"} for code in codebook.get("codes", [])]
+    return snapshot_identity(dict(codebook, codes=codes))
+
+
 def compare_raw_payloads(left: dict, right: dict) -> dict:
     if left["run_id"] == right["run_id"]:
         raise ValueError("Choose two distinct runs.")
@@ -163,7 +170,7 @@ def compare_raw_payloads(left: dict, right: dict) -> dict:
         raise ValueError(
             "Runs must belong to the same study and use the same transcript paths and hashes."
         )
-    if snapshot_identity(left["codebook"]) != snapshot_identity(right["codebook"]):
+    if _codebook_identity(left["codebook"]) != _codebook_identity(right["codebook"]):
         raise ValueError("Runs must use the same frozen codebook; code mapping is not inferred.")
     rows = []
     for source in sorted(left["sources"]):

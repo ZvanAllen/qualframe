@@ -100,6 +100,19 @@ Run the same study again with another model, or the same model twice, then open 
 
 Open a transcript to read the passages only one run coded. Comparisons use the models' original proposals, before your review, and neither run is treated as correct. **Repeat runs** (under More) runs the same configuration several times to see how stable a model is on your data.
 
+## QualBench
+
+QualBench measures agreement among coding runs, and between runs and an earlier coding of the same transcripts, and saves the results as tables you can report or analyse further in R or Python. Open **QualBench** under More, tick the runs, choose an earlier coding if the study has one, and build the report.
+
+- **Which codes were applied.** One unit per transcript and code. Percent agreement, Cohen's kappa, Gwet's AC1 (which stays stable when most codes are absent) and, against an earlier coding, precision, recall and F1. Also shown with sub-codes merged into their parent codes, by domain and by transcript.
+- **Which passages were coded.** Passages for the same code in the same transcript are matched one to one: exactly, mostly overlapping, or with any overlap. The share of coded text in common is reported too.
+- **Stability.** Runs with the same model, instructions and coding options are treated as repeats, and Krippendorff's alpha is reported across them.
+- **Coding sets.** Coded passages, quotations found in the transcript, codes per transcript, cost and time for each run.
+
+Comparisons use the model's original proposals, before review, on the transcripts every chosen run coded. An earlier coding is compared as another coding, not as the right answer, and its description appears with every report. Each report is saved in the study's `exports/qualbench` folder with a README defining every measure.
+
+**Importing an earlier coding.** An earlier CFIR coding in the published table format (one sheet per domain, with CFIR Construct, Quote and Explanation columns) can be imported with `scripts/qualbench.py import-reference`, giving each transcript its workbook. Construct names are matched to the study's codebook, quotations are located in the transcripts, and reviewer note columns are kept. Copies of the workbooks are stored with the reference.
+
 ## The CFIR reference workflow
 
 Choosing *CFIR reference workflow* for a new study sets up the staged pipeline from the AMN study: one request per CFIR domain, then roll-up, context, network and cross-network steps. Its prompts are kept word for word in [`prompts/cfir/final`](../prompts/cfir/final). Import the CFIR construct workbook on the Codebook page; QualFrame does not include it. New CFIR studies stop after the first coding step so you can review before anything is synthesised.

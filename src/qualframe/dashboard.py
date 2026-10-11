@@ -381,6 +381,7 @@ class DashboardApp:
         body = name_prompt(self.researcher, getattr(self, "_current_path", "/")) + body
         project = self.runner.project
         tools = [("compare", "/compare", "Compare runs"), ("repeats", "/repeats", "Repeat runs"),
+                 ("qualbench", "/qualbench", "QualBench"),
                  ("history", "/?" + urlencode({"run_id": self.list_runs()[0]}) if self.list_runs() else "/", "Run details")]
         return render_workspace(
             title=title, intro=intro, body=body, head=head, active=active,
@@ -964,6 +965,9 @@ class DashboardApp:
         if path == '/benchmark/save':
             from qualframe.benchmark_ui import save_benchmark_form
             return save_benchmark_form(self, form)
+        if path == '/qualbench/build':
+            from qualframe.qualbench_ui import build_qualbench_form
+            return build_qualbench_form(self, form)
         if path == '/stability/save':
             if required('study_identity') != self.runner.project.project_id:
                 raise ValueError('This tab belongs to another study.')
@@ -1367,6 +1371,15 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
                     content = app._render_workspace_page(title='Detailed span benchmark', intro='The selected runs cannot be benchmarked.', body=f'<p>{html.escape(str(exc))}</p><a href="/compare">Choose runs</a>')
                 self._send_html(content.encode('utf-8'))
                 return
+            if parsed.path == '/qualbench':
+                from qualframe.qualbench_ui import render_qualbench
+                try:
+                    content = render_qualbench(app, query.get('report', [''])[0], query.get('message', [''])[0])
+                except (ValueError, OSError, KeyError) as exc:
+                    content = app._render_workspace_page(title='QualBench', intro='The report could not be shown.', active='qualbench',
+                                                         body=f'<p>{html.escape(str(exc))}</p><a href="/qualbench">Back to QualBench</a>')
+                self._send_html(content.encode('utf-8'))
+                return
             if parsed.path == '/compare':
                 from qualframe.comparison_ui import render_comparison
                 try:
@@ -1587,6 +1600,9 @@ def make_handler(app: DashboardApp) -> type[BaseHTTPRequestHandler]:
                 return
             if request_path == '/benchmark/save':
                 self._redirect('/benchmark?' + urlencode({'left':run_id, 'right':form.get('right_id', [''])[0], 'message':message}))
+                return
+            if request_path == '/qualbench/build':
+                self._redirect('/qualbench?' + urlencode({'report': run_id if not message.startswith('Action failed') else '', 'message': message}))
                 return
             if request_path == '/stability/save':
                 self._redirect('/stability?' + urlencode({'run':form.get('run', []), 'experiment':form.get('experiment', [''])[0], 'message':message}, doseq=True))

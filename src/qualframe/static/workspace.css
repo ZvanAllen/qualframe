@@ -390,3 +390,7 @@ table.compact{width:auto;margin-top:10px}
 @media (max-width:760px){.appbar{padding:0 14px;gap:12px}.appbar-status .pill:not(:first-child){display:none}.shell{grid-template-columns:1fr}.studybar{position:static;height:auto;padding:14px}.steps{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.more-tools,.studybar-foot{display:none}main{padding:20px 16px}h1{font-size:26px}.home{padding:28px 16px}.home-hero h1{font-size:31px}.hero-sheet .sheet-text{margin-right:0;padding:20px}.hero-sheet .tagrow{display:none}.sheet-text{padding:20px;font-size:16px}.select-hint,.transcript-col .sheet-head{padding-left:20px;padding-right:20px}.margin-tag{display:none}.cards{grid-template-columns:1fr 1fr}.next-up{flex-direction:column;align-items:flex-start}.checklist li{grid-template-columns:26px 1fr}.checklist li>:last-child{grid-column:2}}
 @media (max-width:480px){.appbar-links a[href="/setup"]{display:none}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* QualBench report tables */
+table.bench td.n{white-space:nowrap;font-variant-numeric:tabular-nums}
+table.bench th{vertical-align:bottom}
