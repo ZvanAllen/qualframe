@@ -400,3 +400,4 @@ table.bench th{vertical-align:bottom}
 .usage-resolve dl{margin:8px 0 12px}
 .usage-resolve .token-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:6px 0 4px 28px}
 @media (max-width:560px){.usage-resolve .token-fields{grid-template-columns:1fr;margin-left:0}}
+.pause-stop{margin-top:10px}.pause-stop button{width:auto}

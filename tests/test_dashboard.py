@@ -150,9 +150,9 @@ def test_local_dashboard_exposes_cost_pause_and_records_decision(tmp_path: Path)
 
     app = DashboardApp(runner)
     page = app.render(run_id=run_id)
-    assert "Paused for cost approval" in page
-    assert "USD 21.2500" in page
-    assert "No request was sent" in page
+    assert "Paused at the $20 spending check" in page
+    assert "spent $18.50 so far" in page and "synthetic-01" in page
+    assert "Approve and continue" in page and "Stop the run here" in page
 
     selected, message = app.handle_action(
         "/cost",
@@ -173,6 +173,11 @@ def test_local_dashboard_exposes_cost_pause_and_records_decision(tmp_path: Path)
     approval = json.loads(approval_line)
     assert approval["decision"] == "approve"
     assert approval["threshold_usd"] == 20
+    # Once the step is approved, the run page no longer shows the pause.
+    (artifact_root / "requests").mkdir()
+    (artifact_root / "requests" / "one.json").write_text("{}", encoding="utf-8")
+    page = app.render(run_id=run_id)
+    assert "Paused at the $20 spending check" not in page and "Coding stopped before it finished" in page
 
 
 def test_restarted_incomplete_run_is_not_an_untouched_dry_run(tmp_path):

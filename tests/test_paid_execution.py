@@ -418,3 +418,37 @@ def test_a_run_can_resume_after_spending_settings_change_but_not_coding_settings
     with pytest.raises(ValueError, match="Configuration changed"):
         app.start_local_execution("paid-test", approval=dict(actor="Tester", rationale="Resume", live_confirmed="yes",
                                                              fingerprint=plan.configuration_fingerprint))
+
+
+def test_spending_check_is_approved_and_the_run_continues_in_one_step(tmp_path, monkeypatch):
+    from qualframe.models import CostPauseRecord
+    root = make_test_repo(tmp_path)
+    workspace = StudyWorkspace(root)
+    created = workspace.create(StudyCreationRequest(
+        title="Paid synthetic", data_classification="synthetic", include_synthetic_fixtures=True))
+    project = root / created.project_manifest_path
+    save_provider_setup(workspace, project, settings(absolute_limit_usd=50), actor="Tester", rationale="Synthetic QA")
+    runner = ProjectRunner(project)
+    plan = runner.build_run_plan()
+    runner.save_run_plan(plan, "paid-test")
+    app = DashboardApp(runner)
+    pause = CostPauseRecord(project_id=runner.project.project_id, run_id="paid-test", stage_id="coding",
+                            input_label="studies\\x\\transcripts\\NL\\16A_Transcript.docx::Innovation",
+                            current_cost_usd=19.56, projected_cost_usd=20.05, threshold_usd=20, absolute_limit_usd=50,
+                            notification_adapter="email", notification_status="not_configured",
+                            created_at_utc="2026-10-11T21:38:12+00:00")
+    (app.artifacts_dir / "paid-test" / "cost_pause.json").write_text(pause.model_dump_json(), encoding="utf-8")
+    page = app._render_run("paid-test")
+    assert "16A_Transcript (Innovation)" in page and 'name="fingerprint"' in page
+    monkeypatch.setenv(runner.project.provider.api_key_env, "fake-key")
+    dispatched = []
+    monkeypatch.setattr("qualframe.dashboard.threading.Thread", lambda **kwargs: NS(start=lambda: dispatched.append(kwargs)))
+    form = {"run_id": ["paid-test"], "threshold_usd": ["20"], "decision": ["approve"], "continue": ["yes"],
+            "reviewer": ["Tester"], "rationale": [""], "fingerprint": [plan.configuration_fingerprint]}
+    with pytest.raises(ValueError, match="Tick the box"):
+        app.handle_action("/cost", dict(form))
+    assert not dispatched
+    run_id, message = app.handle_action("/cost", dict(form, live_confirmed=["yes"]))
+    assert run_id == "paid-test" and "Coding has resumed" in message and len(dispatched) == 1
+    approvals = (app.logs_dir / "cost_approvals.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(approvals) == 1 and json.loads(approvals[0])["rationale"] == "Approved continuing past $20"

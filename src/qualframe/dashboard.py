@@ -533,7 +533,10 @@ class DashboardApp:
             pause = CostPauseRecord.model_validate_json(
                 pause_path.read_text(encoding="utf-8")
             )
-            return self._render_cost_pause(run_id, pause, pause_path)
+            from qualframe.cost_control import approved_cost_thresholds
+            approved = round(pause.threshold_usd, 8) in approved_cost_thresholds(self.logs_dir / "cost_approvals.jsonl", pause.project_id)
+            if not approved or not (any((artifact_root / "requests").glob("*.json")) or (artifact_root / "run_plan.json").exists()):
+                return self._render_cost_pause(run_id, pause, pause_path)
         if not manifest_path.exists() and any((artifact_root / "requests").glob("*.json")):
             return ("<section><h2>Coding stopped before it finished</h2><p>The coding saved so far is kept, "
                     "with its costs. Resume the run to continue where it stopped; completed requests are not sent again.</p>"
@@ -844,37 +847,38 @@ class DashboardApp:
         pause: CostPauseRecord,
         pause_path: Path,
     ) -> str:
-        remaining = max(pause.absolute_limit_usd - pause.current_cost_usd, 0)
-        notification = pause.notification_status.replace("_", " ")
-        error = (
-            f"<p class='muted'>Notification detail: {html.escape(pause.notification_error)}</p>"
-            if pause.notification_error
-            else ""
-        )
-        resume_control = self._local_execution_control(
-            run_id, "Resume locally after recording approval"
-        )
+        """The run stopped before a request that would pass a spending check: approve and continue, or stop."""
+        what = pause.input_label.replace("\\", "/")
+        source, _, part = what.partition("::")
+        what = f"{Path(source).stem} ({part})" if part else Path(source).stem
+        plan_path = self._run_root(self.artifacts_dir, run_id) / "run_plan.json"
+        fingerprint = ""
+        if plan_path.exists():
+            fingerprint = RunPlan.model_validate_json(plan_path.read_text(encoding="utf-8")).configuration_fingerprint or ""
+        error = (f"<p class='muted'>Notification: {html.escape(pause.notification_error)}</p>"
+                 if pause.notification_error else "")
+        threshold = f"{pause.threshold_usd:g}"
         return f"""
-<div class="cards">
-<div class="card"><div class="label">Project</div><div class="value">{html.escape(pause.project_id.replace('_', ' ').title())}</div></div>
-<div class="card"><div class="label">Run</div><div class="value">{html.escape(run_id.replace('_', ' '))}</div></div>
-<div class="card"><div class="label">Status</div><div class="value">Paused for cost approval</div></div>
-<div class="card"><div class="label">Spent so far</div><div class="value">USD {pause.current_cost_usd:.4f}</div></div>
-<div class="card"><div class="label">Projected after next request</div><div class="value">USD {pause.projected_cost_usd:.4f}</div></div>
-<div class="card"><div class="label">Remaining absolute ceiling</div><div class="value">USD {remaining:.4f}</div></div>
-</div>
-<section><h2>Review spending boundary</h2>
-<p>The next request for <strong>{html.escape(pause.stage_id)}</strong> on <strong>{html.escape(pause.input_label)}</strong> may cross the USD {pause.threshold_usd:.2f} boundary. No request was sent.</p>
-<p>Email notification: <strong>{html.escape(notification)}</strong>. Email delivery never approves this request.</p>{error}
-<form method="post" action="/cost" class="inline">
+<section><h2>Paused at the ${pause.threshold_usd:,.0f} spending check</h2>
+<p>This study has spent ${pause.current_cost_usd:,.2f} so far. The next request, for {html.escape(what)}, could take it past
+${pause.threshold_usd:,.0f}, so QualFrame stopped before sending it. QualFrame asks again each time spending passes another
+step; the study's limit is ${pause.absolute_limit_usd:,.2f}. The coding saved so far is kept.</p>{error}
+<form method="post" action="/cost">
 <input type="hidden" name="run_id" value="{html.escape(run_id)}">
-<input type="hidden" name="threshold_usd" value="{pause.threshold_usd}">
-<label>Decision<select name="decision"><option value="approve">Approve this boundary</option><option value="stop">Stop the run</option></select></label>
-<label>Researcher name<input name="reviewer" required></label>
-<label>Reason<textarea name="rationale" required></textarea></label>
-<button type="submit">Record decision</button></form>
-{resume_control}<p class="muted">The runner rechecks the append-only approval record before submitting any request.</p>
-<p>{self._file_link(pause_path, "Open cost pause record")}</p></section>"""
+<input type="hidden" name="threshold_usd" value="{html.escape(threshold)}">
+<input type="hidden" name="decision" value="approve"><input type="hidden" name="continue" value="yes">
+<input type="hidden" name="fingerprint" value="{html.escape(fingerprint)}">
+<label>Your name<input name="reviewer" required value="{html.escape(self.researcher)}"></label>
+<label>Note (optional)<input name="rationale" placeholder="Approved continuing past ${pause.threshold_usd:,.0f}"></label>
+<label class="check"><input name="live_confirmed" type="checkbox" value="yes" required><span>Continue sending this study's transcripts to {html.escape(self.runner.project.provider.model or self.runner.project.provider.name)}, spending up to the study's limit.</span></label>
+<button type="submit">Approve and continue</button></form>
+<form method="post" action="/cost" class="pause-stop">
+<input type="hidden" name="run_id" value="{html.escape(run_id)}">
+<input type="hidden" name="threshold_usd" value="{html.escape(threshold)}">
+<input type="hidden" name="decision" value="stop"><input type="hidden" name="reviewer" value="{html.escape(self.researcher)}">
+<input type="hidden" name="rationale" value="Stopped at the spending check">
+<button type="submit" class="secondary">Stop the run here</button></form>
+<p class="muted">{self._file_link(pause_path, "Pause record")}</p></section>"""
 
     def handle_app_action(self, path: str, form: dict[str, list[str]]) -> str:
         """Application-level actions; returns the redirect location."""
@@ -1168,15 +1172,27 @@ class DashboardApp:
             threshold = float(required("threshold_usd"))
             if threshold != pause.threshold_usd:
                 raise ValueError("Cost threshold does not match the persisted pause.")
+            decision = required("decision")
+            continuing = decision == "approve" and form.get("continue", [""])[0] == "yes"
+            if continuing and form.get("live_confirmed", [""])[0] != "yes":
+                raise ValueError("Tick the box to confirm sending the study's transcripts and spending up to its limit.")
+            if not form.get("rationale", [""])[0].strip():
+                form["rationale"] = [f"Approved continuing past ${threshold:,.0f}" if decision == "approve"
+                                     else "Stopped at the spending check"]
             action = append_cost_approval(
                 self.logs_dir / "cost_approvals.jsonl",
                 project_id=pause.project_id,
                 run_id=run_id,
                 threshold_usd=threshold,
-                decision=required("decision"),
+                decision=decision,
                 reviewer=required("reviewer"),
                 rationale=required("rationale"),
             )
+            if continuing:
+                self.start_local_execution(run_id, approval={
+                    "actor": required("reviewer"), "rationale": form["rationale"][0],
+                    "live_confirmed": "yes", "fingerprint": form.get("fingerprint", [""])[0]})
+                return run_id, f"Approved spending past ${threshold:,.0f}. Coding has resumed."
             instruction = (
                 " Resume the same run to continue."
                 if action.decision == "approve"
