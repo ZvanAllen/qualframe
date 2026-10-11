@@ -5,7 +5,7 @@ import json
 import os
 from datetime import date
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 import yaml
 
@@ -336,7 +336,9 @@ def coding_blockers(app) -> list[str]:
         if cost is None:
             blockers.append("Choose a model above and save it with a spending limit.")
         elif cost.unresolved_requests():
-            blockers.append("An earlier request's usage is unconfirmed. Open the run details to resolve it.")
+            run = str(cost.unresolved_requests()[0].get("run_id", ""))
+            blockers.append(f'A request in an earlier run failed. <a href="/?{urlencode({"run_id": run})}">Open that run</a> '
+                            'to confirm whether it was charged, then resume it.')
         env = provider.api_key_env or ""
         if not (provider.name == "openai_compatible" and is_local_endpoint(provider.base_url)) and not os.getenv(env):
             blockers.append("Enter your API key above. Keys are kept only while QualFrame is open.")

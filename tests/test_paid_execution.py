@@ -1,3 +1,4 @@
+import json
 import sys
 from types import SimpleNamespace as NS
 
@@ -324,3 +325,96 @@ def test_openai_native_schema_is_forwarded(monkeypatch,api_mode):
     OpenAIProvider(model='synthetic',api_key_env='SYNTHETIC_KEY',api_mode=api_mode).complete(system_prompt='s',user_prompt='u',response_schema=schema)
     specification=captured['text']['format'] if api_mode=='responses' else captured['response_format']['json_schema']
     assert specification['schema']==schema and specification['strict'] is True
+
+
+def test_failed_request_is_confirmed_in_the_app_then_the_run_can_resume(tmp_path, monkeypatch):
+    from qualframe.coding_ui import coding_blockers
+    root = make_test_repo(tmp_path)
+    workspace = StudyWorkspace(root)
+    created = workspace.create(StudyCreationRequest(
+        title="Paid synthetic", data_classification="synthetic", include_synthetic_fixtures=True))
+    project = root / created.project_manifest_path
+    save_provider_setup(workspace, project, settings(), actor="Tester", rationale="Synthetic QA")
+    runner = ProjectRunner(project)
+    plan = runner.build_run_plan()
+    runner.save_run_plan(plan, "paid-test")
+    app = DashboardApp(runner)
+    cost = runner._build_cost_controller(run_id="paid-test", artifact_root=app.artifacts_dir / "paid-test")
+
+    def out_of_credit(**kwargs):
+        raise RuntimeError("Error code: 429 - You exceeded your current quota")
+
+    def fail_once(label):
+        with pytest.raises(RuntimeError, match="no automatic retry") as caught:
+            runner._complete(provider=NS(complete=out_of_credit), cost_controller=cost, stage_id="coding",
+                             input_label=f"studies\\x\\data\\raw\\transcripts\\ON\\{label}.docx::Innovation",
+                             user_prompt="u")
+        assert "resume the run" in str(caught.value)
+
+    fail_once("1A_Transcript")
+    [row] = cost.unresolved_requests()
+    record = json.loads((app.artifacts_dir / "paid-test/requests" / f"{row['request_id']}.json").read_text())
+    assert record["error_message"].startswith("Error code: 429")
+    monkeypatch.setenv(runner.project.provider.api_key_env, "fake-key")
+    blockers = " ".join(coding_blockers(app))
+    assert "Open that run" in blockers and "run_id=paid-test" in blockers
+    panel = app._local_execution_control("paid-test", "Resume this run")
+    assert "Was the failed request charged?" in panel and "1A_Transcript (Innovation)" in panel
+    assert "You exceeded your current quota" in panel and 'action="/execute"' not in panel
+
+    run_id, message = app.handle_action("/usage/resolve", {"request_id": [row["request_id"]], "run_id": ["paid-test"],
+                                                          "charged": ["no"], "reviewer": ["Tester"]})
+    assert run_id == "paid-test" and "not charged" in message and "resume" in message
+    assert not cost.unresolved_requests() and cost.project_cost_usd() == 0
+    reconciliation = json.loads((cost.ledger_path.parent / "usage_reconciliations.jsonl").read_text().splitlines()[-1])
+    assert reconciliation["reviewer"] == "Tester" and "429" in reconciliation["evidence_reference"]
+    resume = app._local_execution_control("paid-test", "Resume this run")
+    assert 'action="/execute"' in resume and 'value="Tester"' in resume
+
+    # A request the provider did charge for: the researcher enters the tokens.
+    fail_once("3A_Transcript")
+    [row] = cost.unresolved_requests()
+    with pytest.raises(ValueError, match="usage page"):
+        app.handle_action("/usage/resolve", {"request_id": [row["request_id"]], "run_id": ["paid-test"], "charged": ["yes"]})
+    _, message = app.handle_action("/usage/resolve", {"request_id": [row["request_id"]], "run_id": ["paid-test"],
+                                                     "charged": ["yes"], "input_tokens": ["1000"], "output_tokens": ["0"]})
+    assert "Recorded $" in message and not cost.unresolved_requests()
+    with pytest.raises(ValueError, match="already been resolved"):
+        app.handle_action("/usage/resolve", {"request_id": [row["request_id"]], "run_id": ["paid-test"], "charged": ["no"]})
+
+
+def test_a_run_can_resume_after_spending_settings_change_but_not_coding_settings(tmp_path, monkeypatch):
+    from qualframe.configuration_lock import create_configuration_lock, run_can_resume
+    root = make_test_repo(tmp_path)
+    workspace = StudyWorkspace(root)
+    created = workspace.create(StudyCreationRequest(
+        title="Paid synthetic", data_classification="synthetic", include_synthetic_fixtures=True))
+    project = root / created.project_manifest_path
+    save_provider_setup(workspace, project, settings(), actor="Tester", rationale="Synthetic QA")
+    runner = ProjectRunner(project)
+    plan = runner.build_run_plan()
+    runner.save_run_plan(plan, "paid-test")
+    app = DashboardApp(runner)
+    run_root = app.artifacts_dir / "paid-test"
+    # Raising the spending limit (and saving the model again) leaves the coding unchanged.
+    save_provider_setup(workspace, project, settings(absolute_limit_usd=50), actor="Tester", rationale="More budget")
+    save_provider_setup(workspace, project, settings(absolute_limit_usd=60, input_rate=1.5), actor="Tester", rationale="New prices")
+    assert create_configuration_lock(project).fingerprint_sha256 != plan.configuration_fingerprint
+    assert run_can_resume(project, run_root, plan.configuration_fingerprint)
+    app = DashboardApp(ProjectRunner(project))
+    control = app._local_execution_control("paid-test", "Resume this run")
+    assert "spending settings have changed" in control and 'action="/execute"' in control
+    monkeypatch.setenv(app.runner.project.provider.api_key_env, "fake-key")
+    dispatched = []
+    monkeypatch.setattr("qualframe.dashboard.threading.Thread", lambda **kwargs: NS(start=lambda: dispatched.append(kwargs)))
+    app.start_local_execution("paid-test", approval=dict(actor="Tester", rationale="Resume", live_confirmed="yes",
+                                                         fingerprint=plan.configuration_fingerprint))
+    assert len(dispatched) == 1
+    # A different model is a different coding configuration: the run can't continue.
+    save_provider_setup(workspace, project, settings(model="another-model", absolute_limit_usd=60), actor="Tester", rationale="Switch")
+    assert not run_can_resume(project, run_root, plan.configuration_fingerprint)
+    app = DashboardApp(ProjectRunner(project))
+    assert "can't continue" in app._local_execution_control("paid-test", "Resume this run")
+    with pytest.raises(ValueError, match="Configuration changed"):
+        app.start_local_execution("paid-test", approval=dict(actor="Tester", rationale="Resume", live_confirmed="yes",
+                                                             fingerprint=plan.configuration_fingerprint))

@@ -20,7 +20,7 @@ from qualframe.config import (
     load_stage_output_spec,
     resolve_repo_path,
 )
-from qualframe.configuration_lock import create_configuration_lock, write_configuration_lock
+from qualframe.configuration_lock import create_configuration_lock, run_can_resume, write_configuration_lock
 from qualframe.cost_control import CostController
 from qualframe.directed_analysis import parsed_assignment_policy_issues, partition_codebook
 from qualframe.governance import approved_gate_ids
@@ -158,21 +158,22 @@ class ProjectRunner:
                 **({"response_schema": response_schema} if response_schema is not None else {}),
             )
         except Exception as exc:
+            reason = " ".join(str(exc).split())[:400] or type(exc).__name__
             if cost_controller is not None:
                 attempts = cost_controller.artifact_root / "requests"
                 attempts.mkdir(parents=True, exist_ok=True)
                 (attempts / f"{request_id}.json").write_text(json.dumps({
                     "request_id": request_id, "status": "usage_unresolved",
-                    "error_type": type(exc).__name__,
+                    "error_type": type(exc).__name__, "error_message": reason,
                     "cause_type": type(exc.__cause__).__name__ if exc.__cause__ else None,
                     "cause_errno": getattr(exc.__cause__, "errno", None),
                     "cause_winerror": getattr(exc.__cause__, "winerror", None),
                     "elapsed_seconds": time.monotonic() - started,
                 }, indent=2), encoding="utf-8")
-            reason = " ".join(str(exc).split())[:400] or type(exc).__name__
             raise RuntimeError(
                 f"Provider request failed ({reason}); no automatic retry was sent. "
-                "Check the request record and reconcile usage before retrying."
+                "The coding saved so far is kept. Confirm on this run's details page whether the failed "
+                "request was charged, then resume the run."
             ) from exc
         if cost_controller is not None:
             attempts = cost_controller.artifact_root / "requests"
@@ -612,7 +613,9 @@ class ProjectRunner:
         """
         if plan.configuration_fingerprint:
             current = create_configuration_lock(self.project_manifest_path)
-            if current.fingerprint_sha256 != plan.configuration_fingerprint:
+            planned_root = resolve_repo_path(self.repo_root, self.project.paths["artifacts"]) / run_id
+            if current.fingerprint_sha256 != plan.configuration_fingerprint and not run_can_resume(
+                    self.project_manifest_path, planned_root, plan.configuration_fingerprint):
                 raise ValueError("Study configuration changed after preflight. Create a new run plan; prior runs remain unchanged.")
         if plan.transcript_sample:
             self.transcript_sample = set(plan.transcript_sample)

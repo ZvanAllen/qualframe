@@ -704,13 +704,22 @@ class DashboardApp:
             if cost is None:
                 return "<p>Configure a provider, verified prices, and a study ceiling first.</p>"
             if cost.unresolved_requests():
-                return "<p>Prior request usage is unresolved. Reconcile the preserved request record before starting another paid run.</p>"
-            return f'''<form method="post" action="/execute">
+                from qualframe.usage_ui import render_unresolved_usage
+                return render_unresolved_usage(self, cost)
+            from qualframe.configuration_lock import create_configuration_lock, run_can_resume
+            note = ""
+            if create_configuration_lock(self._managed_project_path()).fingerprint_sha256 != plan.configuration_fingerprint:
+                if not run_can_resume(self._managed_project_path(), plan_path.parent, plan.configuration_fingerprint):
+                    return ("<p>The study's coding settings have changed since this run started (for example the instructions, "
+                            "codebook or model), so it can't continue. Start a new run from Run coding; the coding saved so far is kept.</p>")
+                note = ("<p class=\"muted\">The spending settings have changed since this run started; the coding settings "
+                        "are the same, so the run can continue where it stopped.</p>")
+            return note + f'''<form method="post" action="/execute">
 <input type="hidden" name="run_id" value="{html.escape(run_id)}">
 <input type="hidden" name="fingerprint" value="{html.escape(plan.configuration_fingerprint or '')}">
 <p>Paid coding: {html.escape(self.runner.project.provider.name)} / {html.escape(self.runner.project.provider.model or '')}. Study ceiling: USD {cost.policy.absolute_limit_usd:.2f}. Recorded usage cost: USD {cost.project_cost_usd():.4f}.</p>
 <p>Selected source text and codebook will be sent to this provider. Local token estimates are not a provider billing guarantee. Uncertain requests pause for reconciliation.</p>
-<label>Researcher name<input name="actor" required></label>
+<label>Researcher name<input name="actor" required value="{html.escape(self.researcher)}"></label>
 <label>Reason for this run<input name="rationale" required></label>
 <label class="check"><input name="live_confirmed" type="checkbox" value="yes" required>I approve sending this study material and spending up to the displayed study ceiling.</label>
 <button type="submit">Approve and start paid coding</button></form>'''
@@ -751,7 +760,7 @@ class DashboardApp:
             raise PermissionError("Offline test models only run on test-data studies. Choose a model on the Run coding page.")
         if live:
             import os
-            from qualframe.configuration_lock import create_configuration_lock
+            from qualframe.configuration_lock import create_configuration_lock, run_can_resume
             if provider_name not in _PAID_EXECUTION_PROVIDERS:
                 raise PermissionError("This provider is not enabled for browser execution.")
             approval = approval or {}
@@ -760,13 +769,16 @@ class DashboardApp:
             actor, rationale = self.study_workspace._validate_action_fields(
                 approval.get("actor", ""), approval.get("rationale", ""))
             fingerprint = create_configuration_lock(project_path).fingerprint_sha256
-            if not plan.configuration_fingerprint or approval.get("fingerprint") != plan.configuration_fingerprint or fingerprint != plan.configuration_fingerprint:
-                raise ValueError("Configuration changed; create and approve a new preflight plan.")
+            if (not plan.configuration_fingerprint or approval.get("fingerprint") != plan.configuration_fingerprint
+                    or (fingerprint != plan.configuration_fingerprint
+                        and not run_can_resume(project_path, artifact_root, plan.configuration_fingerprint))):
+                raise ValueError("Configuration changed since this run started (for example the instructions, codebook or "
+                                 "model), so it can't continue. Start a new run; the coding saved so far is kept.")
             cost = self.runner._build_cost_controller(run_id=run_id, artifact_root=artifact_root)
             if cost is None:
                 raise ValueError("Paid execution requires pricing and an absolute study ceiling.")
             if cost.unresolved_requests():
-                raise ValueError("Prior request usage is unresolved. Reconcile it before starting another paid run.")
+                raise ValueError("An earlier failed request needs confirming first: open its run details and say whether it was charged.")
             from qualframe.coding_ui import is_local_endpoint
             local_endpoint = provider_name == "openai_compatible" and is_local_endpoint(self.runner.project.provider.base_url)
             if not local_endpoint and not os.getenv(self.runner.project.provider.api_key_env or ""):
@@ -969,6 +981,9 @@ class DashboardApp:
         if path == '/benchmark/save':
             from qualframe.benchmark_ui import save_benchmark_form
             return save_benchmark_form(self, form)
+        if path == '/usage/resolve':
+            from qualframe.usage_ui import resolve_usage
+            return resolve_usage(self, form)
         if path == '/qualbench/build':
             from qualframe.qualbench_ui import build_qualbench_form
             return build_qualbench_form(self, form)

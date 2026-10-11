@@ -394,3 +394,9 @@ table.compact{width:auto;margin-top:10px}
 /* QualBench report tables */
 table.bench td.n{white-space:nowrap;font-variant-numeric:tabular-nums}
 table.bench th{vertical-align:bottom}
+
+/* Confirming a failed paid request */
+.usage-resolve{border:1px solid var(--rule);border-radius:var(--radius);padding:14px 16px;margin:12px 0;background:var(--page)}
+.usage-resolve dl{margin:8px 0 12px}
+.usage-resolve .token-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:6px 0 4px 28px}
+@media (max-width:560px){.usage-resolve .token-fields{grid-template-columns:1fr;margin-left:0}}

@@ -211,3 +211,51 @@ def write_configuration_lock(lock: LockedAnalysisConfiguration, output_path: Pat
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(lock.model_dump_json(indent=2), encoding="utf-8")
     return output_path
+
+
+# Spending settings: the study's spending limit and the price list. Changing them (for example
+# raising the limit after a run pauses) changes nothing about how the transcripts are coded.
+SPENDING_KINDS = ("cost_policy", "pricing_snapshot")
+
+
+def spending_only_change(project_yaml: Path, locked: LockedAnalysisConfiguration) -> bool:
+    """True when the study differs from a run's locked configuration only in its spending settings.
+
+    Everything that shapes the coding (prompts, codebook, method, pipeline, model and its settings)
+    must be identical. The run's earlier study file is found among the snapshots QualFrame keeps
+    whenever the model or spending settings are saved.
+    """
+    import yaml
+
+    project_yaml = project_yaml.resolve()
+    current = create_configuration_lock(project_yaml)
+    if current.fingerprint_sha256 == locked.fingerprint_sha256:
+        return True
+
+    def coding_assets(lock: LockedAnalysisConfiguration) -> dict:
+        return {(a.kind, a.id, a.path): a.sha256 for a in lock.assets if a.kind not in SPENDING_KINDS + ("project",)}
+
+    if coding_assets(current) != coding_assets(locked):
+        return False
+    earlier_hash = next((a.sha256 for a in locked.assets if a.kind == "project"), None)
+    earlier = next((path for path in sorted(project_yaml.parent.glob("config/provider-*/project-*.yaml"))
+                    if sha256_for_file(path) == earlier_hash), None)
+    if earlier is None:
+        return False
+
+    def without_spending(path: Path) -> dict:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        return {key: value for key, value in data.items() if key not in SPENDING_KINDS}
+
+    return without_spending(earlier) == without_spending(project_yaml)
+
+
+def run_can_resume(project_yaml: Path, artifact_root: Path, configuration_fingerprint: str | None) -> bool:
+    """Whether a run planned under ``configuration_fingerprint`` may continue with the study as it is now."""
+    lock_path = artifact_root / "analysis_configuration_lock.json"
+    if not configuration_fingerprint or not lock_path.exists():
+        return False
+    locked = LockedAnalysisConfiguration.model_validate_json(lock_path.read_text(encoding="utf-8"))
+    if locked.fingerprint_sha256 != configuration_fingerprint:
+        return False
+    return spending_only_change(project_yaml, locked)
