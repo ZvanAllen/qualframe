@@ -307,7 +307,8 @@ def _study_codes(repo_root: Path, project) -> list[dict]:
 
     if project.codebook:
         spec = load_codebook_spec(resolve_repo_path(repo_root, project.codebook))
-        return [dict(id=code.id, label=code.label, raw_label=code.label, parent_id=code.parent_id) for code in spec.codes]
+        return [dict(id=code.id, label=code.label, raw_label=code.label, parent_id=code.parent_id,
+                     active=code.active) for code in spec.codes]
     return reference_codes(resolve_repo_path(repo_root, project.paths["reference"]) / "codebook.xlsx")
 
 

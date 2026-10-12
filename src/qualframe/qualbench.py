@@ -250,9 +250,16 @@ def _known(coding_set: dict) -> set[str]:
     return {code["id"] for code in coding_set["codebook"].get("codes", [])}
 
 
-def present_units(coding_set: dict, projection: dict[str, str] | None = None) -> Counter:
-    """(transcript, code) -> number of proposals applying that code, located or not."""
-    known = _known(coding_set)
+def _active_codes(codebook: dict) -> list[dict]:
+    """Missing flags in older codebooks retain the original all-active meaning."""
+    return [code for code in codebook.get("codes", []) if code.get("active", True)]
+
+
+def present_units(coding_set: dict, projection: dict[str, str] | None = None,
+                  active_code_ids: set[str] | None = None) -> Counter:
+    """Count active-code proposals, optionally merged through inactive parent entries."""
+    known = ({code["id"] for code in _active_codes(coding_set["codebook"])}
+             if active_code_ids is None else active_code_ids)
     counts: Counter = Counter()
     for item in coding_set["included"] + coding_set["excluded"] + coding_set.get("presence_only", []):
         code = item.get("code_id")
@@ -356,6 +363,8 @@ def coding_profile(coding_set: dict) -> dict:
         set_id=coding_set["set_id"], label=coding_set["label"], kind=coding_set["set_kind"],
         model=coding_set.get("model"), provider=coding_set.get("provider"),
         transcripts=len(sources),
+        active_codes=len(_active_codes(coding_set["codebook"])),
+        inactive_codes=len(known) - len(_active_codes(coding_set["codebook"])),
         coded_passages=proposals,
         passages_located=len(included),
         located_exactly=anchoring.get("unique_exact_quote", 0),
@@ -388,9 +397,11 @@ def _transcript_labels(sources: list[str]) -> dict[str, str]:
 def _presence_rows(left: dict, right: dict, sources: list[str], codes: list[dict], level: str,
                    projection: dict[str, str] | None, versus_reference: bool) -> list[dict]:
     labels = _transcript_labels(sources)
-    universe_codes = sorted({projection[c["id"]] if projection else c["id"] for c in codes})
+    universe_codes = sorted({projection[c["id"]] if projection else c["id"]
+                             for c in codes if c.get("active", True)})
     domains = {c["id"]: _domain(c) for c in codes}
-    a, b = present_units(left, projection), present_units(right, projection)
+    active_ids = {c["id"] for c in codes if c.get("active", True)}
+    a, b = present_units(left, projection, active_ids), present_units(right, projection, active_ids)
     scopes: dict[tuple[str, str], list[tuple[str, str]]] = {("all", "All"): []}
     for source in sources:
         for code in universe_codes:
@@ -406,6 +417,7 @@ def _presence_rows(left: dict, right: dict, sources: list[str], codes: list[dict
         neither = len(units) - both - left_only - right_only
         row = dict(level=level, scope_kind=scope_kind, scope=scope, left=left["set_id"], right=right["set_id"],
                    comparison="versus reference" if versus_reference else "between coding sets",
+                   n_codes=len({code for _, code in units}),
                    both=both, left_only=left_only, right_only=right_only, neither=neither,
                    **agreement_statistics(both, left_only, right_only, neither))
         row.update(reference_statistics(both, left_only, right_only) if versus_reference
@@ -471,7 +483,9 @@ def _codebook_differences(sets: list[dict]) -> list[dict]:
         for code in other["codebook"]["codes"]:
             original = baseline[code["id"]]
             fields = sorted(key for key in original.keys() | code.keys()
-                            if key != "section" and original.get(key) != code.get(key))
+                            if key != "section" and
+                            original.get(key, True if key == "active" else None) !=
+                            code.get(key, True if key == "active" else None))
             if fields:
                 differences.append(dict(left=first["set_id"], right=other["set_id"],
                                         code_id=code["id"], fields=fields))
@@ -494,7 +508,7 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
     warnings = [f"Code {item['code_id']} differs between {item['left']} and {item['right']}: "
                 + ", ".join(item["fields"]) + "." for item in differences]
     if differences:
-        warnings.append("Comparisons continue by code ID. Labels, domains and parent projections use the first coding set's codebook; interpret differences before reporting agreement.")
+        warnings.append("Comparisons continue by code ID. Labels, domains, active-code universe and parent projections use the first coding set's codebook; interpret differences before reporting agreement.")
     everything = same_transcripts_by_content(everything)
     sources = common_sources(everything)
     if not sources:
@@ -502,16 +516,21 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
     omitted = sorted({path for s in everything for path in s["sources"]} - set(sources))
     everything = [_restrict(s, set(sources)) for s in everything]
     coding_sets, reference = (everything[:-1], everything[-1]) if reference else (everything, None)
-    codes = everything[0]["codebook"]["codes"]
-    projection = parent_projection(everything[0]["codebook"])
-    merged_levels = any(projection[c] != c for c in projection)
+    codebook = everything[0]["codebook"]
+    codes = _active_codes(codebook)
+    active_ids = {c["id"] for c in codes}
+    projection = parent_projection(codebook)
+    merged_levels = any(projection[c["id"]] != c["id"] for c in codes)
+    code_universes = {"code": len(codes)}
+    if merged_levels:
+        code_universes["parent code"] = len({projection[c["id"]] for c in codes})
     presence, passages = [], []
     pairs = [(left, right, False) for left, right in combinations(coding_sets, 2)]
     pairs += [(coding_set, reference, True) for coding_set in coding_sets] if reference else []
     for left, right, versus in pairs:
-        presence += _presence_rows(left, right, sources, codes, "code", None, versus)
+        presence += _presence_rows(left, right, sources, codebook["codes"], "code", None, versus)
         if merged_levels:
-            presence += _presence_rows(left, right, sources, codes, "parent code", projection, versus)
+            presence += _presence_rows(left, right, sources, codebook["codes"], "parent code", projection, versus)
         passages.append(passage_agreement(left, right, versus_reference=versus))
         if len(sources) > 1:
             passages += [passage_agreement(left, right, versus_reference=versus, source=source) for source in sources]
@@ -522,21 +541,21 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
         if len(members) < 2:
             continue
         for level, proj in (("code", None), ("parent code", projection)) if merged_levels else (("code", None),):
-            counts = [present_units(m, proj) for m in members]
+            counts = [present_units(m, proj, active_ids) for m in members]
             universe = sorted({(s, proj[c["id"]] if proj else c["id"]) for s in sources for c in codes})
             values = [[1 if count[u] else 0 for count in counts] for u in universe]
             pairwise = [r for r in presence if r["level"] == level and r["scope_kind"] == "all"
                         and {r["left"], r["right"]} <= set(group) and r["comparison"] == "between coding sets"]
             stability.append(dict(
                 group=" + ".join(m["set_id"] for m in members), coding_sets=len(members), level=level,
-                n_units=len(universe), krippendorff_alpha=krippendorff_alpha_nominal(values),
+                n_codes=code_universes[level], n_units=len(universe), krippendorff_alpha=krippendorff_alpha_nominal(values),
                 units_all_agree=sum(1 for v in values if len(set(v)) == 1) / len(values) if values else None,
                 mean_pairwise_kappa=_mean([r["cohen_kappa"] for r in pairwise]),
             ))
     units = []
     labels = _transcript_labels(sources)
     for coding_set in everything:
-        counts = present_units(coding_set)
+        counts = present_units(coding_set, active_code_ids=active_ids)
         for source in sources:
             for code in codes:
                 units.append(dict(coding_set=coding_set["set_id"], transcript=labels[source],
@@ -555,6 +574,9 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
         warnings=warnings, codebook_differences=differences,
         transcripts_left_out=omitted,
         codes=len(codes),
+        codebook_codes=len(codebook["codes"]),
+        inactive_codes=len(codebook["codes"]) - len(codes),
+        code_universes=code_universes,
         presence=presence,
         passages=passages,
         stability=stability,
@@ -580,7 +602,8 @@ def _csv(rows: list[dict]) -> str:
 
 README = """# QualBench report
 
-Created {created}. {sets} coding sets on {transcripts} transcript(s) and {codes} codes.
+Created {created}. {sets} coding sets on {transcripts} transcript(s) and {codes} active codes.
+{universes}
 {reference}
 
 Resource accounting uses the ledger path saved in run settings, then the manifest, then the conventional study logs path. Missing ledgers or missing request usage produce unknown (null) cost/token totals, not zero. Profiles include accounting notes, estimated-cost flags and cached/write-cache/reasoning token totals when recorded. Legacy records without a token category leave it unknown.
@@ -596,8 +619,11 @@ Files (tidy tables, one row per observation):
 - `report.json`: everything above.
 
 Definitions
-- A unit is one transcript and one code. A code is present when the coding set applied it at least
-  once, whether or not the quotation was found in the transcript.
+- A code-level unit is one transcript and one active code. Missing active flags in older codebooks mean active.
+  Inactive entries are excluded as code-level units and proposals; they still define the hierarchy for
+  projecting active codes to their top-level parents. Parent universes contain those projected parents.
+  Universe counts use the first coding set's codebook; differences in active flags are warned about.
+  A code is present when the coding set applied it at least once, whether or not its quotation was found.
 - Percent agreement: share of units where both sets agree (present or absent).
 - Cohen's kappa: agreement corrected for chance using each set's own rate of applying codes.
   Low when codes are rarely applied, even if agreement is high.
@@ -636,6 +662,8 @@ def write_qualbench(report: dict, folder: Path) -> Path:
     (folder / "README.md").write_text(README.format(
         created=report["created_at_utc"][:16].replace("T", " ") + " UTC",
         sets=len(report["coding_sets"]), transcripts=len(report["transcripts"]), codes=report["codes"],
+        universes="Presence universes: " + "; ".join(
+            f"{level}: {count} codes" for level, count in report.get("code_universes", {"code": report["codes"]}).items()) + ".",
         reference=f"Reference: {reference['label']}." if reference else "No reference coding.",
         statement=(reference["statement"] if reference else ""),
         warnings="\n".join("- Warning: " + note for note in report.get("warnings", [])),

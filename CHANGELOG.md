@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Active-code presence units.** QualBench excludes inactive codes from code-level presence and stability universes while retaining their parent hierarchy. Reports show active and parent universe sizes and warn about differing active flags; older missing flags remain active.
+
 - **Unique transcript labels.** Sources sharing a filename use relative paths in QualBench presence, passage and unit-level rows, preventing pooled counts and distorted transcript means.
 
 - **Codebook compatibility warnings.** QualBench names changed code definitions, labels, parents and other code content while allowing comparison by matching IDs. Display-only section changes are ignored.

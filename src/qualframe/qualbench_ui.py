@@ -396,9 +396,13 @@ def _report_html(app, folder: Path) -> str:
         return (f'<div class="progress-table"><table><thead><tr>{head}<th>Units</th><th>Agreement</th><th>Kappa</th><th>AC1</th>'
                 f'<th>Precision</th><th>Recall</th><th>F1</th></tr></thead><tbody>{lines}</tbody></table></div>')
 
+    universes = report.get("code_universes")
+    universe_note = (f'<p class="muted">Presence universes: {universes["code"]} active codes'
+                     + (f'; {universes["parent code"]} parent codes' if "parent code" in universes else "")
+                     + '. Inactive entries can group active codes under parents, but are not separate code-level units.</p>') if universes else ""
     merged = presence_table("parent code", "all")
     out += (f'<section><div class="section-head"><h2>Which codes were applied</h2><span class="muted">One unit per transcript and code</span></div>'
-            f'{presence_table("code", "all")}'
+            f'{universe_note}{presence_table("code", "all")}'
             f'<p class="muted">Agreement counts units where both say present or both say absent. Kappa and AC1 correct for chance; '
             f'AC1 stays stable when most codes are absent or most are present. Precision, recall and F1 appear only against the reference.</p>'
             + (f'<details><summary>With sub-codes merged into their parent codes</summary>{merged}</details>' if merged else "")
