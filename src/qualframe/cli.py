@@ -240,6 +240,107 @@ def reconcile_usage(
     console.print(f"Reconciled {request_id}: USD {record.calculated_cost_usd:.6f}. No model call made.")
 
 
+def _finish(summary: dict, code: int = 0) -> None:
+    import json as _json
+
+    print(_json.dumps(summary, indent=2))
+    raise typer.Exit(code=code)
+
+
+_STOP_CODES = {"paused_for_spending_check": 2, "failed_request_needs_confirmation": 3}
+
+
+@app.command("code")
+def code_command(
+    study: Path = typer.Argument(..., help="The study's project.yaml."),
+    model: str = typer.Option("", help="Model preset ID (see config/model_presets.yaml), e.g. anthropic-haiku-5-5. Omit to keep the study's model."),
+    max_output_tokens: int = typer.Option(0, help="Maximum output tokens per request. Default: the preset's."),
+    spending_limit: float = typer.Option(0.0, help="The study's spending limit in USD. Default: unchanged."),
+    sample: list[str] = typer.Option([], help="A transcript to code (file name, or ID such as BC/5A). Repeat; omit for all transcripts."),
+    approve_up_to: float = typer.Option(0.0, help="Approve spending steps in advance, up to this study total in USD."),
+    researcher: str = typer.Option(..., help="Name recorded with the run and approvals."),
+    reason: str = typer.Option(..., help="Why this run is being made; recorded with it."),
+    progress_every: int = typer.Option(60, help="Seconds between progress lines."),
+) -> None:
+    """Start a coding run and wait for it to finish (for scripts and assistants). Prints a JSON summary.
+
+    Exit codes: 0 finished; 2 paused at a spending step; 3 a request failed and needs confirming; 1 other.
+    """
+    from qualframe.app_workspace import APP_ROOT
+    from qualframe.unattended import RunStopped, choose_model, start
+
+    project = study.resolve()
+    if model:
+        changed = choose_model(project, model, actor=researcher, rationale=reason, app_root=APP_ROOT,
+                               max_tokens=max_output_tokens or None, spending_limit=spending_limit or None)
+        print(f"Model: {model}" + (" (saved)" if changed else " (already set)"))
+    try:
+        summary = start(project, actor=researcher, rationale=reason, sample=list(sample) or None,
+                        approve_up_to=approve_up_to or None, every_seconds=progress_every)
+    except RunStopped as stopped:
+        print(f"Stopped: {stopped}")
+        _finish(stopped.summary, _STOP_CODES.get(stopped.status, 1))
+    _finish(summary)
+
+
+@app.command("resume")
+def resume_command(
+    study: Path = typer.Argument(..., help="The study's project.yaml."),
+    run: str = typer.Option(..., help="The run ID to continue."),
+    approve_up_to: float = typer.Option(0.0, help="Approve spending steps in advance, up to this study total in USD."),
+    researcher: str = typer.Option(...),
+    reason: str = typer.Option(...),
+    progress_every: int = typer.Option(60),
+) -> None:
+    """Continue a run that stopped. Answers already received are reused, not sent again."""
+    from qualframe.unattended import RunStopped, execute
+
+    try:
+        summary = execute(study.resolve(), run, actor=researcher, rationale=reason,
+                          approve_up_to=approve_up_to or None, every_seconds=progress_every)
+    except RunStopped as stopped:
+        print(f"Stopped: {stopped}")
+        _finish(stopped.summary, _STOP_CODES.get(stopped.status, 1))
+    _finish(summary)
+
+
+@app.command("status")
+def status_command(
+    study: Path = typer.Argument(..., help="The study's project.yaml."),
+    run: str = typer.Option("", help="Run ID. Default: the most recent run."),
+) -> None:
+    """Where a run stands: transcripts done, requests, cost, and anything waiting on a person (JSON)."""
+    from qualframe.unattended import run_status
+
+    project = study.resolve()
+    runner = ProjectRunner(project)
+    artifacts = resolve_repo_path(runner.repo_root, runner.project.paths["artifacts"])
+    if not run:
+        runs = sorted((p.name for p in artifacts.iterdir() if (p / "run_plan.json").exists()), reverse=True) if artifacts.exists() else []
+        if not runs:
+            raise typer.BadParameter("This study has no runs yet.")
+        run = runs[0]
+    _finish(run_status(project, run))
+
+
+@app.command("confirm-request")
+def confirm_request_command(
+    study: Path = typer.Argument(..., help="The study's project.yaml."),
+    request: str = typer.Option(..., help="Request ID, from qualframe status."),
+    charged: str = typer.Option(..., help='"no", "yes" (with --input-tokens and --output-tokens) or "maximum" (count its most possible cost).'),
+    input_tokens: int = typer.Option(0, min=0),
+    output_tokens: int = typer.Option(0, min=0),
+    researcher: str = typer.Option(...),
+    note: str = typer.Option(""),
+) -> None:
+    """Say whether a failed request was charged, so the run can resume."""
+    from qualframe.unattended import confirm_request
+
+    cost = confirm_request(study.resolve(), request, charged=charged, actor=researcher, note=note,
+                           input_tokens=input_tokens, output_tokens=output_tokens)
+    print(f"Recorded ${cost:.4f} for request {request}.")
+
+
 @app.command("approve-cost")
 def approve_cost(
     project_yaml: Path,

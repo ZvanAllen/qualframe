@@ -63,6 +63,7 @@ while coding {e(_what(row))}.</p>
 <dt>Most it could have cost</dt><dd>${float(row.get('estimated_cost_usd', 0)):.2f}</dd></dl>
 <fieldset><legend>Was it charged?</legend>
 <label class="check"><input type="radio" name="charged" value="no" checked><span><strong>No.</strong> It failed before the model wrote anything, for example because the account had run out of credit. A failure within a few seconds almost always means this; if you're unsure, check the provider's usage page.</span></label>
+<label class="check"><input type="radio" name="charged" value="maximum"><span><strong>Not sure.</strong> Count the most it could have cost (${float(row.get('estimated_cost_usd', 0)):.2f}), for example after a power cut or lost connection mid-request.</span></label>
 <label class="check"><input type="radio" name="charged" value="yes"><span><strong>Yes.</strong> Enter the tokens the provider's usage page shows for it.</span></label>
 <div class="token-fields"><label>Input tokens<input type="number" name="input_tokens" min="0" step="1" inputmode="numeric"></label>
 <label>Output tokens<input type="number" name="output_tokens" min="0" step="1" inputmode="numeric"></label></div>
@@ -94,6 +95,14 @@ def resolve_usage(app, form: dict[str, list[str]]) -> tuple[str, str]:
         raise ValueError("That request has already been resolved, or isn't part of this study.")
     record = _request_record(app, row)
     note = field("note")
+    if field("charged") == "maximum":
+        from qualframe.unattended import confirm_request
+
+        charged = confirm_request(app._managed_project_path(), request_id, charged="maximum", actor=reviewer, note=note)
+        left = len(cost.unresolved_requests())
+        return str(row.get("run_id", run_id)), (f"Recorded the most the failed request could have cost (${charged:.2f})."
+                                                + (" You can resume the run." if not left else
+                                                   f" {left} more failed request{'s' if left > 1 else ''} to confirm."))
     if field("charged") == "yes":
         try:
             input_tokens, output_tokens = int(field("input_tokens") or 0), int(field("output_tokens") or 0)

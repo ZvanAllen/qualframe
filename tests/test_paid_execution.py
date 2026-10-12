@@ -481,3 +481,28 @@ def test_a_resumed_run_reuses_answers_it_already_paid_for(tmp_path):
     resumed._complete(provider=NS(complete=answer), cost_controller=cost, stage_id="coding",
                       input_label="t2::Innovation", user_prompt="domain one")
     assert calls == ["domain one", "domain one, edited", "domain one"]
+
+
+def test_failed_request_can_be_counted_at_its_maximum(tmp_path):
+    root = make_test_repo(tmp_path)
+    workspace = StudyWorkspace(root)
+    created = workspace.create(StudyCreationRequest(
+        title="Paid synthetic", data_classification="synthetic", include_synthetic_fixtures=True))
+    project = root / created.project_manifest_path
+    save_provider_setup(workspace, project, settings(), actor="Tester", rationale="Synthetic QA")
+    runner = ProjectRunner(project)
+    runner.save_run_plan(runner.build_run_plan(), "paid-test")
+    app = DashboardApp(runner)
+    cost = runner._build_cost_controller(run_id="paid-test", artifact_root=app.artifacts_dir / "paid-test")
+
+    def cut(**kwargs):
+        raise RuntimeError("Connection error.")
+
+    with pytest.raises(RuntimeError):
+        runner._complete(provider=NS(complete=cut), cost_controller=cost, stage_id="coding", input_label="a::b", user_prompt="u")
+    [row] = cost.unresolved_requests()
+    assert "Not sure." in app._local_execution_control("paid-test", "Resume this run")
+    _, message = app.handle_action("/usage/resolve", {"request_id": [row["request_id"]], "run_id": ["paid-test"],
+                                                     "charged": ["maximum"], "reviewer": ["Tester"]})
+    assert "most the failed request could have cost" in message and not cost.unresolved_requests()
+    assert cost.project_cost_usd() == pytest.approx(row["estimated_cost_usd"], rel=1e-3)

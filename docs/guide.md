@@ -56,6 +56,19 @@ Each change saves a new method version. Runs record exactly which version they u
 
 **Code a sample first.** Under *Transcripts to code*, choose *A sample* and tick a few transcripts to check the model's output and the actual cost before coding everything. Sample runs are labelled as such, and Compare runs compares a sample with a full run on the transcripts both coded.
 
+## Running coding from the command line
+
+For scripts, or an assistant that runs a study while you're away, QualFrame has commands that start a run and wait for it to finish. Run them from the QualFrame application folder (with `uv run --no-sync` in front on Windows). The same rules apply as in the app: the study's spending limit, a recorded approval for each spending step, and your answer before a failed request is retried.
+
+| Command | What it does |
+| --- | --- |
+| `qualframe code STUDY.yaml --researcher NAME --reason TEXT` | Codes every transcript with the study's model. Add `--model PRESET` (from `config/model_presets.yaml`), `--max-output-tokens`, `--spending-limit`, `--sample ID` (repeat; for example `--sample BC/5A`), and `--approve-up-to USD` to approve spending steps in advance. |
+| `qualframe resume STUDY.yaml --run RUN --researcher NAME --reason TEXT` | Continues a stopped run; answers already received are reused. |
+| `qualframe status STUDY.yaml [--run RUN]` | Shows where a run stands, as JSON. |
+| `qualframe confirm-request STUDY.yaml --request ID --charged no\|yes\|maximum --researcher NAME` | Records whether a failed request was charged. `maximum` counts the most it could have cost. |
+
+`code` and `resume` print progress every minute and a JSON summary at the end. Exit codes: 0 finished, 2 paused at a spending step, 3 a request failed and needs confirming, 1 anything else. Don't start runs in the app while a command-line run is going.
+
 ## Review
 
 Each proposal shows the code, its definition and guidance, the model's reason, and the highlighted passage in the transcript.
