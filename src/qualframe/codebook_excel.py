@@ -19,6 +19,7 @@ FIELDS = {
     "inclusion_guidance": "Include when",
     "exclusion_guidance": "Exclude when",
     "examples": "Examples (one per line)",
+    "active": "Active",
 }
 REQUIRED = {"id", "label", "definition"}
 
@@ -56,12 +57,14 @@ def read_excel(content: bytes) -> list[ExcelSheet]:
                         value = cell.value
                         if value is None:
                             row.append("")
-                        elif isinstance(value, (str, int, float)) and not isinstance(value, bool):
+                        elif isinstance(value, bool):
+                            row.append("true" if value else "false")
+                        elif isinstance(value, (str, int, float)):
                             row.append(str(value).strip())
                         else:
                             raise ValueError(
-                                f"{sheet.title}!{cell.coordinate}: use text or numbers, "
-                                "not dates or booleans."
+                                f"{sheet.title}!{cell.coordinate}: use text, numbers, or booleans, "
+                                "not dates."
                             )
                     rows.append(row)
                 result.append(ExcelSheet(sheet.title, rows))
@@ -122,7 +125,17 @@ def convert_excel(
         values["examples"] = [
             line.strip() for line in values.get("examples", "").splitlines() if line.strip()
         ]
-        codes.append(CodebookEntry(**values))
+        active_value = values.pop("active", "").strip().casefold()
+        if active_value in {"", "yes", "true", "1"}:
+            active = True
+        elif active_value in {"no", "false", "0"}:
+            active = False
+        else:
+            raise ValueError(
+                f"Row {row_number}: Active must be yes/no, true/false, or 1/0 "
+                "(blank means yes)."
+            )
+        codes.append(CodebookEntry(active=active, **values))
     if not codes:
         raise ValueError("No code rows found below the selected header.")
     return CodebookSpec(

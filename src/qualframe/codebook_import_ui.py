@@ -35,6 +35,7 @@ def mapping_view(workflow: ExcelImportWorkflow, options: dict[str, str]) -> str:
             "label": ["label", "code", "name", "code label", "code name", "construct", "category", "theme"],
             "definition": ["definition", "description", "code definition", "meaning"],
             "parent_id": ["parent id", "parent code id", "parent", "parent code", "domain id"],
+            "active": ["active"],
             "examples": ["examples", "example", "example quotes", "anchor examples"],
             "inclusion_guidance": ["inclusion", "include when", "include", "inclusion criteria", "when to use"],
             "exclusion_guidance": ["exclusion", "exclude when", "exclude", "exclusion criteria", "when not to use"],
@@ -67,7 +68,7 @@ def mapping_view(workflow: ExcelImportWorkflow, options: dict[str, str]) -> str:
 <button>Show selected table</button></form>
 <p>First five data rows. Preview cells are limited to 200 characters; full values are preserved on import. Store IDs as text in Excel to preserve leading zeros.</p>
 <div style="overflow-x:auto"><table><thead><tr>{header}</tr></thead><tbody>{rows}</tbody></table></div></section>
-<section><h2>2. Map your columns</h2><p>Required fields are marked *. Each code needs a stable ID, label, and definition. Use parent IDs for a hierarchy; leave that mapping blank for a flat codebook. Examples use one entry per line.</p>
+<section><h2>2. Map your columns</h2><p>Required fields are marked *. Each code needs a stable ID, label, and definition. Use parent IDs for a hierarchy; leave that mapping blank for a flat codebook. Examples use one entry per line. Active accepts yes/no, true/false, or 1/0; leave the cell or mapping blank to make codes active. Inactive codes can group child codes in a hierarchy but are excluded from model coding options.</p>
 <form method="post" action="/codebook/preview" class="grid">
 {hidden({"token": token, "sheet": sheet.name, "header_row": str(header_row)})}
 <label>Codebook name<input name="name" value="{escape(metadata["filename"].rsplit(".", 1)[0])}" required></label>
@@ -79,12 +80,13 @@ def mapping_view(workflow: ExcelImportWorkflow, options: dict[str, str]) -> str:
 def confirmation_view(workflow: ExcelImportWorkflow, options: dict[str, str]) -> str:
     codebook, _, _ = workflow.convert(options.get("token", ""), options)
     rows = "".join(
-        f"<tr><td>{escape(c.id)}</td><td>{escape(c.label)}</td><td>{escape(c.parent_id or '—')}</td><td>{escape(c.definition)}</td></tr>"
+        f"<tr><td>{escape(c.id)}</td><td>{escape(c.label)}</td><td>{escape(c.parent_id or '—')}</td><td>{escape(c.definition)}</td><td>{'Yes' if c.active else 'No'}</td></tr>"
         for c in codebook.codes[:50]
     )
+    active_count = sum(c.active for c in codebook.codes)
     back = "/codebook/excel?" + urlencode({k: options[k] for k in ("token", "sheet", "header_row")})
-    return f'''<section><h2>3. Confirm codebook import</h2><p><strong>{escape(codebook.name)}</strong>: {len(codebook.codes)} validated codes. Showing up to 50 codes. All codes were checked.</p>
-<div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>Code</th><th>Parent ID</th><th>Definition</th></tr></thead><tbody>{rows}</tbody></table></div>
+    return f'''<section><h2>3. Confirm codebook import</h2><p><strong>{escape(codebook.name)}</strong>: {len(codebook.codes)} validated codes. {active_count} active; {len(codebook.codes) - active_count} inactive. Showing up to 50 codes. All codes were checked.</p>
+<div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>Code</th><th>Parent ID</th><th>Definition</th><th>Active</th></tr></thead><tbody>{rows}</tbody></table></div>
 <p>Import creates a new active codebook version and preserves the original workbook, column mapping, and previous versions. Completed runs are unchanged.</p>
 <form action="/codebook/commit" method="post">{hidden(options)}<button>Import this codebook version</button></form>
 <p><a href="{escape(back)}">Back to column mapping</a></p></section>'''

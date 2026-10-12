@@ -24,6 +24,8 @@ QualFrame applies one codebook at a time. Codes can be flat or nested (a parent 
 
 **Importing from Excel.** Put one code per row. QualFrame previews the sheet, suggests which columns hold which fields, and checks the codebook before saving: duplicate IDs, missing definitions, unknown parent codes and circular hierarchies are reported. Formulas must be pasted as values. The original workbook and the column mapping are kept with the study.
 
+**Active codes.** The optional **Active** column accepts yes/no, true/false or 1/0, ignoring letter case. A blank cell or missing column means active. Use no for hierarchy-only parent groups: they remain valid parents but are not offered to the model as codes. Invalid values identify the Excel row to correct. The mapping page detects Active, and the preview shows each code's value and the active/inactive totals. The downloadable example includes the column.
+
 **Changing the codebook.** Importing again creates a new version. Earlier runs keep the version they used, so their results still make sense.
 
 **How the codebook reaches the model.** By default the whole codebook goes in each request. For long codebooks you can send one top-level category per request instead (**Run coding**, then **Coding options**). That means more requests, but each one asks the model to consider fewer codes.
