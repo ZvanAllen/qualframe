@@ -264,8 +264,10 @@ def parse_decisions_json(text: str) -> dict[str, list[dict[str, str]]] | None:
         raise ValueError("The decision response is not valid JSON.") from exc
     if not isinstance(payload, dict) or not isinstance(payload.get("decisions"), list):
         raise ValueError("The decision response must contain a decisions list.")
-    rows: list[dict[str, str]] = []
-    states: dict[str, bool] = {}
+    # Structural errors fail the request. Contradictions between well-formed entries do not:
+    # a paid answer is kept, and an entry that contradicts itself or another never becomes an
+    # absence. The raw response stays in the request record for audit.
+    entries: list[tuple[str, bool, dict]] = []
     for index, item in enumerate(payload["decisions"], start=1):
         if not isinstance(item, dict) or type(item.get("present")) is not bool:
             raise ValueError(f"Decision {index} must contain a boolean present value.")
@@ -274,14 +276,18 @@ def parse_decisions_json(text: str) -> dict[str, list[dict[str, str]]] | None:
         code_id = item["code_id"].strip()
         if not code_id:
             raise ValueError(f"Decision {index} has an empty code_id.")
-        present = item["present"]
-        if not present and item["quote"] != "":
-            raise ValueError(f"Absent decision {index} must have an empty quote.")
-        if code_id in states and (not present or not states[code_id]):
-            raise ValueError(
-                f"Code {code_id!r} has conflicting decisions or repeated absence declarations."
-            )
-        states[code_id] = present
+        entries.append((code_id, item["present"], item))
+    present_codes = {code for code, present, _ in entries if present}
+    # An "absent" entry that carries a quotation contradicts itself: it is dropped, so the code
+    # counts as present (if another entry says so) or as having no decision.
+    contradictory = {code for code, present, item in entries if not present and item["quote"] != ""}
+    rows: list[dict[str, str]] = []
+    absences_written: set[str] = set()
+    for code_id, present, item in entries:
+        if not present:
+            if code_id in present_codes or code_id in contradictory or code_id in absences_written:
+                continue
+            absences_written.add(code_id)
         # The contract has no meaning-unit field. Repeated exact quotations
         # share an evidence unit across partitions for cardinality QA; unrelated
         # first quotations in different partitions must not collide by row number.

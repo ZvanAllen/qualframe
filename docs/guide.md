@@ -42,7 +42,7 @@ QualFrame applies one codebook at a time. Codes can be flat or nested (a parent 
 
 **Coding options.**
 
-- *Coding style*: **Find passages that fit** (the default) asks for fewer, stronger codings. **Decide on every code** is more complete; suited to checklists such as CFIR or BCT annotation. It costs a little more output.
+- *Coding style*: **Find passages that fit** (the default) asks for fewer, stronger codings. **Decide on every code** is more complete; suited to checklists such as CFIR or BCT annotation. It costs a little more output. If the model contradicts itself about a code, for example marking it absent and also quoting evidence for it, QualFrame keeps the evidence and never records an absence from a contradictory answer; a code left with no clear decision is counted as "no decision".
 - *Codes per passage*: one, or several.
 - *How much of the codebook goes in each request*: all of it, one top-level category at a time, or the study's existing custom groups. Both coding styles work with every split.
 - *Context saved*: how many sentences before and after each coded passage are saved with it in exports. This doesn't change what is coded.

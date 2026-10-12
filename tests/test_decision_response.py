@@ -79,14 +79,22 @@ def test_same_quote_with_different_codes_shares_a_meaning_unit() -> None:
     [dict(code_id="a", present=0, quote="", rationale="reason")],
     [dict(code_id="a", present=False, quote=None, rationale="reason")],
     [dict(code_id="", present=False, quote="", rationale="reason")],
-    [_decision("a", False, "A contradictory quotation")],
-    [_decision("a", False), _decision("a", False)],
-    [_decision("a", False), _decision("a", True, "Evidence")],
-    [_decision("a", True, "Evidence"), _decision("a", False)],
 ])
-def test_malformed_or_conflicting_decisions_cannot_become_absences(decisions: list) -> None:
+def test_malformed_decisions_fail_the_request(decisions: list) -> None:
     with pytest.raises(ValueError):
         _parse(decisions)
+
+
+def test_contradictory_decisions_keep_evidence_and_never_become_absences() -> None:
+    def kinds(decisions):
+        return [(row["Code ID"], row["Record Kind"]) for row in _parse(decisions)["Directed Coding"]]
+    # An absence that carries a quotation is dropped: the code has no decision.
+    assert kinds([_decision("a", False, "A contradictory quotation")]) == []
+    # Present wins over absent, in either order.
+    assert kinds([_decision("a", False), _decision("a", True, "Evidence")]) == [("a", "evidence")]
+    assert kinds([_decision("a", True, "Evidence"), _decision("a", False)]) == [("a", "evidence")]
+    # A repeated absence is recorded once.
+    assert kinds([_decision("a", False), _decision("a", False)]) == [("a", "absence")]
 
 
 @pytest.mark.parametrize("response", [
