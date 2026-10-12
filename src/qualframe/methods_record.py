@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 from pathlib import Path
+from statistics import median
 
 import yaml
 
@@ -110,7 +111,7 @@ def build_methods_record(app, run_id: str) -> dict:
             "added_by_researchers": len(additions),
             "added_by_code": dict(Counter(r.code_label or r.proposed_code_id for r in additions)),
             "timed_decisions": len(seconds),
-            "median_seconds_per_decision": seconds[len(seconds) // 2] if seconds else None,
+            "median_seconds_per_decision": median(seconds) if seconds else None,
         },
         "saved_comparisons": comparisons,
     }

@@ -89,7 +89,7 @@ To change a passage, select the right text in the transcript, press **U**, then 
 
 **Proposals that need your help.** If the model's quotation can't be found in the transcript, or appears more than once, the proposal can't be accepted as it is. Select the passage yourself or reject it. If the quotation differs from the transcript only in punctuation or spacing (curly quotes, hyphen variants, extra spaces), QualFrame highlights the transcript's own text and says so; accepting it records the transcript's wording, never the model's.
 
-**Time per decision.** QualFrame notes how long each proposal was open (only while the window is visible) and saves it alongside the decision. The methods record reports the median, which is useful when describing review effort.
+**Time per decision.** QualFrame notes how long each proposal was open (only while the window is visible) and saves it alongside the decision. The methods record reports the median, using the mean of the two middle times when there is an even number of timed decisions. This is useful when describing review effort.
 
 **Nothing is overwritten.** Every decision is added to the study's review record with your name and the time. Changing your mind adds a new decision; the history is kept.
 

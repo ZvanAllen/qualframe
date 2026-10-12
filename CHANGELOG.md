@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Review-time median.** Even numbers of timed decisions now use the mean of the two middle values.
+
 - **Add codes the model missed.** Select a passage during review and press N to add a code. Additions count in results and exports, are marked as researcher additions, and are reported in the methods record.
 - **Review time.** Each decision records how long the proposal was open; the methods record reports the median.
 - **Typography-tolerant locating.** Quotations that differ from the transcript only in quotation marks, hyphen variants or spacing are located and highlighted for confirmation instead of left for manual search.
