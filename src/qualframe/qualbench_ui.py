@@ -346,6 +346,9 @@ def _report_html(app, folder: Path) -> str:
     names = {s["set_id"]: s["label"] for s in report["coding_sets"]}
     name = lambda set_id: e(names.get(set_id, set_id))
     out = ""
+    if report.get("warnings"):
+        out += '<div class="notice"><strong>Codebook compatibility</strong><ul>' + "".join(
+            f'<li>{e(note)}</li>' for note in report["warnings"]) + '</ul></div>'
     reference = report.get("reference")
     if reference:
         out += (f'<div class="notice"><strong>About the reference.</strong> {e(reference["statement"])} '

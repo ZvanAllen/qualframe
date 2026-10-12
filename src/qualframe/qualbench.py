@@ -453,6 +453,22 @@ def passage_agreement(left: dict, right: dict, *, versus_reference: bool, source
     return row
 
 
+def _codebook_differences(sets: list[dict]) -> list[dict]:
+    """Name changed code content without treating display-only section labels as meaning."""
+    first = sets[0]
+    baseline = {code["id"]: code for code in first["codebook"]["codes"]}
+    differences = []
+    for other in sets[1:]:
+        for code in other["codebook"]["codes"]:
+            original = baseline[code["id"]]
+            fields = sorted(key for key in original.keys() | code.keys()
+                            if key != "section" and original.get(key) != code.get(key))
+            if fields:
+                differences.append(dict(left=first["set_id"], right=other["set_id"],
+                                        code_id=code["id"], fields=fields))
+    return differences
+
+
 def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
                     stability_groups: list[list[str]] | None = None) -> dict:
     """Compare every pair of coding sets, and each with the reference, on the transcripts all share."""
@@ -465,6 +481,11 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
     code_ids = [_known(s) for s in everything]
     if any(ids_ != code_ids[0] for ids_ in code_ids[1:]):
         raise ValueError("All coding sets must use the same codebook.")
+    differences = _codebook_differences(everything)
+    warnings = [f"Code {item['code_id']} differs between {item['left']} and {item['right']}: "
+                + ", ".join(item["fields"]) + "." for item in differences]
+    if differences:
+        warnings.append("Comparisons continue by code ID. Labels, domains and parent projections use the first coding set's codebook; interpret differences before reporting agreement.")
     everything = same_transcripts_by_content(everything)
     sources = common_sources(everything)
     if not sources:
@@ -521,6 +542,7 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
                        independent_human_coding=bool(reference.get("independent_human_coding")))
         if reference else None,
         transcripts=sources,
+        warnings=warnings, codebook_differences=differences,
         transcripts_left_out=omitted,
         codes=len(codes),
         presence=presence,
@@ -586,6 +608,7 @@ Definitions
   for chance. 1 is perfect agreement; 0 is agreement at chance.
 
 Interpretation
+{warnings}
 - A reference is not treated as correct coding. {statement}
 - Comparisons use the model's original proposals, before any review.
 """
@@ -605,5 +628,6 @@ def write_qualbench(report: dict, folder: Path) -> Path:
         sets=len(report["coding_sets"]), transcripts=len(report["transcripts"]), codes=report["codes"],
         reference=f"Reference: {reference['label']}." if reference else "No reference coding.",
         statement=(reference["statement"] if reference else ""),
+        warnings="\n".join("- Warning: " + note for note in report.get("warnings", [])),
     ), encoding="utf-8")
     return folder

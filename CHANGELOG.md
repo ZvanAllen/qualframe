@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Codebook compatibility warnings.** QualBench names changed code definitions, labels, parents and other code content while allowing comparison by matching IDs. Display-only section changes are ignored.
+
 - **Unknown usage stays unknown.** QualBench follows saved ledger locations and reports missing costs/tokens as null with a note. Profiles retain estimated-cost flags and recorded cache/reasoning token categories; historical reports retain whole-run cost labels.
 
 - **Live command-line status.** Running workers publish a heartbeat at least every 30 seconds. Status distinguishes running/stopped and lists active requests as in flight. Confirmation and duplicate execution are blocked while active, and same-second starts cannot overwrite another run.
