@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Repeat configurations.** QualBench groups runs, including runs from other studies, by all saved provider settings and locked coding asset hashes. Spending limits, prices and study paths do not define a repeat. The report shows the settings used; incomplete historical records are left ungrouped.
+
 - **Review-time median.** Even numbers of timed decisions now use the mean of the two middle values.
 
 - **Add codes the model missed.** Select a passage during review and press N to add a code. Additions count in results and exports, are marked as researcher additions, and are reported in the methods record.

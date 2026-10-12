@@ -8,8 +8,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
-from qualframe.comparison_ui import _run_label, _run_setup
+from qualframe.comparison_ui import _run_label
 from qualframe.qualbench import build_qualbench, reference_coding_set, run_coding_set, write_qualbench
+from qualframe.repeat_configuration import automatic_stability_groups
 from qualframe.reference_coding import (
     build_reference_coding,
     list_references,
@@ -101,13 +102,13 @@ def build_qualbench_form(app, form: dict[str, list[str]]) -> tuple[str, str]:
     reference = None
     if reference_id:
         reference = reference_coding_set(load_reference_coding(references[reference_id]["path"], app.repo_root))
-    # Runs with the same model, instructions and options are repeats: report their stability too.
-    groups: dict[tuple, list[str]] = {}
-    for run_id in chosen:
-        setup = _run_setup(app, run_id, {})
-        groups.setdefault(tuple(setup.values()), []).append(run_id)
+    selected_roots = [(run_id, app.artifacts_dir / run_id) for run_id in chosen]
+    selected_roots += [(key, others[key][0]) for key in elsewhere]
+    groups, skipped = automatic_stability_groups(selected_roots)
     report = build_qualbench(sets, reference=reference,
-                             stability_groups=[ids for ids in groups.values() if len(ids) > 1])
+                             stability_groups=[group["members"] for group in groups])
+    report["stability_configurations"] = groups
+    report["stability_grouping_notes"] = skipped
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     write_qualbench(report, _reports_root(app) / stamp)
     count = len(report["transcripts"])
@@ -316,7 +317,7 @@ def _chooser(app, runs: list[str], references: list[dict]) -> str:
     return (f'<section><h2>Build a report</h2><form method="post" action="/qualbench/build">'
             f'<input type="hidden" name="study_identity" value="{e(app.runner.project.project_id)}">'
             f'<fieldset><legend>Coding runs</legend><div class="sample-groups">{run_boxes}</div></fieldset>{other_field}{reference_field}'
-            f'<p class="muted">Runs with the same model, instructions and options are treated as repeats, and their stability is reported. '
+            f'<p class="muted">Runs with identical saved model settings, instructions and coding configuration are grouped as repeats, including runs from other studies. Spending limits and prices are ignored. '
             f'Comparisons use the transcripts every chosen run coded, and the model\'s proposals before review.</p>'
             f'<button>Build report</button></form></section>')
 
@@ -381,6 +382,17 @@ def _report_html(app, folder: Path) -> str:
             for r in report["stability"])
         out += (f'<section><h2>Stability across repeats</h2><div class="progress-table"><table><thead><tr><th>Repeat runs</th><th>Level</th>'
                 f'<th>Units</th><th>Krippendorff\'s alpha</th><th>Units where all agree</th></tr></thead><tbody>{lines}</tbody></table></div></section>')
+    configurations = report.get("stability_configurations", [])
+    skipped = report.get("stability_grouping_notes", [])
+    if configurations or skipped:
+        details = "".join(
+            f'<details><summary>{e(", ".join(names.get(i, i) for i in group["members"]))}</summary>'
+            f'<p>Same saved provider settings and every coding asset hash; spending limits and prices are excluded.</p>'
+            f'<pre class="source-preview">{e(json.dumps(group, indent=2))}</pre></details>'
+            for group in configurations)
+        notes = "".join(f'<li>{e(names.get(item["run_id"], item["run_id"]))}: {e(item["reason"])}</li>' for item in skipped)
+        out += (f'<section><h2>Settings that define repeat groups</h2>{details}'
+                + (f'<p>Not grouped automatically:</p><ul>{notes}</ul>' if notes else "") + '</section>')
     links = " / ".join(app._file_link(folder / f, label) for f, label in (
         ("presence.csv", "Code agreement (CSV)"), ("passages.csv", "Passage agreement (CSV)"),
         ("coding_sets.csv", "Coding sets (CSV)"), ("units.csv", "Unit-level data (CSV)"),
