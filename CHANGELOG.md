@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Unique transcript labels.** Sources sharing a filename use relative paths in QualBench presence, passage and unit-level rows, preventing pooled counts and distorted transcript means.
+
 - **Codebook compatibility warnings.** QualBench names changed code definitions, labels, parents and other code content while allowing comparison by matching IDs. Display-only section changes are ignored.
 
 - **Unknown usage stays unknown.** QualBench follows saved ledger locations and reports missing costs/tokens as null with a note. Profiles retain estimated-cost flags and recorded cache/reasoning token categories; historical reports retain whole-run cost labels.

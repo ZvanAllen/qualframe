@@ -378,8 +378,16 @@ def coding_profile(coding_set: dict) -> dict:
 
 # ---------------------------------------------------------------- comparisons
 
+def _transcript_labels(sources: list[str]) -> dict[str, str]:
+    """Use relative paths wherever a basename would identify more than one source."""
+    names = {source: source.replace("\\", "/").rsplit("/", 1)[-1] for source in sources}
+    counts = Counter(names.values())
+    return {source: source if counts[name] > 1 else name for source, name in names.items()}
+
+
 def _presence_rows(left: dict, right: dict, sources: list[str], codes: list[dict], level: str,
                    projection: dict[str, str] | None, versus_reference: bool) -> list[dict]:
+    labels = _transcript_labels(sources)
     universe_codes = sorted({projection[c["id"]] if projection else c["id"] for c in codes})
     domains = {c["id"]: _domain(c) for c in codes}
     a, b = present_units(left, projection), present_units(right, projection)
@@ -389,7 +397,7 @@ def _presence_rows(left: dict, right: dict, sources: list[str], codes: list[dict
             unit = (source, code)
             scopes[("all", "All")].append(unit)
             scopes.setdefault(("domain", domains.get(code, "All codes")), []).append(unit)
-            scopes.setdefault(("transcript", source.rsplit("/", 1)[-1]), []).append(unit)
+            scopes.setdefault(("transcript", labels[source]), []).append(unit)
     rows = []
     for (scope_kind, scope), units in scopes.items():
         both = sum(1 for u in units if a[u] and b[u])
@@ -424,8 +432,9 @@ def passage_agreement(left: dict, right: dict, *, versus_reference: bool, source
     left_items, right_items = located(left), located(right)
     a = [_Span(i["source"], i["code_id"], i["start"], i["end"], (i["record_id"],)) for i in left_items]
     b = [_Span(i["source"], i["code_id"], i["start"], i["end"], (i["record_id"],)) for i in right_items]
+    labels = _transcript_labels(sorted(set(left["sources"]) | set(right["sources"])))
     row = dict(scope_kind="all" if source is None else "transcript",
-               scope="All" if source is None else source.rsplit("/", 1)[-1],
+               scope="All" if source is None else labels[source],
                left=left["set_id"], right=right["set_id"],
                comparison="versus reference" if versus_reference else "between coding sets",
                left_passages=len(a), right_passages=len(b))
@@ -525,11 +534,12 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
                 mean_pairwise_kappa=_mean([r["cohen_kappa"] for r in pairwise]),
             ))
     units = []
+    labels = _transcript_labels(sources)
     for coding_set in everything:
         counts = present_units(coding_set)
         for source in sources:
             for code in codes:
-                units.append(dict(coding_set=coding_set["set_id"], transcript=source.rsplit("/", 1)[-1],
+                units.append(dict(coding_set=coding_set["set_id"], transcript=labels[source],
                                   domain=_domain(code), code_id=code["id"], code=code.get("label", code["id"]),
                                   parent_code_id=projection[code["id"]], present=1 if counts[(source, code["id"])] else 0,
                                   proposals=counts[(source, code["id"])]))
@@ -602,7 +612,7 @@ Definitions
   combined extent (IoU ≥ 0.25, 0.5, 0.75), or with any overlap.
   F1 = 2 × matched / (passages in left + passages in right).
 - Scopes: "all" pools every unit or passage; "transcript" rows give each transcript separately;
-  "transcript mean" weights each transcript equally (the mean of the transcript rows).
+  "transcript mean" weights each transcript equally (the mean of the transcript rows). When filenames repeat, transcript labels use relative paths so distinct sources stay separate.
 - Coded-text Jaccard: characters both sets coded with the same code, out of characters either did.
 - Krippendorff's alpha (nominal): agreement among several coding sets on the same units, corrected
   for chance. 1 is perfect agreement; 0 is agreement at chance.
