@@ -169,6 +169,7 @@ def _write_heartbeat(run_root: Path) -> None:
 def _run_lock(run_root: Path, message: str) -> Iterator[None]:
     """Serialize execution and reconciliation; the OS releases this lock on process death."""
     handle = (run_root / "execution.lock").open("a+b")
+    locked = False
     try:
         if handle.tell() == 0:
             handle.write(b"0")
@@ -181,10 +182,24 @@ def _run_lock(run_root: Path, message: str) -> Iterator[None]:
             else:
                 import fcntl
                 fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            locked = True
         except OSError as exc:
             raise ValueError(message) from exc
         yield
     finally:
+        # Unlock explicitly: Windows may release a lock left on a closed file only after a delay,
+        # which would make an immediate confirm-request or resume report the run as still running.
+        if locked:
+            try:
+                handle.seek(0)
+                if os.name == "nt":
+                    import msvcrt
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                pass
         # Keep the file: deleting a lock file can let other workers lock different inodes.
         handle.close()
 
