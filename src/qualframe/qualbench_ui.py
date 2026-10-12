@@ -334,7 +334,8 @@ def _report_html(app, folder: Path) -> str:
     rows = "".join(
         f'<tr><td>{name(s["set_id"])}</td><td>{s["transcripts"]}</td><td>{s["coded_passages"]}</td>'
         f'<td>{_pct(s["share_located"])}</td><td>{_num(s["codes_present_per_transcript"], 1)}</td>'
-        f'<td>{_money(s.get("cost_usd"))}</td><td>{_minutes(s.get("elapsed_seconds"))}</td></tr>'
+        f'<td>{_money(s.get("cost_usd"))}</td><td>{_minutes(s.get("elapsed_seconds"))}</td>'
+        f'<td>{_money(s.get("whole_run_cost_usd"))}</td><td>{_minutes(s.get("whole_run_elapsed_seconds"))}</td></tr>'
         for s in report["coding_sets"])
     omitted = report.get("transcripts_left_out") or []
     count = len(report["transcripts"])
@@ -342,7 +343,8 @@ def _report_html(app, folder: Path) -> str:
              + (f'; {len(omitted)} covered by only some are left out' if omitted else ""))
     out += (f'<section><div class="section-head"><h2>Coding sets</h2><span class="muted">{e(scope)}</span></div>'
             f'<div class="progress-table"><table><thead><tr><th>Coding</th><th>Transcripts</th><th>Coded passages</th>'
-            f'<th>Quotations found</th><th>Codes per transcript</th><th>Cost</th><th>Time</th></tr></thead><tbody>{rows}</tbody></table></div></section>')
+            f'<th>Quotations found</th><th>Codes per transcript</th><th>Compared cost</th><th>Compared request time</th><th>Whole-run cost</th><th>Whole-run request time</th></tr></thead><tbody>{rows}</tbody></table></div>'
+            f'<p class="muted">Compared totals cover the transcripts in this report and their first coding step. Whole-run totals include other transcripts and later steps. Downloads include requests, tokens and per-transcript means. Time sums provider requests, not study wall time.</p></section>')
 
     def presence_table(level: str, scope_kind: str) -> str:
         chosen = [r for r in report["presence"] if r["level"] == level and r["scope_kind"] == scope_kind]

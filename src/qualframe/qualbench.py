@@ -124,34 +124,69 @@ def parent_projection(codebook: dict) -> dict[str, str]:
     return parents
 
 
+def _latest_request_rows(path: Path, run_id: str, project_id: str | None) -> dict[str, dict]:
+    """Reconciliation appends a replacement for the same request; count it once."""
+    latest: dict[str, dict] = {}
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("run_id") == run_id and row.get("project_id", project_id) == project_id:
+                latest[str(row["request_id"])] = row
+    return latest
+
+
+def _usage_totals(records: list[dict]) -> dict:
+    elapsed = [float(row["elapsed_seconds"]) for row in records if row.get("elapsed_seconds") is not None]
+    return dict(
+        requests=len(records),
+        input_tokens=sum(int(row.get("input_tokens") or 0) for row in records),
+        output_tokens=sum(int(row.get("output_tokens") or 0) for row in records),
+        cost_usd=round(sum(float(row.get("calculated_cost_usd") or 0) for row in records), 6),
+        elapsed_seconds=round(sum(elapsed), 1) if elapsed else None,
+    )
+
+
+def _run_usage(run_root: Path, payload: dict, plan: dict) -> list[dict]:
+    ledger = run_root.parents[1] / "logs/cost_ledger.jsonl"
+    latest = _latest_request_rows(ledger, run_root.name, payload.get("project_id"))
+    reservations = _latest_request_rows(
+        ledger.with_name("request_reservations.jsonl"), run_root.name, payload.get("project_id"))
+    attempts: dict[str, dict] = {}
+    for path in sorted((run_root / "requests").glob("*.json")):
+        try:
+            row = json.loads(path.read_text(encoding="utf-8"))
+            attempts[str(row.get("request_id") or path.stem)] = row
+        except (ValueError, OSError):
+            continue
+    # Match the first transcript-associated stage used by raw_coding_payload.
+    stage_by_source: dict[str, str] = {}
+    for call in plan.get("planned_stage_runs", []):
+        source = call.get("input_path", "").replace("\\", "/")
+        if source in payload["sources"]:
+            stage_by_source.setdefault(source, call["stage_id"])
+    records = []
+    for request_id in sorted(latest.keys() | attempts.keys()):
+        row = dict(reservations.get(request_id, {}), **latest.get(request_id, {}))
+        row.update(attempts.get(request_id, {}))
+        source = str(row.get("input_label") or "").split("::", 1)[0].replace("\\", "/")
+        row["source"] = source if (
+            source in stage_by_source and row.get("stage_id") == stage_by_source[source]
+        ) else None
+        records.append(row)
+    return records
+
+
 def run_coding_set(repo_root: Path, run_root: Path) -> dict:
-    """A run's original model proposals as a coding set, with its model, cost and time."""
+    """A run's original model proposals, with whole-run and source-attributed usage."""
     payload = raw_coding_payload(repo_root, run_root)
     settings_path = run_root / "run_settings.json"
     settings = json.loads(settings_path.read_text(encoding="utf-8")) if settings_path.exists() else {}
     provider = settings.get("provider") or {}
-    usage = dict(requests=0, input_tokens=0, output_tokens=0, cost_usd=0.0)
-    ledger = run_root.parents[1] / "logs/cost_ledger.jsonl"
-    if ledger.exists():
-        latest = {}
-        for line in ledger.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                row = json.loads(line)
-                if row.get("run_id") == run_root.name:
-                    latest[row.get("request_id")] = row
-        for row in latest.values():
-            usage["requests"] += 1
-            usage["input_tokens"] += int(row.get("input_tokens") or 0)
-            usage["output_tokens"] += int(row.get("output_tokens") or 0)
-            usage["cost_usd"] += float(row.get("calculated_cost_usd") or 0)
-    elapsed = 0.0
-    for path in (run_root / "requests").glob("*.json"):
-        try:
-            elapsed += float(json.loads(path.read_text(encoding="utf-8")).get("elapsed_seconds") or 0)
-        except (ValueError, OSError):
-            continue
-    model = provider.get("model") or next((i.get("model") for i in payload["included"]), None)
     plan = json.loads((run_root / "run_plan.json").read_text(encoding="utf-8"))
+    usage_records = _run_usage(run_root, payload, plan)
+    model = provider.get("model") or next((i.get("model") for i in payload["included"]), None)
     sample = ", sample" if plan.get("transcript_sample") else ""
     return dict(
         payload,
@@ -160,7 +195,8 @@ def run_coding_set(repo_root: Path, run_root: Path) -> dict:
         label=f"{model or 'Model'} ({run_root.name}{sample})",
         model=model,
         provider=provider.get("name"),
-        usage=dict(usage, cost_usd=round(usage["cost_usd"], 6), elapsed_seconds=round(elapsed, 1) if elapsed else None),
+        usage=_usage_totals(usage_records),
+        usage_records=usage_records,
     )
 
 
@@ -191,7 +227,7 @@ def _mean(values: list) -> float | None:
 
 def _restrict(coding_set: dict, sources: set[str]) -> dict:
     trimmed = dict(coding_set, sources={k: v for k, v in coding_set["sources"].items() if k in sources})
-    for key in ("included", "excluded", "absences", "presence_only"):
+    for key in ("included", "excluded", "absences", "presence_only", "usage_records"):
         trimmed[key] = [item for item in coding_set.get(key, []) if item.get("source") in sources]
     return trimmed
 
@@ -230,7 +266,7 @@ def same_transcripts_by_content(sets: list[dict]) -> list[dict]:
             rekeyed.append(coding_set)
             continue
         moved = dict(coding_set, sources={mapping[path]: digest for path, digest in coding_set["sources"].items()})
-        for key in ("included", "excluded", "absences", "presence_only"):
+        for key in ("included", "excluded", "absences", "presence_only", "usage_records"):
             moved[key] = [dict(item, source=mapping.get(item.get("source"), item.get("source")))
                           for item in coding_set.get(key, [])]
         rekeyed.append(moved)
@@ -242,6 +278,23 @@ def common_sources(sets: list[dict]) -> list[str]:
     for coding_set in sets[1:]:
         common &= set(coding_set["sources"].items())
     return sorted(path for path, _ in common)
+
+
+def _usage_profile(coding_set: dict) -> dict:
+    if not coding_set.get("usage"):
+        return {}
+    whole_run = coding_set["usage"]
+    cohort = _usage_totals([
+        row for row in coding_set.get("usage_records", []) if row.get("source") in coding_set["sources"]
+    ])
+    count = len(coding_set["sources"])
+    return {
+        **cohort,  # Existing consumers display the compared cohort.
+        **{f"cohort_{key}": value for key, value in cohort.items()},
+        **{f"whole_run_{key}": value for key, value in whole_run.items()},
+        **{f"cohort_{key}_per_transcript": value / count if count and value is not None else None
+           for key, value in cohort.items()},
+    }
 
 
 def coding_profile(coding_set: dict) -> dict:
@@ -275,10 +328,7 @@ def coding_profile(coding_set: dict) -> dict:
         passages_per_transcript=proposals / len(sources) if sources else None,
         median_passage_words=median(words) if words else None,
         passages_coded_more_than_once=sum(1 for count in spans.values() if count > 1),
-        **({} if not coding_set.get("usage") else {
-            "requests": coding_set["usage"]["requests"], "input_tokens": coding_set["usage"]["input_tokens"],
-            "output_tokens": coding_set["usage"]["output_tokens"], "cost_usd": coding_set["usage"]["cost_usd"],
-            "elapsed_seconds": coding_set["usage"]["elapsed_seconds"]}),
+        **_usage_profile(coding_set),
         per_transcript_passages={source: per_source.get(source, 0) for source in sources},
     )
 
@@ -459,7 +509,7 @@ Created {created}. {sets} coding sets on {transcripts} transcript(s) and {codes}
 {reference}
 
 Files (tidy tables, one row per observation):
-- `coding_sets.csv`: one row per coding set. Volume, quotation fidelity, cost and time.
+- `coding_sets.csv`: one row per coding set. Volume, quotation fidelity, compared-cohort request/token/cost/time totals and per-transcript means, plus explicitly labelled whole-run totals. Cohort usage follows each request source and the first transcript coding stage; later synthesis stages count only in whole-run totals. Time is summed provider-request duration, not study wall time.
 - `presence.csv`: agreement on whether each code was applied to each transcript, for every pair
   of coding sets and for each set against the reference. Scopes: all units, each domain, each
   transcript. Levels: codes as coded, and sub-codes merged into their parent code.
