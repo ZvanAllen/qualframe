@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Live command-line status.** Running workers publish a heartbeat at least every 30 seconds. Status distinguishes running/stopped and lists active requests as in flight. Confirmation and duplicate execution are blocked while active, and same-second starts cannot overwrite another run.
+
 - **Reference provenance.** Reference import forms and the import command can record independent human coding explicitly, defaulting to false. Reports display the importer's declaration alongside its provenance statement.
 
 - **Comparable resource totals.** QualBench reports request, token, cost and time totals for the common transcript cohort and first coding step, with per-transcript means. Whole-run totals remain separately labelled, including later synthesis steps.

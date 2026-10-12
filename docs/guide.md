@@ -67,6 +67,8 @@ For scripts, or an assistant that runs a study while you're away, QualFrame has 
 | `qualframe status STUDY.yaml [--run RUN]` | Shows where a run stands, as JSON. |
 | `qualframe confirm-request STUDY.yaml --request ID --charged no\|yes\|maximum --researcher NAME` | Records whether a failed request was charged. `maximum` counts the most it could have cost. |
 
+`status` reports `running` when the run has a heartbeat younger than two minutes; pending requests appear as `in_flight_requests`. After the worker stops, unresolved requests appear as `unresolved_requests` with `failed_request_needs_confirmation`. A stopped run without unresolved requests is `stopped`, unless its files record a completion or spending pause. `confirm-request` refuses changes while the worker is active. After an abrupt process loss, allow up to two minutes for the heartbeat to expire. The OS-held `execution.lock` coordination file can remain after exit; do not delete it while a worker is active.
+
 `code` and `resume` print progress every minute and a JSON summary at the end. Exit codes: 0 finished, 2 paused at a spending step, 3 a request failed and needs confirming, 1 anything else. Don't start runs in the app while a command-line run is going.
 
 ## Review
