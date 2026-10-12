@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Reference provenance.** Reference import forms and the import command can record independent human coding explicitly, defaulting to false. Reports display the importer's declaration alongside its provenance statement.
+
 - **Comparable resource totals.** QualBench reports request, token, cost and time totals for the common transcript cohort and first coding step, with per-transcript means. Whole-run totals remain separately labelled, including later synthesis steps.
 
 - **Repeat configurations.** QualBench groups runs, including runs from other studies, by all saved provider settings and locked coding asset hashes. Spending limits, prices and study paths do not define a repeat. The report shows the settings used; incomplete historical records are left ungrouped.

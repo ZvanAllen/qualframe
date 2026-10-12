@@ -55,7 +55,7 @@ def import_reference(args) -> None:
         files[transcript.strip()] = Path(workbook.strip()).expanduser()
     payload = build_reference_coding(repo_root=repo_root, project_path=project, reference_id=args.id,
                                      label=args.label, statement=args.statement, files=files,
-                                     created_by=args.by)
+                                     created_by=args.by, independent_human_coding=args.independent_human_coding)
     counts = payload["counts"]
     print(f"{len(payload['sources'])} transcripts: {counts['included']} located passages, "
           f"{counts['quotations_not_found']} quotations not found, {counts['unmatched_constructs']} "
@@ -108,6 +108,8 @@ def main() -> None:
     one.add_argument("--statement", required=True, help="What the reference is: how it was coded and reviewed")
     one.add_argument("--by", required=True, help="Your name, recorded with the reference")
     one.add_argument("--map", action="append", required=True, help="transcript=workbook (repeat)")
+    one.add_argument("--independent-human-coding", action="store_true",
+                     help="Declare independent human coding; defaults to false. Describe the provenance in --statement.")
     one.add_argument("--dry-run", action="store_true")
     one.set_defaults(func=import_reference)
     two = sub.add_parser("compare", help="Compare runs with each other and with a reference.")

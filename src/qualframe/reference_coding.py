@@ -126,7 +126,8 @@ def locate_reference_quote(source: str, quote: str) -> tuple[int, int, str]:
 
 
 def build_reference_coding(*, repo_root: Path, project_path: Path, reference_id: str, label: str,
-                           statement: str, files: dict[str, Path], created_by: str) -> dict:
+                           statement: str, files: dict[str, Path], created_by: str,
+                           independent_human_coding: bool = False) -> dict:
     """Build the reference from workbooks keyed by the transcript each one codes.
 
     ``files`` maps a transcript's workspace-relative path (as runs record it) to a workbook.
@@ -195,7 +196,7 @@ def build_reference_coding(*, repo_root: Path, project_path: Path, reference_id:
         project_id=project.project_id,
         label=" ".join(label.split()),
         statement=" ".join(statement.split()),
-        independent_human_coding=False,
+        independent_human_coding=independent_human_coding,
         created_at_utc=datetime.now(timezone.utc).isoformat(),
         created_by=created_by,
         label_policy=REVIEW_LABEL_POLICY,
@@ -333,7 +334,8 @@ def match_document(name: str, transcripts: list[Path]) -> Path | None:
 
 
 def build_reference_from_table(*, repo_root: Path, project_path: Path, reference_id: str, label: str,
-                               statement: str, table: Path, created_by: str) -> dict:
+                               statement: str, table: Path, created_by: str,
+                               independent_human_coding: bool = False) -> dict:
     """A reference coding from a table of document, code and (optionally) quotation rows.
 
     Codes are matched by ID, else by name (ignoring outline numbers such as "3.1"). Rows without a
@@ -399,7 +401,7 @@ def build_reference_from_table(*, repo_root: Path, project_path: Path, reference
     known = {code["id"] for code in codes}
     return dict(
         kind=KIND, reference_id=reference_id, run_id=f"reference:{reference_id}", project_id=project.project_id,
-        label=" ".join(label.split()), statement=" ".join(statement.split()), independent_human_coding=False,
+        label=" ".join(label.split()), statement=" ".join(statement.split()), independent_human_coding=independent_human_coding,
         created_at_utc=datetime.now(timezone.utc).isoformat(), created_by=created_by,
         label_policy=REVIEW_LABEL_POLICY, columns=used,
         codebook=dict(id=project.codebook or "cfir-reference", version=table_hash, codes=codes),

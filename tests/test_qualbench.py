@@ -290,7 +290,7 @@ def test_reference_coding_can_be_imported_from_the_qualbench_page(tmp_path):
     sheet.append(("A. Structure", "We met every week in the old library.", "Neutral"))
     path = tmp_path / "upload.xlsx"; coding.save(path)
     upload = UploadedFile(filename="1A earlier coding.xlsx", content_type="application/octet-stream", content=path.read_bytes())
-    fields = {"label": ["Earlier coding"], "statement": ["Model output reviewed by the team."]}
+    fields = {"study_identity": [app.runner.project.project_id], "label": ["Earlier coding"], "statement": ["Model output reviewed by the team."]}
     message = app.handle_upload("/import/reference-coding", fields, {"upload": [upload]})
     assert "Imported Earlier coding: 1 transcript, 1 quotations found" in message
     saved = list_references(project)
@@ -301,7 +301,7 @@ def test_reference_coding_can_be_imported_from_the_qualbench_page(tmp_path):
     app.handle_upload("/import/reference-coding", fields, {"upload": [upload]})
     assert [p.parent.name for p in list_references(project)] == ["earlier-coding", "earlier-coding-2"]
     with pytest.raises(ValueError, match="name"):
-        app.handle_upload("/import/reference-coding", {"label": [""], "statement": ["x"]}, {"upload": [upload]})
+        app.handle_upload("/import/reference-coding", {"study_identity": [app.runner.project.project_id], "label": [""], "statement": ["x"]}, {"upload": [upload]})
 
 
 def test_runs_from_another_study_are_matched_by_transcript_content():
@@ -379,7 +379,7 @@ def test_an_earlier_coding_in_a_table_becomes_a_reference(tmp_path):
     # The same import from the QualBench page.
     app = DashboardApp(ProjectRunner(project))
     upload = UploadedFile(filename="second coder.csv", content_type="text/csv", content=table.read_bytes())
-    message = app.handle_upload("/import/reference-coding", {"kind": ["table"], "label": ["Second coder"],
+    message = app.handle_upload("/import/reference-coding", {"study_identity": [app.runner.project.project_id], "kind": ["table"], "label": ["Second coder"],
                                                              "statement": ["Coded independently."]}, {"upload": [upload]})
     assert "2 quotations found, 1 codes without a quotation" in message and "1 document name matched no transcript" in message
     saved = list_references(project)

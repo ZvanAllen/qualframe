@@ -34,7 +34,8 @@ def _references(app) -> list[dict]:
         except (OSError, ValueError):
             continue
         found.append(dict(id=data["reference_id"], label=data["label"], statement=data["statement"],
-                          transcripts=len(data["sources"]), path=path))
+                          transcripts=len(data["sources"]), path=path,
+                          independent_human_coding=bool(data.get("independent_human_coding"))))
     return found
 
 
@@ -159,6 +160,11 @@ def _new_reference_id(project: Path, label: str) -> str:
     return reference_id
 
 
+def _check_reference_study(app, fields: dict[str, list[str]]) -> None:
+    if fields.get("study_identity", [""])[0] != app.runner.project.project_id:
+        raise ValueError("This tab belongs to another study. Reopen it before importing a reference coding.")
+
+
 def import_reference_table_upload(app, fields: dict[str, list[str]], uploads: list) -> str:
     """Import an uploaded coding table (CSV or Excel) as a reference coding. Returns a message."""
     import shutil
@@ -166,6 +172,7 @@ def import_reference_table_upload(app, fields: dict[str, list[str]], uploads: li
 
     from qualframe.reference_coding import build_reference_from_table
 
+    _check_reference_study(app, fields)
     project = app._managed_project_path()
     label = " ".join(fields.get("label", [""])[0].split())
     statement = " ".join(fields.get("statement", [""])[0].split())
@@ -182,7 +189,8 @@ def import_reference_table_upload(app, fields: dict[str, list[str]], uploads: li
         payload = build_reference_from_table(repo_root=app.repo_root, project_path=project,
                                              reference_id=_new_reference_id(project, label), label=label,
                                              statement=statement, table=table,
-                                             created_by=fields.get("actor", [""])[0] or app.researcher)
+                                             created_by=fields.get("actor", [""])[0] or app.researcher,
+                                             independent_human_coding=fields.get("independent_human_coding", [""])[0] == "true")
         if not payload["sources"]:
             raise ValueError("None of the table's documents matched a transcript in this study. The Document column "
                              "should hold each transcript's file name, or an ID such as 12A.")
@@ -204,6 +212,7 @@ def import_reference_upload(app, fields: dict[str, list[str]], uploads: list) ->
     import shutil
     from uuid import uuid4
 
+    _check_reference_study(app, fields)
     if fields.get("kind", [""])[0] == "table":
         return import_reference_table_upload(app, fields, uploads)
     project = app._managed_project_path()
@@ -226,7 +235,8 @@ def import_reference_upload(app, fields: dict[str, list[str]], uploads: list) ->
             files[paired[name].resolve().relative_to(app.repo_root).as_posix()] = path
         payload = build_reference_coding(repo_root=app.repo_root, project_path=project, reference_id=reference_id,
                                          label=label, statement=statement, files=files,
-                                         created_by=fields.get("actor", [""])[0] or app.researcher)
+                                         created_by=fields.get("actor", [""])[0] or app.researcher,
+                                             independent_human_coding=fields.get("independent_human_coding", [""])[0] == "true")
         for source, entry in payload["files"].items():
             entry["original_path"] = entry["workbook"]
         save_reference_coding(project, payload, files)
@@ -241,21 +251,29 @@ def import_reference_upload(app, fields: dict[str, list[str]], uploads: list) ->
 
 def _import_form(app, references: list[dict]) -> str:
     cfir = app.runner.codebook is None and any(s.domain_iterations for s in app.runner.pipeline.stages)
+    study_field = f'<input type="hidden" name="study_identity" value="{e(app.runner.project.project_id)}">'
+    provenance_field = ('<label class="check"><input type="checkbox" name="independent_human_coding" value="true">'
+                        '<span>This is independent human coding</span></label>'
+                        '<p class="muted">Leave unchecked for model-assisted coding or unknown independence. '
+                        'This records your declaration; explain the coding and review process above.</p>')
     table_form = ('<details><summary>Import an earlier coding from a table</summary>'
                   '<p>A CSV or Excel file with one row per coded passage: a <em>Document</em> column with the transcript\'s '
                   'file name (or an ID such as 12A), a <em>Code</em> column with the code\'s ID or name, and optionally a '
                   '<em>Quotation</em> column. Rows without a quotation count as the code being present in that document. '
                   'Other columns are kept as notes.</p>'
                   '<form method="post" action="/import/reference-coding" enctype="multipart/form-data">'
-                  '<input type="hidden" name="kind" value="table">'
+                  f'{study_field}<input type="hidden" name="kind" value="table">'
                   '<label>Name<input name="label" required placeholder="Second coder"></label>'
                   '<label>How it was coded and reviewed<textarea name="statement" rows="3" required '
                   'placeholder="For example: coded independently by a second researcher, blind to the model\'s coding."></textarea>'
                   '<small>Shown with every report that uses it.</small></label>'
+                  f'{provenance_field}'
                   '<label>Coding table<input type="file" name="upload" accept=".csv,.xlsx" required></label>'
                   '<button class="secondary">Import</button></form></details>')
     listed = "".join(f'<li><strong>{e(r["label"])}</strong> ({r["transcripts"]} transcript{"" if r["transcripts"] == 1 else "s"}). '
-                     f'<span class="muted">{e(r["statement"])}</span></li>' for r in references)
+                     f'<span class="muted">{e(r["statement"])}</span>'
+                     + (' Independent human coding (declared by importer).' if r["independent_human_coding"] else ' Independent human coding not declared.')
+                     + '</li>' for r in references)
     listed = f'<h2>Earlier codings</h2><ul>{listed}</ul>' if listed else ""
     if not cfir:
         return f'<section>{listed}{table_form}</section>'
@@ -265,10 +283,11 @@ def _import_form(app, references: list[dict]) -> str:
             'for example <em>12A coding.xlsx</em>. Construct names are matched to the codebook and quotations are '
             'found in the transcripts; reviewer note columns are kept.</p>'
             '<form method="post" action="/import/reference-coding" enctype="multipart/form-data">'
-            '<label>Name<input name="label" required placeholder="Phase 1a transcript coding"></label>'
+            f'{study_field}<label>Name<input name="label" required placeholder="Phase 1a transcript coding"></label>'
             '<label>How it was coded and reviewed<textarea name="statement" rows="3" required '
             'placeholder="For example: model output from the published prompts, reviewed by two team members."></textarea>'
             '<small>Shown with every report that uses it.</small></label>'
+            f'{provenance_field}'
             '<label>Workbooks<input type="file" name="upload" accept=".xlsx,.xlsm" multiple required></label>'
             '<button class="secondary">Import</button></form></details></section>')
 
@@ -330,6 +349,7 @@ def _report_html(app, folder: Path) -> str:
     reference = report.get("reference")
     if reference:
         out += (f'<div class="notice"><strong>About the reference.</strong> {e(reference["statement"])} '
+                f'{"Independent human coding (declared by importer)." if reference.get("independent_human_coding") else "Independent human coding not declared."} '
                 f'It is compared as another coding, not as the right answer.</div>')
     rows = "".join(
         f'<tr><td>{name(s["set_id"])}</td><td>{s["transcripts"]}</td><td>{s["coded_passages"]}</td>'
