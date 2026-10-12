@@ -125,6 +125,46 @@ def locate_reference_quote(source: str, quote: str) -> tuple[int, int, str]:
     return spans[0][0], spans[-1][1], "ellipsis_parts"
 
 
+def _reference_quote_anchor(source: str, quote: str) -> dict | None:
+    """Keep existing unique anchors, otherwise retain repeated whole-quote alternatives.
+
+    Alternatives describe one annotation with an unresolved location, not separate coded
+    passages. Exact occurrences take precedence over normalized ones, as for unique matches.
+    The ellipsis locator above is unchanged; no alternative combinations of its parts are made.
+    """
+    start, end, method = locate_reference_quote(source, quote)
+    if start >= 0:
+        return dict(start=start, end=end, exact_text=source[start:end], anchoring_method=method)
+    needle = quote.strip()
+    if len(needle) > 1 and (needle[0], needle[-1]) in [('"', '"'), ('“', '”')]:
+        needle = needle[1:-1]
+    if not needle.strip():
+        return None
+
+    def occurrences(text: str, fragment: str) -> list[tuple[int, int]]:
+        if not fragment:
+            return []
+        found = []
+        position = text.find(fragment)
+        while position >= 0:
+            found.append((position, position + len(fragment)))
+            position = text.find(fragment, position + 1)
+        return found
+
+    spans = occurrences(source, needle)
+    method = "exact_repeated"
+    if len(spans) < 2:
+        normalized, offsets = normalized_with_offsets(source)
+        spans = [(offsets[a][0], offsets[b - 1][1])
+                 for a, b in occurrences(normalized, normalized_with_offsets(needle)[0])]
+        method = "normalized_repeated"
+    spans = list(dict.fromkeys(spans))
+    if len(spans) < 2:
+        return None
+    return dict(match="repeated", anchoring_method=method,
+                alternative_spans=[dict(start=a, end=b, exact_text=source[a:b]) for a, b in spans])
+
+
 def build_reference_coding(*, repo_root: Path, project_path: Path, reference_id: str, label: str,
                            statement: str, files: dict[str, Path], created_by: str,
                            independent_human_coding: bool = False) -> dict:
@@ -179,16 +219,18 @@ def build_reference_coding(*, repo_root: Path, project_path: Path, reference_id:
                 else:
                     excluded.append(dict(item, issues=["Construct not found in the codebook"]))
                 continue
-            start, end, method = locate_reference_quote(text, row["quote"])
+            anchor = _reference_quote_anchor(text, row["quote"])
             issues = []
             if code is None:
                 issues.append("Construct not found in the codebook")
-            if start < 0:
+            if anchor is None:
                 issues.append("Quotation not found once in the transcript")
             if issues:
-                excluded.append(dict(item, anchoring_method=method, issues=issues))
+                details = anchor if anchor and anchor.get("match") == "repeated" else dict(
+                    anchoring_method=anchor["anchoring_method"] if anchor else "unresolved_exact_quote")
+                excluded.append(dict(item, **details, issues=issues))
             else:
-                included.append(dict(item, start=start, end=end, exact_text=text[start:end], anchoring_method=method))
+                included.append(dict(item, **anchor))
     payload = dict(
         kind=KIND,
         reference_id=reference_id,
@@ -393,12 +435,11 @@ def build_reference_from_table(*, repo_root: Path, project_path: Path, reference
         if quote.strip("\"“”").casefold() == NO_QUOTE:
             absences.append(item)
             continue
-        start, end, method = locate_reference_quote(texts[transcript], quote)
-        if start < 0:
-            excluded.append(dict(item, anchoring_method=method, issues=["Quotation not found once in the transcript"]))
+        anchor = _reference_quote_anchor(texts[transcript], quote)
+        if anchor is None:
+            excluded.append(dict(item, anchoring_method="unresolved_exact_quote", issues=["Quotation not found once in the transcript"]))
         else:
-            included.append(dict(item, start=start, end=end, exact_text=texts[transcript][start:end],
-                                 anchoring_method=method))
+            included.append(dict(item, **anchor))
     known = {code["id"] for code in codes}
     return dict(
         kind=KIND, reference_id=reference_id, run_id=f"reference:{reference_id}", project_id=project.project_id,

@@ -111,9 +111,18 @@ def _maximum_matching(
             if intersection and intersection * denominator >= union * numerator:
                 edges.append(index)
         adjacent.append(edges)
+    return [(left[a], right[b]) for a, b in _maximum_matching_indices(adjacent)]
+
+
+def _maximum_matching_indices(adjacent: list[list[int]]) -> list[tuple[int, int]]:
+    """Match graph nodes one to one, using deterministic maximum-cardinality augmenting paths.
+
+    Each list position is a left node; its entries identify eligible right nodes. This
+    keeps passage identity separate from the span rules used to construct the edges.
+    """
     right_owner: dict[int, int] = {}
     left_match: dict[int, int] = {}
-    for starting in range(len(left)):
+    for starting in range(len(adjacent)):
         queue = deque([starting])
         visited_left = {starting}
         prior_right: dict[int, int] = {}
@@ -142,7 +151,7 @@ def _maximum_matching(
             if previous is None:
                 break
             b = previous
-    return [(left[a], right[b]) for a, b in sorted(left_match.items())]
+    return sorted(left_match.items())
 
 
 def _diagnostics(matches: list[tuple[_Span, _Span]]) -> dict:

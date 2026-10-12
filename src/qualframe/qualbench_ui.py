@@ -369,6 +369,18 @@ def _report_html(app, folder: Path) -> str:
             f'<th>Quotations found</th><th>Codes per transcript</th><th>Compared cost</th><th>Compared request time</th><th>Whole-run cost</th><th>Whole-run request time</th></tr></thead><tbody>{rows}</tbody></table></div>'
             f'<p class="muted">Compared totals cover the transcripts in this report and their first coding step. Whole-run totals include other transcripts and later steps. Downloads include requests, tokens and per-transcript means. Time sums provider requests, not study wall time.</p></section>')
 
+    reference_locations = [s for s in report["coding_sets"] if "reference_passages_unique" in s]
+    if reference_locations:
+        location_rows = "".join(
+            f'<tr><td>{name(s["set_id"])}</td><td>{s["reference_passages_unique"]}</td>'
+            f'<td>{s["reference_passages_repeated"]}</td><td>{s["reference_passages_unanchored"]}</td></tr>'
+            for s in reference_locations)
+        out += (f'<section><h2>Reference quotation locations</h2><div class="progress-table"><table>'
+                f'<thead><tr><th>Coding</th><th>Unique location</th><th>Repeated quotation</th><th>Not located</th></tr></thead>'
+                f'<tbody>{location_rows}</tbody></table></div><p class="muted">Counts cover quotations with recognized codes. '
+                'A repeated quotation has alternative locations and still counts as one passage. Unknown codes, rows without '
+                'quotations and explicit absences are separate in the downloads.</p></section>')
+
     usage_notes = []
     for coding in report["coding_sets"]:
         notes = []
@@ -411,12 +423,15 @@ def _report_html(app, folder: Path) -> str:
     lines = "".join(
         f'<tr><td>{name(r["left"])}</td><td>{name(r["right"])}</td><td>{r["left_passages"]} / {r["right_passages"]}</td>'
         f'<td>{_num(r["f1_exact"])}</td><td>{_num(r["f1_iou_half"])}</td><td>{_num(r["f1_any_overlap"])}</td>'
-        f'<td>{_pct(r["coded_text_jaccard"])}</td></tr>' for r in report["passages"] if r.get("scope_kind", "all") == "all")
+        f'<td>{_pct(r["coded_text_jaccard"])}</td>'
+        f'<td>{_num(r.get("left_coded_text_passages_excluded"), 0)} / {_num(r.get("right_coded_text_passages_excluded"), 0)}</td></tr>' for r in report["passages"] if r.get("scope_kind", "all") == "all")
     out += (f'<section><div class="section-head"><h2>Which passages were coded</h2><span class="muted">Same code, same transcript</span></div>'
             f'<div class="progress-table"><table><thead><tr><th>Coding</th><th>Compared with</th><th>Passages</th><th>F1, exact</th>'
-            f'<th>F1, mostly overlapping</th><th>F1, any overlap</th><th>Same text coded</th></tr></thead><tbody>{lines}</tbody></table></div>'
+            f'<th>F1, mostly overlapping</th><th>F1, any overlap</th><th>Same text coded</th><th>Excluded from text overlap, left / right</th></tr></thead><tbody>{lines}</tbody></table></div>'
             f'<p class="muted">Passages are matched one to one. Mostly overlapping means the shared text is at least half of the two passages combined. '
-            f'Same text coded is the share of characters either coding marked with a code that both marked with it.</p></section>')
+            f'A repeated reference quotation can match at any of its alternative locations, but still matches only one passage. '
+            f'Same text coded compares characters marked with the same code, excluding passages with alternative locations. '
+            f'The counts beside it show how many passages were excluded on each side; all remaining unique passages stay in the comparison.</p></section>')
     if report["stability"]:
         lines = "".join(
             f'<tr><td>{e(", ".join(names.get(i, i) for i in r["group"].split(" + ")))}</td><td>{e(r["level"])}</td>'

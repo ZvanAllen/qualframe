@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Repeated reference quotations.** Table and CFIR imports preserve alternative locations as one annotation. QualBench matches any candidate under the same one-to-one rule, omits ambiguous locations from character-overlap totals with explicit counts, and reports unique/repeated/unanchored reference passages. Existing saved references remain readable and require a new import to gain alternatives.
+
 - **Optional Active column.** Excel codebook imports accept yes/no, true/false and 1/0, with blank or missing values active by default. Inactive codes can remain hierarchy parents without being offered to the model. Import previews and the example workbook include Active.
 
 - **Active-code presence units.** QualBench excludes inactive codes from code-level presence and stability universes while retaining their parent hierarchy. Reports show active and parent universe sizes and warn about differing active flags; older missing flags remain active.

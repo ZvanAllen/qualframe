@@ -273,3 +273,31 @@ def test_ambiguous_duplicate_catalog_id_has_one_empty_row_and_blocks_included_sp
     right["included"][0]["code_id"] = "c2"
     with pytest.raises(ValueError, match="ambiguous duplicate code ID"):
         build_benchmark_report(left, right)
+
+
+def test_graph_matching_uses_augmenting_path_and_does_not_mutate_edges():
+    from qualframe.benchmark_metrics import _maximum_matching_indices
+
+    # The first left node must move to R1 so the second can take its only edge, R0.
+    adjacent = [[0, 1], [0]]
+    original = copy.deepcopy(adjacent)
+    assert _maximum_matching_indices(adjacent) == [(0, 1), (1, 0)]
+    assert adjacent == original
+
+
+@pytest.mark.parametrize("adjacent", [[], [[], []]])
+def test_graph_matching_handles_empty_graphs(adjacent):
+    from qualframe.benchmark_metrics import _maximum_matching_indices
+
+    assert _maximum_matching_indices(adjacent) == []
+
+
+def test_graph_matching_preserves_one_to_one_node_identity():
+    from qualframe.benchmark_metrics import _maximum_matching_indices
+
+    # Duplicate alternative edges and multiple proposals cannot count R0 twice.
+    assert _maximum_matching_indices([[0, 0], [0]]) == [(0, 0)]
+    # Each node can be used once even when every pairing is eligible.
+    matches = _maximum_matching_indices([[0, 1], [0, 1], [0, 1]])
+    assert matches == [(0, 0), (1, 1)]
+    assert len({left for left, _ in matches}) == len({right for _, right in matches}) == 2

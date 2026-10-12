@@ -26,7 +26,7 @@ from itertools import combinations
 from pathlib import Path
 from statistics import mean, median
 
-from qualframe.benchmark_metrics import _Span, _maximum_matching
+from qualframe.benchmark_metrics import _maximum_matching_indices
 from qualframe.run_comparison import interval_overlap, raw_coding_payload
 
 KIND = "qualframe_qualbench_v1"
@@ -353,11 +353,13 @@ def coding_profile(coding_set: dict) -> dict:
     included = coding_set["included"]
     not_located = [i for i in coding_set["excluded"] if i.get("code_id") in known]
     unknown = [i for i in coding_set["excluded"] if i.get("code_id") not in known]
-    anchoring = Counter(i.get("anchoring_method") for i in included)
+    unique = [i for i in included if not i.get("alternative_spans")]
+    repeated = len(included) - len(unique)
+    anchoring = Counter(i.get("anchoring_method") for i in unique)
     per_source = Counter(i["source"] for i in included + not_located)
     present = present_units(coding_set)
-    spans = Counter((i["source"], i["start"], i["end"]) for i in included)
-    words = [len(i.get("exact_text", "").split()) for i in included]
+    spans = Counter((i["source"], i["start"], i["end"]) for i in unique)
+    words = [len(i.get("exact_text", "").split()) for i in unique]
     proposals = len(included) + len(not_located)
     return dict(
         set_id=coding_set["set_id"], label=coding_set["label"], kind=coding_set["set_kind"],
@@ -367,6 +369,12 @@ def coding_profile(coding_set: dict) -> dict:
         inactive_codes=len(known) - len(_active_codes(coding_set["codebook"])),
         coded_passages=proposals,
         passages_located=len(included),
+        passages_uniquely_located=len(unique),
+        passages_with_alternative_locations=repeated,
+        coded_text_passages_excluded=repeated,
+        **(dict(reference_passages_unique=len(unique), reference_passages_repeated=repeated,
+                reference_passages_unanchored=len(not_located))
+           if coding_set["set_kind"] == "reference" else {}),
         located_exactly=anchoring.get("unique_exact_quote", 0),
         located_after_typography=anchoring.get("normalized_quote_candidate", 0),
         located_by_ellipsis_parts=anchoring.get("ellipsis_parts", 0),
@@ -436,14 +444,21 @@ def _presence_rows(left: dict, right: dict, sources: list[str], codes: list[dict
     return rows
 
 
+def _passage_threshold(left: dict, right: dict, numerator: int, denominator: int) -> bool:
+    intersection = max(0, min(left["end"], right["end"]) - max(left["start"], right["start"]))
+    union = left["end"] - left["start"] + right["end"] - right["start"] - intersection
+    return intersection > 0 and intersection * denominator >= union * numerator
+
+
 def passage_agreement(left: dict, right: dict, *, versus_reference: bool, source: str | None = None) -> dict:
     """Passage agreement over all transcripts, or within one transcript."""
     def located(coding_set: dict) -> list[dict]:
         return [i for i in coding_set["included"] if source is None or i["source"] == source]
 
     left_items, right_items = located(left), located(right)
-    a = [_Span(i["source"], i["code_id"], i["start"], i["end"], (i["record_id"],)) for i in left_items]
-    b = [_Span(i["source"], i["code_id"], i["start"], i["end"], (i["record_id"],)) for i in right_items]
+    # One graph vertex per annotation, regardless of how many locations it could have.
+    a = [i.get("alternative_spans") or [i] for i in left_items]
+    b = [i.get("alternative_spans") or [i] for i in right_items]
     labels = _transcript_labels(sorted(set(left["sources"]) | set(right["sources"])))
     row = dict(scope_kind="all" if source is None else "transcript",
                scope="All" if source is None else labels[source],
@@ -451,13 +466,28 @@ def passage_agreement(left: dict, right: dict, *, versus_reference: bool, source
                comparison="versus reference" if versus_reference else "between coding sets",
                left_passages=len(a), right_passages=len(b))
     for name, ratio in MATCH_THRESHOLDS:
-        matched = len(_maximum_matching(a, b, ratio))
+        numerator, denominator = ratio
+        adjacent = []
+        for item, alternatives in zip(left_items, a):
+            edges = []
+            for index, (other, candidates) in enumerate(zip(right_items, b)):
+                if item["source"] != other["source"] or item["code_id"] != other["code_id"]:
+                    continue
+                if any(_passage_threshold(span, candidate, numerator, denominator)
+                       for span in alternatives for candidate in candidates):
+                    edges.append(index)
+            adjacent.append(edges)
+        matched = len(_maximum_matching_indices(adjacent))
         row[f"matched_{name}"] = matched
         row[f"f1_{name}"] = 2 * matched / (len(a) + len(b)) if a or b else None
     groups: dict[tuple[str, str], tuple[list, list]] = {}
     for item in left_items:
+        if item.get("alternative_spans"):
+            continue
         groups.setdefault((item["source"], item["code_id"]), ([], []))[0].append(item)
     for item in right_items:
+        if item.get("alternative_spans"):
+            continue
         groups.setdefault((item["source"], item["code_id"]), ([], []))[1].append(item)
     shared = union = left_chars = right_chars = 0
     for in_left, in_right in groups.values():
@@ -466,7 +496,12 @@ def passage_agreement(left: dict, right: dict, *, versus_reference: bool, source
         union += total
         left_chars += interval_overlap(in_left, [])[1]
         right_chars += interval_overlap([], in_right)[1]
+    left_excluded = sum(bool(i.get("alternative_spans")) for i in left_items)
+    right_excluded = sum(bool(i.get("alternative_spans")) for i in right_items)
     row.update(
+        left_coded_text_passages_excluded=left_excluded,
+        right_coded_text_passages_excluded=right_excluded,
+        coded_text_passages_excluded=left_excluded + right_excluded,
         coded_text_jaccard=shared / union if union else None,
         left_text_also_coded_by_right=shared / left_chars if left_chars else None,
         right_text_also_coded_by_left=shared / right_chars if right_chars else None,
@@ -639,7 +674,17 @@ Definitions
   F1 = 2 × matched / (passages in left + passages in right).
 - Scopes: "all" pools every unit or passage; "transcript" rows give each transcript separately;
   "transcript mean" weights each transcript equally (the mean of the transcript rows). When filenames repeat, transcript labels use relative paths so distinct sources stay separate.
+- Repeated reference quotations retain alternative spans with match: repeated. An annotation matches
+  at a threshold if any candidate location meets it; it is still one passage and can match only once.
+  Coding-set profiles count unique, repeated and unanchored reference passages with recognized codes;
+  unknown-code rows, presence-only rows and explicit absences are reported separately.
+  Passage-word medians and duplicate-span counts use uniquely located passages only.
 - Coded-text Jaccard: characters both sets coded with the same code, out of characters either did.
+  Passages with alternative locations are omitted from all character-overlap totals, with counts
+  per side and in each coding-set profile. Other uniquely located passages remain in the union;
+  an all-repeated reference can therefore have passage matches but zero text Jaccard against a
+  nonempty model coding. If both remaining text sets are empty, text Jaccard is undefined.
+  Earlier saved references remain readable and unchanged; only a new import gains alternatives.
 - Krippendorff's alpha (nominal): agreement among several coding sets on the same units, corrected
   for chance. 1 is perfect agreement; 0 is agreement at chance.
 
