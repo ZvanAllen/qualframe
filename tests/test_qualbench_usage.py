@@ -120,3 +120,114 @@ def test_usage_keeps_failed_attempt_time_and_uses_reservation_stage(tmp_path, mo
     assert profile["cohort_elapsed_seconds"] == 8
     assert profile["whole_run_requests"] == 3
     assert profile["whole_run_elapsed_seconds"] == 15
+
+
+def test_missing_ledger_keeps_known_request_time_but_cost_and_tokens_are_unknown(tmp_path, monkeypatch):
+    root, run = _run(tmp_path, monkeypatch, sources={"t/one.txt": "one"},
+                     attempts=[_attempt("one", "t/one.txt", 5)])
+    reservations = run.parents[1] / "logs/request_reservations.jsonl"
+    reservations.parent.mkdir(parents=True, exist_ok=True)
+    reservations.write_text(json.dumps(dict(run_id=run.name, **_row("one", "t/one.txt", 0))),
+                            encoding="utf-8")
+    coding = qualbench.run_coding_set(root, run)
+    profile = qualbench.coding_profile(coding)
+    assert profile["cohort_requests"] == profile["whole_run_requests"] == 1
+    assert profile["cohort_elapsed_seconds"] == 5
+    for prefix in ("", "cohort_", "whole_run_"):
+        for field in ("cost_usd", "input_tokens", "output_tokens", "cached_input_tokens",
+                      "cache_write_tokens", "reasoning_tokens", "cost_is_estimated"):
+            assert profile[prefix + field] is None
+    assert "missing" in profile["usage_note"].lower()
+    assert profile["cohort_cost_usd_per_transcript"] is None
+
+
+@pytest.mark.parametrize("recorded_in", ["run_settings.json", "run_manifest.json"])
+@pytest.mark.parametrize("absolute", [False, True])
+def test_recorded_ledger_paths_override_conventional_path(tmp_path, monkeypatch, recorded_in, absolute):
+    root, run = _run(tmp_path, monkeypatch, ledger_rows=[_row("wrong", "t/one.txt", 99)])
+    ledger = root / "separate/study-logs/usage.jsonl"
+    ledger.parent.mkdir(parents=True)
+    ledger.write_text(json.dumps(dict(run_id=run.name, **_row("one", "t/one.txt", 4))), encoding="utf-8")
+    data = json.loads((run / recorded_in).read_text()) if (run / recorded_in).exists() else {}
+    # Workspace-relative recorded paths survive moving the whole workspace.
+    data["cost_ledger_path"] = str(ledger) if absolute else str(ledger.relative_to(root)).replace("/", "\\")
+    _json(run / recorded_in, data)
+    profile = qualbench.coding_profile(qualbench.run_coding_set(root, run))
+    assert profile["whole_run_cost_usd"] == 4
+    assert profile["cohort_cost_usd"] == 4
+
+
+def test_missing_recorded_ledger_does_not_substitute_unrelated_conventional_ledger(tmp_path, monkeypatch):
+    root, run = _run(tmp_path, monkeypatch, ledger_rows=[_row("wrong", "t/one.txt", 99)])
+    _json(run / "run_manifest.json", {"cost_ledger_path": "missing/custom-ledger.jsonl"})
+    profile = qualbench.coding_profile(qualbench.run_coding_set(root, run))
+    assert profile["whole_run_cost_usd"] is None
+    assert "missing" in profile["whole_run_usage_note"].lower()
+
+
+def test_settings_ledger_precedes_manifest_and_filters_other_projects(tmp_path, monkeypatch):
+    root, run = _run(tmp_path, monkeypatch, ledger_rows=[_row("wrong", "t/one.txt", 99)])
+    ledger = root / "usage.jsonl"
+    ledger.write_text("\n".join(json.dumps(dict(run_id=run.name, project_id=project, **row))
+                               for project, row in [
+                                   ("synthetic", _row("one", "t/one.txt", 4)),
+                                   ("different", _row("collision", "t/one.txt", 88)),
+                               ]), encoding="utf-8")
+    settings = json.loads((run / "run_settings.json").read_text())
+    settings["cost_ledger_path"] = "usage.jsonl"
+    _json(run / "run_settings.json", settings)
+    _json(run / "run_manifest.json", {"cost_ledger_path": "does-not-exist.jsonl"})
+    assert qualbench.coding_profile(qualbench.run_coding_set(root, run))["cost_usd"] == 4
+
+
+def test_token_details_and_estimated_cost_follow_latest_entries_and_cohort(tmp_path, monkeypatch):
+    def detailed(row, cached, written, reasoning, estimated):
+        return dict(row, cached_input_tokens=cached, cache_write_tokens=written,
+                    reasoning_tokens=reasoning, cost_is_estimated=estimated)
+
+    root, run = _run(tmp_path, monkeypatch, ledger_rows=[
+        detailed(_row("one", "t/one.txt", 99), 99, 99, 99, True),
+        detailed(_row("one", "t/one.txt", 2), 10, 20, 30, False),
+        detailed(_row("two", "t/two.txt", 3), 1, 2, 3, False),
+        detailed(_row("three", "t/three.txt", 4), 100, 200, 300, True),
+    ])
+    coding = qualbench.run_coding_set(root, run)
+    reference = qualbench.reference_coding_set(dict(
+        run_id="ref", label="Reference", sources={"t/one.txt": "one", "t/two.txt": "two"},
+        codebook=coding["codebook"], included=[], excluded=[], absences=[],
+    ))
+    report = qualbench.build_qualbench([coding], reference=reference)
+    profile = report["coding_sets"][0]
+    assert profile["cost_is_estimated"] is profile["cohort_cost_is_estimated"] is False
+    assert profile["whole_run_cost_is_estimated"] is True
+    assert profile["cohort_cached_input_tokens"] == 11
+    assert profile["cohort_cache_write_tokens"] == 22
+    assert profile["cohort_reasoning_tokens"] == 33
+    assert profile["whole_run_reasoning_tokens"] == 333
+    assert profile["cohort_reasoning_tokens_per_transcript"] == 16.5
+    assert "cohort_cost_is_estimated_per_transcript" not in profile
+    output = qualbench.write_qualbench(report, tmp_path / "export")
+    assert "whole_run_cost_is_estimated" in (output / "coding_sets.csv").read_text()
+
+
+def test_legacy_token_details_are_unknown_and_unsettled_usage_is_not_zero(tmp_path, monkeypatch):
+    root, run = _run(tmp_path, monkeypatch, sources={"t/one.txt": "one"},
+                     ledger_rows=[_row("one", "t/one.txt", 4)])
+    profile = qualbench.coding_profile(qualbench.run_coding_set(root, run))
+    assert profile["cost_usd"] == 4
+    assert profile["cached_input_tokens"] is profile["cache_write_tokens"] is profile["reasoning_tokens"] is None
+    _json(run / "requests/failed.json", dict(_attempt("failed", "t/one.txt", 3), stage_id="coding"))
+    profile = qualbench.coding_profile(qualbench.run_coding_set(root, run))
+    assert profile["requests"] == 2
+    assert profile["cost_usd"] is profile["input_tokens"] is None
+    assert "not recorded" in profile["usage_note"].lower()
+
+
+def test_missing_stage_attribution_does_not_claim_zero_cohort_usage(tmp_path, monkeypatch):
+    root, run = _run(tmp_path, monkeypatch, sources={"t/one.txt": "one"},
+                     attempts=[_attempt("one", "t/one.txt", 5)])
+    profile = qualbench.coding_profile(qualbench.run_coding_set(root, run))
+    assert profile["whole_run_requests"] == 1
+    assert profile["whole_run_elapsed_seconds"] == 5
+    assert profile["cohort_requests"] is profile["cohort_elapsed_seconds"] is None
+    assert "stage" in profile["usage_note"].lower()

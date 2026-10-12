@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Unknown usage stays unknown.** QualBench follows saved ledger locations and reports missing costs/tokens as null with a note. Profiles retain estimated-cost flags and recorded cache/reasoning token categories; historical reports retain whole-run cost labels.
+
 - **Live command-line status.** Running workers publish a heartbeat at least every 30 seconds. Status distinguishes running/stopped and lists active requests as in flight. Confirmation and duplicate execution are blocked while active, and same-second starts cannot overwrite another run.
 
 - **Reference provenance.** Reference import forms and the import command can record independent human coding explicitly, defaulting to false. Reports display the importer's declaration alongside its provenance statement.

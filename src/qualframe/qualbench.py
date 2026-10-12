@@ -137,19 +137,54 @@ def _latest_request_rows(path: Path, run_id: str, project_id: str | None) -> dic
     return latest
 
 
-def _usage_totals(records: list[dict]) -> dict:
+_TOKEN_TOTALS = ("input_tokens", "output_tokens", "cached_input_tokens",
+                 "cache_write_tokens", "reasoning_tokens")
+_USAGE_TOTALS = ("requests", *_TOKEN_TOTALS, "cost_usd", "elapsed_seconds")
+
+
+def _usage_totals(records: list[dict], *, ledger_available: bool = True,
+                  stage_attribution_known: bool = True) -> dict:
+    notes = []
+    complete = ledger_available and all(row.get("usage_recorded") for row in records)
+    if not ledger_available:
+        notes.append("Cost ledger is missing; cost and token totals are unknown.")
+    elif not complete:
+        missing = sum(not row.get("usage_recorded") for row in records)
+        notes.append(f"Usage is not recorded for {missing} request(s); cost and token totals are unknown.")
+    tokens = {
+        key: sum(int(row[key]) for row in records)
+        if complete and all(row.get(key) is not None for row in records) else None
+        for key in _TOKEN_TOTALS
+    }
+    if complete and any(tokens[key] is None for key in _TOKEN_TOTALS):
+        notes.append("Some token categories were not recorded for every request; those totals are unknown.")
     elapsed = [float(row["elapsed_seconds"]) for row in records if row.get("elapsed_seconds") is not None]
-    return dict(
-        requests=len(records),
-        input_tokens=sum(int(row.get("input_tokens") or 0) for row in records),
-        output_tokens=sum(int(row.get("output_tokens") or 0) for row in records),
-        cost_usd=round(sum(float(row.get("calculated_cost_usd") or 0) for row in records), 6),
+    totals = dict(
+        requests=len(records), **tokens,
+        cost_usd=round(sum(float(row["calculated_cost_usd"]) for row in records), 6)
+        if complete and all(row.get("calculated_cost_usd") is not None for row in records) else None,
         elapsed_seconds=round(sum(elapsed), 1) if elapsed else None,
+        cost_is_estimated=any(row.get("cost_is_estimated", False) for row in records)
+        if ledger_available else None,
     )
+    if not stage_attribution_known:
+        notes.append("Some requests lack coding-stage attribution; compared-cohort totals are unknown.")
+        totals = {key: None for key in totals}
+    return dict(totals, usage_note=" ".join(notes) or None)
 
 
-def _run_usage(run_root: Path, payload: dict, plan: dict) -> list[dict]:
-    ledger = run_root.parents[1] / "logs/cost_ledger.jsonl"
+def _cost_ledger_path(repo_root: Path, run_root: Path, settings: dict) -> Path:
+    manifest_path = run_root / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    recorded = settings.get("cost_ledger_path") or manifest.get("cost_ledger_path")
+    if not recorded:
+        return run_root.parents[1] / "logs/cost_ledger.jsonl"
+    # Recorded relative paths are workspace-relative, including after moving a workspace.
+    path = Path(str(recorded).replace("\\", "/"))
+    return path if path.is_absolute() else repo_root / path
+
+
+def _run_usage(run_root: Path, payload: dict, plan: dict, ledger: Path) -> list[dict]:
     latest = _latest_request_rows(ledger, run_root.name, payload.get("project_id"))
     reservations = _latest_request_rows(
         ledger.with_name("request_reservations.jsonl"), run_root.name, payload.get("project_id"))
@@ -171,9 +206,12 @@ def _run_usage(run_root: Path, payload: dict, plan: dict) -> list[dict]:
         row = dict(reservations.get(request_id, {}), **latest.get(request_id, {}))
         row.update(attempts.get(request_id, {}))
         source = str(row.get("input_label") or "").split("::", 1)[0].replace("\\", "/")
+        stage = row.get("stage_id")
         row["source"] = source if (
-            source in stage_by_source and row.get("stage_id") == stage_by_source[source]
+            source in stage_by_source and (stage is None or stage == stage_by_source[source])
         ) else None
+        row["coding_stage_known"] = stage is not None
+        row["usage_recorded"] = request_id in latest
         records.append(row)
     return records
 
@@ -185,7 +223,8 @@ def run_coding_set(repo_root: Path, run_root: Path) -> dict:
     settings = json.loads(settings_path.read_text(encoding="utf-8")) if settings_path.exists() else {}
     provider = settings.get("provider") or {}
     plan = json.loads((run_root / "run_plan.json").read_text(encoding="utf-8"))
-    usage_records = _run_usage(run_root, payload, plan)
+    ledger = _cost_ledger_path(repo_root, run_root, settings)
+    usage_records = _run_usage(run_root, payload, plan, ledger)
     model = provider.get("model") or next((i.get("model") for i in payload["included"]), None)
     sample = ", sample" if plan.get("transcript_sample") else ""
     return dict(
@@ -195,8 +234,10 @@ def run_coding_set(repo_root: Path, run_root: Path) -> dict:
         label=f"{model or 'Model'} ({run_root.name}{sample})",
         model=model,
         provider=provider.get("name"),
-        usage=_usage_totals(usage_records),
+        usage=_usage_totals(usage_records, ledger_available=ledger.is_file()),
         usage_records=usage_records,
+        usage_ledger_available=ledger.is_file(),
+        usage_ledger_path=str(ledger),
     )
 
 
@@ -284,16 +325,18 @@ def _usage_profile(coding_set: dict) -> dict:
     if not coding_set.get("usage"):
         return {}
     whole_run = coding_set["usage"]
-    cohort = _usage_totals([
-        row for row in coding_set.get("usage_records", []) if row.get("source") in coding_set["sources"]
-    ])
+    records = [row for row in coding_set.get("usage_records", []) if row.get("source") in coding_set["sources"]]
+    cohort = _usage_totals(
+        records, ledger_available=coding_set.get("usage_ledger_available", False),
+        stage_attribution_known=all(row.get("coding_stage_known") for row in records))
     count = len(coding_set["sources"])
     return {
         **cohort,  # Existing consumers display the compared cohort.
+        "usage_ledger_path": coding_set.get("usage_ledger_path"),
         **{f"cohort_{key}": value for key, value in cohort.items()},
         **{f"whole_run_{key}": value for key, value in whole_run.items()},
         **{f"cohort_{key}_per_transcript": value / count if count and value is not None else None
-           for key, value in cohort.items()},
+           for key, value in cohort.items() if key in _USAGE_TOTALS},
     }
 
 
@@ -507,6 +550,8 @@ README = """# QualBench report
 
 Created {created}. {sets} coding sets on {transcripts} transcript(s) and {codes} codes.
 {reference}
+
+Resource accounting uses the ledger path saved in run settings, then the manifest, then the conventional study logs path. Missing ledgers or missing request usage produce unknown (null) cost/token totals, not zero. Profiles include accounting notes, estimated-cost flags and cached/write-cache/reasoning token totals when recorded. Legacy records without a token category leave it unknown.
 
 Files (tidy tables, one row per observation):
 - `coding_sets.csv`: one row per coding set. Volume, quotation fidelity, compared-cohort request/token/cost/time totals and per-transcript means, plus explicitly labelled whole-run totals. Cohort usage follows each request source and the first transcript coding stage; later synthesis stages count only in whole-run totals. Time is summed provider-request duration, not study wall time.

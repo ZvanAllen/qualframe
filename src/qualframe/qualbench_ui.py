@@ -301,12 +301,12 @@ def _num(value, places: int = 2) -> str:
 
 
 def _money(value) -> str:
-    return "" if value in (None, "") else f"${value:,.2f}"
+    return "n/a" if value in (None, "") else f"${value:,.2f}"
 
 
 def _minutes(seconds) -> str:
-    if not seconds:
-        return ""
+    if seconds is None:
+        return "n/a"
     return f"{seconds / 60:.0f} min" if seconds >= 90 else f"{seconds:.0f} s"
 
 
@@ -354,8 +354,8 @@ def _report_html(app, folder: Path) -> str:
     rows = "".join(
         f'<tr><td>{name(s["set_id"])}</td><td>{s["transcripts"]}</td><td>{s["coded_passages"]}</td>'
         f'<td>{_pct(s["share_located"])}</td><td>{_num(s["codes_present_per_transcript"], 1)}</td>'
-        f'<td>{_money(s.get("cost_usd"))}</td><td>{_minutes(s.get("elapsed_seconds"))}</td>'
-        f'<td>{_money(s.get("whole_run_cost_usd"))}</td><td>{_minutes(s.get("whole_run_elapsed_seconds"))}</td></tr>'
+        f'<td>{_money(s.get("cohort_cost_usd"))}</td><td>{_minutes(s.get("cohort_elapsed_seconds"))}</td>'
+        f'<td>{_money(s.get("whole_run_cost_usd", s.get("cost_usd")))}</td><td>{_minutes(s.get("whole_run_elapsed_seconds", s.get("elapsed_seconds")))}</td></tr>'
         for s in report["coding_sets"])
     omitted = report.get("transcripts_left_out") or []
     count = len(report["transcripts"])
@@ -365,6 +365,19 @@ def _report_html(app, folder: Path) -> str:
             f'<div class="progress-table"><table><thead><tr><th>Coding</th><th>Transcripts</th><th>Coded passages</th>'
             f'<th>Quotations found</th><th>Codes per transcript</th><th>Compared cost</th><th>Compared request time</th><th>Whole-run cost</th><th>Whole-run request time</th></tr></thead><tbody>{rows}</tbody></table></div>'
             f'<p class="muted">Compared totals cover the transcripts in this report and their first coding step. Whole-run totals include other transcripts and later steps. Downloads include requests, tokens and per-transcript means. Time sums provider requests, not study wall time.</p></section>')
+
+    usage_notes = []
+    for coding in report["coding_sets"]:
+        notes = []
+        for prefix, label in (("cohort", "Compared cohort"), ("whole_run", "Whole run")):
+            if coding.get(f"{prefix}_usage_note"):
+                notes.append(f'{label}: {coding[f"{prefix}_usage_note"]}')
+            if coding.get(f"{prefix}_cost_is_estimated"):
+                notes.append(f"{label}: includes estimated costs.")
+        if notes:
+            usage_notes.append(f'<li>{name(coding["set_id"])}: {e(" ".join(notes))}</li>')
+    if usage_notes:
+        out += '<details><summary>Usage coverage and estimates</summary><ul>' + "".join(usage_notes) + '</ul></details>'
 
     def presence_table(level: str, scope_kind: str) -> str:
         chosen = [r for r in report["presence"] if r["level"] == level and r["scope_kind"] == scope_kind]
