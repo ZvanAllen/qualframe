@@ -179,6 +179,7 @@ def write_run_qa_inventory(
     artifacts, desired = {}, []
     paths = dict.fromkeys(_within(artifact_root, value) for value in artifact_paths)
     structured_failures = 0
+    no_decision_count = 0
     for path in paths:
         relative = path.relative_to(artifact_root).as_posix()
         content = path.read_bytes()
@@ -188,6 +189,7 @@ def write_run_qa_inventory(
         digest = hashlib.sha256(content).hexdigest()
         artifacts[relative] = digest
         structured_failures += int(artifact.structured_output_valid is False)
+        no_decision_count += sum(len(codes) for codes in artifact.no_decisions.values())
         failures = sorted((dataclasses.asdict(item) for item in evaluate(artifact)), key=_identity)
         occurrences: Counter[str] = Counter()
         for failure in failures:
@@ -285,6 +287,7 @@ def write_run_qa_inventory(
         artifact_paths=list(artifacts),
         qa_failure_count=len(items),
         structured_output_failure_count=structured_failures,
+        no_decision_count=no_decision_count,
         qa_inventory_path=path.relative_to(artifact_root).as_posix(),
         qa_inventory_sha256=digest,
     )

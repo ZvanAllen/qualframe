@@ -198,7 +198,7 @@ _JSON_FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL | re.IGNOREC
 CODING_COLUMNS = ("Meaning Unit ID", "Evidence Start", "Evidence End", "Exact Evidence", "Code ID", "Rationale")
 
 
-def _json_candidate(text: str) -> str | None:
+def _json_candidate(text: str, key: str = "codings") -> str | None:
     stripped = text.strip()
     fenced = _JSON_FENCE.match(stripped)
     if fenced:
@@ -206,7 +206,7 @@ def _json_candidate(text: str) -> str | None:
     if stripped.startswith("{"):
         return stripped
     start, end = stripped.find("{"), stripped.rfind("}")
-    if start >= 0 and end > start and '"codings"' in stripped[start:end]:
+    if start >= 0 and end > start and f'"{key}"' in stripped[start:end]:
         return stripped[start:end + 1]
     return None
 
@@ -245,8 +245,71 @@ def parse_coding_json(text: str) -> dict[str, list[dict[str, str]]] | None:
     return {"Directed Coding": rows}
 
 
-def parse_model_output(text: str) -> dict[str, list[dict[str, str]]]:
-    """Parse JSON coding output when present, otherwise markdown tables."""
+def parse_decisions_json(text: str) -> dict[str, list[dict[str, str]]] | None:
+    """Normalize explicit decisions, retaining absences separately from evidence.
+
+    Missing codes (including an empty decisions list) are allowed. The runner
+    records those omissions against the request's frozen active-code list.
+    Malformed or contradictory entries must not become an absence declaration.
+    """
+    import json
+    from hashlib import sha256
+
+    candidate = _json_candidate(text, "decisions")
+    if candidate is None:
+        return None
+    try:
+        payload = json.loads(candidate)
+    except ValueError as exc:
+        raise ValueError("The decision response is not valid JSON.") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("decisions"), list):
+        raise ValueError("The decision response must contain a decisions list.")
+    rows: list[dict[str, str]] = []
+    states: dict[str, bool] = {}
+    for index, item in enumerate(payload["decisions"], start=1):
+        if not isinstance(item, dict) or type(item.get("present")) is not bool:
+            raise ValueError(f"Decision {index} must contain a boolean present value.")
+        if any(not isinstance(item.get(key), str) for key in ("code_id", "quote", "rationale")):
+            raise ValueError(f"Decision {index} needs string code_id, quote and rationale values.")
+        code_id = item["code_id"].strip()
+        if not code_id:
+            raise ValueError(f"Decision {index} has an empty code_id.")
+        present = item["present"]
+        if not present and item["quote"] != "":
+            raise ValueError(f"Absent decision {index} must have an empty quote.")
+        if code_id in states and (not present or not states[code_id]):
+            raise ValueError(
+                f"Code {code_id!r} has conflicting decisions or repeated absence declarations."
+            )
+        states[code_id] = present
+        # The contract has no meaning-unit field. Repeated exact quotations
+        # share an evidence unit across partitions for cardinality QA; unrelated
+        # first quotations in different partitions must not collide by row number.
+        meaning_unit = "mu-" + sha256(item["quote"].encode("utf-8")).hexdigest()[:24] if present else ""
+        rows.append({
+            # Absences have no evidence unit and must not enter assignment-policy grouping.
+            "Meaning Unit ID": meaning_unit,
+            "Evidence Start": "auto",
+            "Evidence End": "auto",
+            "Exact Evidence": item["quote"].replace("&", "&amp;"),
+            "Code ID": code_id,
+            "Rationale": item["rationale"].strip(),
+            "Record Kind": "evidence" if present else "absence",
+        })
+    return {"Directed Coding": rows}
+
+
+def parse_model_output(
+    text: str, *, decision_style: str = "find_passages"
+) -> dict[str, list[dict[str, str]]]:
+    """Parse the selected contract without changing legacy JSON/table behavior."""
+    if decision_style == "decide_each_code":
+        parsed = parse_decisions_json(text)
+        if parsed is None:
+            raise ValueError("The decision response must contain a JSON decisions object.")
+        return parsed
+    if decision_style != "find_passages":
+        raise ValueError("Unknown coding decision style.")
     parsed = parse_coding_json(text)
     return parsed if parsed is not None else parse_markdown_tables(text)
 
@@ -272,4 +335,28 @@ def coding_response_schema(code_ids: list[str]) -> dict:
         "additionalProperties": False,
         "required": ["codings"],
         "properties": {"codings": {"type": "array", "items": item}},
+    }
+
+
+def decisions_response_schema(code_ids: list[str]) -> dict:
+    """Strict decision schema restricted to this request's active codes."""
+    code_field: dict = {"type": "string"}
+    if code_ids:
+        code_field["enum"] = sorted(set(code_ids))
+    item = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["code_id", "present", "quote", "rationale"],
+        "properties": {
+            "code_id": code_field,
+            "present": {"type": "boolean"},
+            "quote": {"type": "string"},
+            "rationale": {"type": "string"},
+        },
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["decisions"],
+        "properties": {"decisions": {"type": "array", "items": item}},
     }

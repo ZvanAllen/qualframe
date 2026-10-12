@@ -476,7 +476,8 @@ class DashboardApp:
             return value
 
         partition_strategy = required("partition_strategy")
-        if self.runner.pipeline.id.startswith("transcript_cfir"):
+        decision_style = form.get("coding_decision_style", [self.runner.method.coding.decision_style])[0]
+        if any(stage.enabled and stage.domain_iterations for stage in self.runner.pipeline.stages):
             partition_strategy = "per_top_level_category"
         from qualframe.coding_ui import CONTEXT_PRESETS
 
@@ -490,6 +491,7 @@ class DashboardApp:
             context_unit=form.get("context_unit", ["sentences"])[0],
             context_after=int(required("context_after")),
             coding_cardinality=required("coding_cardinality"),
+            coding_decision_style=decision_style,
             allow_overlapping_spans=(
                 form.get("allow_overlapping_spans", [""])[0] == "yes"
             ),

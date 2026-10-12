@@ -216,26 +216,50 @@ def _method_section(app) -> str:
     method = app.runner.method
     if method is None:
         return ""
-    cfir = app.runner.pipeline.id.startswith("transcript_cfir")
+    cfir = any(stage.enabled and stage.domain_iterations for stage in app.runner.pipeline.stages)
 
     def sel(value: str, current: str) -> str:
         return " selected" if value == current else ""
 
+    custom_partition = (
+        f'<option value="custom_groups"{sel("custom_groups", method.partitioning.strategy)}>The study\'s custom groups</option>'
+        if method.partitioning.custom_groups else ""
+    )
     partition = (
         "<input type='hidden' name='partition_strategy' value='per_top_level_category'>"
         "<p class='muted'>The CFIR workflow sends one request per CFIR domain.</p>"
         if cfir else
         f'''<label>How much of the codebook goes in each request<select name="partition_strategy">
 <option value="full_codebook"{sel("full_codebook", method.partitioning.strategy)}>The whole codebook at once</option>
-<option value="per_top_level_category"{sel("per_top_level_category", method.partitioning.strategy)}>One request per top-level category</option></select>
+<option value="per_top_level_category"{sel("per_top_level_category", method.partitioning.strategy)}>One request per top-level category</option>{custom_partition}</select>
 <small>Splitting by category means more requests but less for the model to juggle in each.</small></label>''')
+    decision_style = (
+        '<p class="muted">The CFIR reference workflow asks for a decision on every construct using its published instructions.</p>'
+        if cfir else
+        '<fieldset><legend>Coding style</legend>'
+        + ''.join(
+            f'<label class="check"><input type="radio" name="coding_decision_style" value="{value}"'
+            f'{" checked" if method.coding.decision_style == value else ""}>'
+            f'<span><strong>{label}:</strong> {description}</span></label>'
+            for value, label, description in (
+                ("find_passages", "Find passages that fit", "fewer, stronger codings."),
+                ("decide_each_code", "Decide on every code", "more complete; suited to checklists such as CFIR or BCT annotation. It costs a little more output."),
+            )
+        )
+        + '</fieldset>'
+    )
     current = (method.context.unit, method.context.before, method.context.after)
     preset = next((key for key, (_, value) in CONTEXT_PRESETS.items() if value == current), "custom")
     kept = CONTEXT_PRESETS[preset][0] if preset != "custom" else (
         f"{method.context.before} before and {method.context.after} after, in {method.context.unit}")
+    partition_summary = {
+        "full_codebook": "whole codebook per request",
+        "per_top_level_category": "one request per category",
+        "custom_groups": "one request per custom group",
+    }[method.partitioning.strategy]
     summary = (
         f"{'Several codes' if method.coding.cardinality == 'multi_label' else 'One code'} per passage, "
-        f"{'whole codebook per request' if method.partitioning.strategy == 'full_codebook' else 'one request per category'}, "
+        f"{partition_summary}, "
         f"keeps {kept[0].lower() + kept[1:]}"
     )
     checked = lambda key: " checked" if key == preset else ""
@@ -245,6 +269,7 @@ def _method_section(app) -> str:
     ) + f'<label class="check"><input type="radio" name="context_preset" value="custom"{checked("custom")}><span>Custom (below)</span></label>'
     return f'''<section><details class="method-options"><summary>Coding options <span class="muted">({e(summary)})</span></summary>
 <form method="post" action="/method/update">
+{decision_style}
 <fieldset class="kept-text"><legend>Text kept with each code</legend>{preset_options}
 <small>The highlighted quotation stays the evidence. The surrounding text is saved with it, shown in review and results, and exported. More context helps later steps such as suggesting themes.</small>
 <details class="custom-context"><summary>Custom context</summary><div class="grid">
@@ -371,11 +396,16 @@ def _runs_by_instructions(app) -> dict[str, list[str]]:
 
 
 def _instructions_section(app) -> str:
-    from qualframe.coding_instructions import current_instructions, instruction_versions
+    from qualframe.coding_instructions import current_instructions, instruction_versions, uses_code_decisions
 
     project_path = app._managed_project_path()
     try:
         _, _, text, label = current_instructions(app.repo_root, project_path)
+        if uses_code_decisions(app.repo_root, project_path):
+            return f'''<section><details class="method-options" id="instructions"><summary>Coding instructions <span class="muted">({e(label)})</span></summary>
+<p>These instructions ask for a decision on every code in each request. They are saved with the run and cannot be edited here.</p>
+<label>Instructions<textarea rows="18" readonly>{e(text)}</textarea></label>
+<p class="muted">Your Find passages that fit instructions are kept. Choose that style in Coding options to use or edit them.</p></details></section>'''
         versions = instruction_versions(app.repo_root, project_path)
     except ValueError as exc:
         return f'<section><details class="method-options"><summary>Coding instructions</summary><p class="muted">{e(str(exc))}</p></details></section>'

@@ -369,6 +369,17 @@ def _report_html(app, folder: Path) -> str:
             f'<th>Quotations found</th><th>Codes per transcript</th><th>Compared cost</th><th>Compared request time</th><th>Whole-run cost</th><th>Whole-run request time</th></tr></thead><tbody>{rows}</tbody></table></div>'
             f'<p class="muted">Compared totals cover the transcripts in this report and their first coding step. Whole-run totals include other transcripts and later steps. Downloads include requests, tokens and per-transcript means. Time sums provider requests, not study wall time.</p></section>')
 
+    decision_rows = "".join(
+        f'<tr><td>{name(s["set_id"])}</td><td>{s.get("no_evidence_rows", 0)}</td>'
+        f'<td>{s.get("no_decision_count", 0)}</td></tr>' for s in report["coding_sets"])
+    out += ('<section><h2>Code decisions</h2><div class="progress-table"><table>'
+            '<thead><tr><th>Coding</th><th>Explicit absences</th><th>No decision recorded</th></tr></thead>'
+            f'<tbody>{decision_rows}</tbody></table></div><p class="muted">No decision means a response '
+            'omitted a code it was asked to decide. These omissions are separate from explicit absences '
+            'and failed requests. Older runs without recorded omissions show zero; they may not have '
+            'been asked to decide every code. Presence comparisons still describe which codes were '
+            'applied, not whether an absence was explicitly declared.</p></section>')
+
     reference_locations = [s for s in report["coding_sets"] if "reference_passages_unique" in s]
     if reference_locations:
         location_rows = "".join(

@@ -17,7 +17,7 @@ from qualframe.io.files import sha256_for_file, sha256_for_text
 from qualframe.io.transcript_io import transcript_to_text
 from qualframe.models import RunPlan, StageArtifact
 from qualframe.pipeline.project_runner import _API_SYSTEM_PROMPT, ProjectRunner
-from qualframe.prompts import get_prompt_text
+from qualframe.decision_style import get_stage_prompt_path
 from qualframe.reviewed_analysis import snapshot_identity
 from qualframe.study_setup import StudyWorkspace
 
@@ -144,11 +144,10 @@ def _scope(
         if stage.use_codebook and codebook_text
         else ""
     )
-    prompt = get_prompt_text(
-        resolve_repo_path(runner.repo_root, runner.framework.prompt_set),
-        stage.prompt_ref,
-        runner.repo_root,
-    )
+    prompt = get_stage_prompt_path(
+        runner.repo_root, resolve_repo_path(runner.repo_root, runner.framework.prompt_set),
+        stage, runner.method,
+    ).read_text(encoding="utf-8")
     partitions = runner._generic_codebook_partitions(stage)
     calls = []
     for item in inputs:

@@ -70,6 +70,7 @@ class ContextWindowPolicy(BaseModel):
 
 
 class CodingPolicy(BaseModel):
+    decision_style: Literal["find_passages", "decide_each_code"] = "find_passages"
     cardinality: Literal["single_label", "multi_label"] = "multi_label"
     allow_overlapping_spans: bool = True
     max_codes_per_unit: int | None = Field(default=None, ge=1)
@@ -558,8 +559,9 @@ class MethodPolicyUpdate(BaseModel):
     context_before: int = Field(ge=0, le=10)
     context_after: int = Field(ge=0, le=10)
     coding_cardinality: Literal["single_label", "multi_label"]
+    coding_decision_style: Literal["find_passages", "decide_each_code"] = "find_passages"
     allow_overlapping_spans: bool = True
-    partition_strategy: Literal["full_codebook", "per_top_level_category"]
+    partition_strategy: Literal["full_codebook", "per_top_level_category", "custom_groups"]
 
 
 class StudyChangeAction(BaseModel):
@@ -665,6 +667,8 @@ class StageArtifact(BaseModel):
     timestamp_utc: str
     # sheet_name → list of row dicts; None if parsing produced no tables
     parsed_output: dict[str, list[dict[str, str]]] | None = None
+    # Requested active codes omitted from each part; never evidence or explicit absence.
+    no_decisions: dict[str, list[str]] = Field(default_factory=dict)
     structured_output_schema_id: str | None = None
     # Scoped contracts bind resumed artifacts to their original validation/QA policy.
     structured_output_contract_sha256: str | None = None
@@ -685,6 +689,7 @@ class RunManifest(BaseModel):
     # paths to each StageArtifact JSON, relative to the run's artifact_root directory
     artifact_paths: list[str] = Field(default_factory=list)
     qa_failure_count: int = 0
+    no_decision_count: int = Field(default=0, ge=0)
     qa_inventory_path: str | None = None
     qa_inventory_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     status: Literal["completed", "awaiting_review", "blocked_validation"] = "completed"

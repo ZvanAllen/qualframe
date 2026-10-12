@@ -212,10 +212,15 @@ def build_evidence_review_records(
                 exact_text = str(row.get("Exact Evidence", ""))
                 if artifact.evidence_location == "unique_exact_quote":
                     exact_text = html.unescape(exact_text)
+                absent = row.get("Record Kind") == "absence"
                 anchoring_method = "model_offsets"
                 anchor_match_count = None
                 automatic = artifact.evidence_location == "unique_exact_quote" and raw_start.lower() == raw_end.lower() == "auto"
-                if automatic:
+                if absent:
+                    start, end, anchoring_method = -1, -1, "no_evidence"
+                    if exact_text != "":
+                        issues.append("An explicit absence must have empty evidence text.")
+                elif automatic:
                     anchor = anchor_exact_quote(source_text, exact_text)
                     anchor_match_count = anchor.match_count
                     start, end = anchor.start if anchor.start is not None else -1, anchor.end if anchor.end is not None else -1
@@ -249,11 +254,11 @@ def build_evidence_review_records(
                 span: EvidenceSpan | None = None
                 assignment: CodeAssignment | None = None
                 context_text: str | None = None
-                if start < 0 or end <= start:
+                if not absent and (start < 0 or end <= start):
                     issues.append("Evidence offsets must specify a nonempty character span with 0 <= start < end.")
-                if not exact_text.strip():
+                if not absent and not exact_text.strip():
                     issues.append("Exact evidence text is empty.")
-                if start >= 0 and end > start and exact_text.strip():
+                if not absent and start >= 0 and end > start and exact_text.strip():
                     context_start, context_end = _context_offsets(
                         source_text, start, end, method_before, method_after, method_unit
                     )
@@ -315,6 +320,7 @@ def build_evidence_review_records(
                         proposed_end_offset=proposed_end,
                         raw_start_value=raw_start, raw_end_value=raw_end,
                         anchoring_method=anchoring_method, anchor_match_count=anchor_match_count,
+                        record_kind="absence" if absent else "evidence",
                         proposed_exact_text=exact_text,
                         context_text=context_text,
                         evidence_span=span,

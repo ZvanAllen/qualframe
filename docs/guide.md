@@ -41,12 +41,18 @@ QualFrame applies one codebook at a time. Codes can be flat or nested (a parent 
 **What is sent.** For each transcript (and each codebook part, if split): the coding instructions, the analysis settings, the transcript text, and the codebook. Nothing else from your computer is sent.
 
 **Coding options.**
+
+- *Coding style*: **Find passages that fit** (the default) asks for fewer, stronger codings. **Decide on every code** is more complete; suited to checklists such as CFIR or BCT annotation. It costs a little more output.
 - *Codes per passage*: one, or several.
-- *How much of the codebook goes in each request*: all of it, or one top-level category at a time.
+- *How much of the codebook goes in each request*: all of it, one top-level category at a time, or the study's existing custom groups. Both coding styles work with every split.
 - *Context saved*: how many sentences before and after each coded passage are saved with it in exports. This doesn't change what is coded.
 - *Overlapping passages*: whether two coded passages may overlap.
 
 Each change saves a new method version. Runs record exactly which version they used.
+
+**Deciding on every code.** Each request asks for a decision on every active code in the supplied part. Codes with evidence become ordinary proposals with exact quotations; codes without evidence have an explicit absence record. If the model omits a code, QualFrame records it as *no decision* and counts it in run QA and the QualBench coding-set profile, without failing the request. A missing decision is distinct from the model explicitly deciding that a code is absent. Human review is still needed, and the choice of style does not establish accuracy.
+
+This style uses a separate, fixed version of the instructions, shown under **Coding instructions**. Your existing Find passages instructions are kept and become active again when you switch back; they remain editable in that style. The chosen style and its prompt are included in each run's locked configuration. The **CFIR reference workflow** keeps its published construct-by-construct prompts and does not offer this switch; use a general directed study with a CFIR codebook to compare the two general styles.
 
 **What happens during a run.** Requests are sent one at a time. Each response is saved as soon as it arrives, then checked: every quotation is searched for in the transcript, and every code is checked against the codebook. If QualFrame is closed or a request fails, open **Run details** and resume; completed requests are not sent again. Failed requests are never retried automatically.
 

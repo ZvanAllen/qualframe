@@ -26,7 +26,9 @@ from qualframe.directed_analysis import parsed_assignment_policy_issues, partiti
 from qualframe.governance import approved_gate_ids
 from qualframe.io.excel_io import REQUIRED_COLUMNS, discover_workbooks, validate_workbook, workbook_to_text
 from qualframe.io.files import sha256_for_file, sha256_for_text
-from qualframe.io.response_parser import coding_response_schema, parse_markdown_tables, parse_model_output
+from qualframe.io.response_parser import (
+    coding_response_schema, decisions_response_schema, parse_markdown_tables, parse_model_output,
+)
 from qualframe.io.transcript_io import (
     codebook_xlsx_to_text,
     discover_transcripts,
@@ -42,7 +44,7 @@ from qualframe.models import (
     StageSpec,
     WorkbookValidationResult,
 )
-from qualframe.prompts import get_prompt_text
+from qualframe.decision_style import get_stage_prompt_path, uses_code_decisions
 from qualframe.providers import build_provider
 from qualframe.providers.base import LLMProvider, LLMResponse, LLMUsage, estimate_tokens
 from qualframe.qa.rules import ReviewQueueItem, run_qa_on_artifact
@@ -272,6 +274,7 @@ class ProjectRunner:
             "started_at_utc": datetime.now(timezone.utc).isoformat(),
             "provider": settings,
             "method_id": self.method.id if self.method else None,
+            "decision_style": self.method.coding.decision_style if self.method else "find_passages",
             "codebook_id": self.codebook.id if self.codebook else None,
             "codebook_version": self.codebook.version if self.codebook else None,
         }, indent=2), encoding="utf-8")
@@ -452,7 +455,10 @@ class ProjectRunner:
         artifact_paths: list[str],
     ) -> None:
         if self.method is not None:
-            artifact.evidence_location = self.method.evidence_location
+            artifact.evidence_location = (
+                "unique_exact_quote" if self.method.coding.decision_style == "decide_each_code"
+                else self.method.evidence_location
+            )
         if self.structured_output_spec is not None:
             issues = validate_stage_output(
                 artifact.stage_id, artifact.parsed_output, self.structured_output_spec,
@@ -485,6 +491,14 @@ class ProjectRunner:
                     rule_id="directed_method_policy", row_index=None,
                     row_data={"input_path": artifact.input_path}, reason=" ".join(issues),
                 ))
+        for partition, code_ids in artifact.no_decisions.items():
+            for code_id in code_ids:
+                failures.append(ReviewQueueItem(
+                    run_id=artifact.run_id, stage_id=artifact.stage_id,
+                    rule_id="no_decision", row_index=None,
+                    row_data={"input_path": artifact.input_path, "partition": partition, "code_id": code_id},
+                    reason=f"No decision returned for requested code '{code_id}' in part '{partition}'.",
+                ))
         failures.extend(self._run_qa(artifact))
         return failures
 
@@ -496,7 +510,13 @@ class ProjectRunner:
             for wb in discover_workbooks(raw_workbooks_dir)
         ]
 
+    def _validate_decision_codebook(self) -> None:
+        if self.method and self.method.coding.decision_style == "decide_each_code":
+            if self.codebook is None or not any(code.active for code in self.codebook.codes):
+                raise ValueError("Decide on every code requires a structured codebook with at least one active code.")
+
     def build_run_plan(self) -> RunPlan:
+        self._validate_decision_codebook()
         raw_workbooks_dir = resolve_repo_path(self.repo_root, self.project.paths["raw_workbooks"])
         discovered_files = discover_workbooks(raw_workbooks_dir)
         discovered_inputs = [
@@ -646,6 +666,7 @@ class ProjectRunner:
 
         Returns the path to the run_manifest.json written at completion.
         """
+        self._validate_decision_codebook()
         if plan.configuration_fingerprint:
             current = create_configuration_lock(self.project_manifest_path)
             planned_root = resolve_repo_path(self.repo_root, self.project.paths["artifacts"]) / run_id
@@ -718,7 +739,9 @@ class ProjectRunner:
             if progress_callback:
                 progress_callback(stage.id)
 
-            prompt_text = get_prompt_text(prompt_set_path, stage.prompt_ref, self.repo_root)
+            prompt_text = get_stage_prompt_path(
+                self.repo_root, prompt_set_path, stage, self.method
+            ).read_text(encoding="utf-8")
             prompt_sha = sha256_for_text(prompt_text)
             stage_dir = artifact_root / stage.id
             stage_dir.mkdir(parents=True, exist_ok=True)
@@ -934,6 +957,7 @@ class ProjectRunner:
                         run_outputs.append((label, existing.response_text))
                         continue
 
+                    no_decisions: dict[str, list[str]] = {}
                     generic_partitions = self._generic_codebook_partitions(stage)
                     if generic_partitions:
                         partition_texts: list[str] = []
@@ -948,12 +972,16 @@ class ProjectRunner:
                                 f"\n\n---\n\n{codebook_label}:\n\n"
                                 f"{partition_codebook_text}"
                             )
+                            partition_ids = [
+                                str(code["id"]) for code in json.loads(partition_codebook_text).get("codes", [])
+                            ]
+                            decide_each = uses_code_decisions(stage, self.method)
                             schema = None
-                            if '"codings"' in prompt_text and self.project.provider.name in {"openai", "anthropic"}:
-                                partition_ids = [
-                                    str(code.get("id")) for code in json.loads(partition_codebook_text).get("codes", [])
-                                ]
-                                schema = coding_response_schema(partition_ids)
+                            if self.project.provider.name in {"openai", "anthropic"}:
+                                if decide_each:
+                                    schema = decisions_response_schema(partition_ids)
+                                elif '"codings"' in prompt_text:
+                                    schema = coding_response_schema(partition_ids)
                             response = self._complete(
                                 provider=provider,
                                 cost_controller=cost_controller,
@@ -962,7 +990,18 @@ class ProjectRunner:
                                 user_prompt=user_prompt,
                                 response_schema=schema,
                             )
-                            parsed_partition = parse_model_output(response.text)
+                            parsed_partition = parse_model_output(
+                                response.text, decision_style="decide_each_code" if decide_each else "find_passages"
+                            )
+                            if decide_each:
+                                decided = {row.get("Code ID") for rows in parsed_partition.values() for row in rows}
+                                unexpected = decided - set(partition_ids)
+                                if unexpected:
+                                    raise ValueError("Decision response contains codes outside the requested part: "
+                                                     + ", ".join(sorted(unexpected)))
+                                missing = [code_id for code_id in partition_ids if code_id not in decided]
+                                if missing:
+                                    no_decisions[partition_name] = missing
                             if len(generic_partitions) == 1:
                                 combined_parsed.update(parsed_partition)
                                 partition_texts.append(response.text)
@@ -1018,6 +1057,7 @@ class ProjectRunner:
                         response_text=response_text, model=response.model, provider=response.provider,
                         timestamp_utc=datetime.now(timezone.utc).isoformat(),
                         parsed_output=parsed_output,
+                        no_decisions=no_decisions,
                     )
                     self._save_artifact(
                         artifact, stage_dir / f"{Path(label).stem}_artifact.json",
@@ -1053,6 +1093,7 @@ class ProjectRunner:
             completed_at_utc=datetime.now(timezone.utc).isoformat(),
             artifact_paths=artifact_paths,
             qa_failure_count=qa["qa_failure_count"],
+            no_decision_count=qa["no_decision_count"],
             qa_inventory_path=qa["qa_inventory_path"],
             qa_inventory_sha256=qa["qa_inventory_sha256"],
             status=(

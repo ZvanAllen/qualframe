@@ -13,11 +13,18 @@ from pathlib import Path
 
 import yaml
 
-from qualframe.config import load_project_manifest, resolve_repo_path
+from qualframe.config import load_method_spec, load_project_manifest, resolve_repo_path
 from qualframe.io.files import sha256_for_file
 
 STANDARD_LABEL = "QualFrame standard instructions"
 JSON_CONTRACT = '"codings"'
+
+
+def uses_code_decisions(repo_root: Path, project_path: Path) -> bool:
+    project = load_project_manifest(project_path)
+    return bool(project.method and load_method_spec(
+        resolve_repo_path(repo_root, project.method)
+    ).coding.decision_style == "decide_each_code")
 
 
 @dataclass(frozen=True)
@@ -51,6 +58,11 @@ def current_instructions(repo_root: Path, project_path: Path) -> tuple[str, Path
     """(stage id, prompt file, text, label) for the instructions the study uses now."""
     project = load_project_manifest(project_path)
     stage_id, prompt_ref, label = _framework_prompt(repo_root, project.framework)
+    if uses_code_decisions(repo_root, project_path):
+        from qualframe.decision_style import DECIDE_EACH_CODE_PROMPT
+
+        prompt_ref = DECIDE_EACH_CODE_PROMPT
+        label = "QualFrame decide on every code instructions"
     path = resolve_repo_path(repo_root, prompt_ref)
     return stage_id, path, path.read_text(encoding="utf-8"), label
 
@@ -93,6 +105,8 @@ def instruction_versions(repo_root: Path, project_path: Path) -> list[Instructio
 
 def save_instructions(workspace, project_path: Path, *, text: str, label: str, actor: str, rationale: str) -> str:
     """Write the edited instructions as a new version and make it current. Returns the framework ref."""
+    if uses_code_decisions(workspace.repo_root, project_path):
+        raise ValueError('Decide on every code uses fixed instructions. Choose Find passages that fit in Coding options before editing instructions.')
     actor, rationale = workspace._validate_action_fields(actor, rationale)
     study_root = workspace.managed_study_root(project_path)
     project = load_project_manifest(project_path)
@@ -134,6 +148,8 @@ def save_instructions(workspace, project_path: Path, *, text: str, label: str, a
 
 def use_instructions(workspace, project_path: Path, *, framework_ref: str, actor: str, rationale: str) -> str:
     """Switch the study to an earlier version listed by instruction_versions."""
+    if uses_code_decisions(workspace.repo_root, project_path):
+        raise ValueError('Decide on every code uses fixed instructions. Choose Find passages that fit in Coding options before switching instructions.')
     actor, rationale = workspace._validate_action_fields(actor, rationale)
     study_root = workspace.managed_study_root(project_path)
     known = {v.framework_ref: v for v in instruction_versions(workspace.repo_root, project_path)}

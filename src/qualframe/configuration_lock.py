@@ -22,6 +22,7 @@ from qualframe.config import (
     load_stage_output_spec,
     resolve_repo_path,
 )
+from qualframe.decision_style import get_stage_prompt_path, validate_decision_style
 from qualframe.io.files import sha256_for_file
 from qualframe.models import (
     ConfigurationAssetRef,
@@ -77,6 +78,8 @@ def create_configuration_lock(project_yaml: Path) -> LockedAnalysisConfiguration
     pipeline_path = resolve_repo_path(repo_root, project.pipeline)
     framework = load_framework_spec(framework_path)
     pipeline = load_pipeline_spec(pipeline_path)
+    method = load_method_spec(resolve_repo_path(repo_root, project.method)) if project.method else None
+    validate_decision_style(pipeline, method)
     if not framework.prompt_set:
         raise ValueError("framework spec does not define a prompt_set")
     prompt_set_path = resolve_repo_path(repo_root, framework.prompt_set)
@@ -114,16 +117,22 @@ def create_configuration_lock(project_yaml: Path) -> LockedAnalysisConfiguration
     ]
 
     for stage_id, prompt in prompt_set.stages.items():
-        prompt_path = resolve_repo_path(repo_root, prompt.file)
-        assets.append(
-            _file_asset(
-                kind="prompt",
-                asset_id=stage_id,
-                version=None,
-                path=prompt_path,
-                repo_root=repo_root,
+        # A ref may be shared by coding and later stages. Lock every distinct
+        # file actually selected, without changing legacy single-prompt assets.
+        prompt_paths = dict.fromkeys(
+            get_stage_prompt_path(repo_root, prompt_set_path, stage, method)
+            for stage in pipeline.stages if stage.enabled and stage.prompt_ref == stage_id
+        ) or {resolve_repo_path(repo_root, prompt.file): None}
+        for prompt_path in prompt_paths:
+            assets.append(
+                _file_asset(
+                    kind="prompt",
+                    asset_id=stage_id,
+                    version=None,
+                    path=prompt_path,
+                    repo_root=repo_root,
+                )
             )
-        )
 
     optional_assets: list[tuple[str, str | None, Callable[[Path], BaseModel]]] = [
         ("method", project.method, load_method_spec),

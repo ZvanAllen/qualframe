@@ -275,7 +275,7 @@ def _mean(values: list) -> float | None:
 
 def _restrict(coding_set: dict, sources: set[str]) -> dict:
     trimmed = dict(coding_set, sources={k: v for k, v in coding_set["sources"].items() if k in sources})
-    for key in ("included", "excluded", "absences", "presence_only", "usage_records"):
+    for key in ("included", "excluded", "absences", "no_decisions", "presence_only", "usage_records"):
         trimmed[key] = [item for item in coding_set.get(key, []) if item.get("source") in sources]
     return trimmed
 
@@ -314,7 +314,7 @@ def same_transcripts_by_content(sets: list[dict]) -> list[dict]:
             rekeyed.append(coding_set)
             continue
         moved = dict(coding_set, sources={mapping[path]: digest for path, digest in coding_set["sources"].items()})
-        for key in ("included", "excluded", "absences", "presence_only", "usage_records"):
+        for key in ("included", "excluded", "absences", "no_decisions", "presence_only", "usage_records"):
             moved[key] = [dict(item, source=mapping.get(item.get("source"), item.get("source")))
                           for item in coding_set.get(key, [])]
         rekeyed.append(moved)
@@ -381,6 +381,7 @@ def coding_profile(coding_set: dict) -> dict:
         quotations_not_found=len(not_located),
         unknown_codes=len(unknown),
         no_evidence_rows=len(coding_set.get("absences", [])),
+        no_decision_count=len(coding_set.get("no_decisions", [])),
         codes_without_quotation=len(coding_set.get("presence_only", [])),
         share_located=len(included) / proposals if proposals else None,
         codes_present=len(present),
@@ -659,6 +660,11 @@ Definitions
   projecting active codes to their top-level parents. Parent universes contain those projected parents.
   Universe counts use the first coding set's codebook; differences in active flags are warned about.
   A code is present when the coding set applied it at least once, whether or not its quotation was found.
+- `no_decision_count` counts requested code decisions omitted from a response, within the compared
+  transcripts and their first coding stage. These are separate from explicit absence declarations
+  (`no_evidence_rows`), not failed requests. Older runs without recorded omissions count zero;
+  this does not mean they were asked to decide every code. Presence measures remain based on applied
+  codes: a zero is no observed application, not necessarily an explicit absence decision.
 - Percent agreement: share of units where both sets agree (present or absent).
 - Cohen's kappa: agreement corrected for chance using each set's own rate of applying codes.
   Low when codes are rarely applied, even if agreement is high.

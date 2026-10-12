@@ -12,7 +12,7 @@ from pathlib import Path
 
 import yaml
 
-from qualframe.config import load_project_manifest, resolve_repo_path
+from qualframe.config import load_pipeline_spec, load_project_manifest, resolve_repo_path
 from qualframe.io.files import sha256_for_file
 from qualframe.io.transcript_io import transcript_to_text
 from qualframe.models import (
@@ -368,6 +368,10 @@ class StudyWorkspace:
         method = MethodSpec.model_validate(
             yaml.safe_load(method_path.read_text(encoding="utf-8"))
         )
+        pipeline = load_pipeline_spec(resolve_repo_path(self.repo_root, project.pipeline))
+        if (any(stage.enabled and stage.domain_iterations for stage in pipeline.stages)
+                and update.coding_decision_style != method.coding.decision_style):
+            raise ValueError("The CFIR reference workflow keeps its published coding instructions unchanged.")
         version_path = self._next_version_path(study_root / "config", "method", ".yaml")
         version_number = int(re.search(r"_v(\d+)\.yaml$", version_path.name).group(1))
         data = method.model_dump(exclude_none=True)
@@ -378,6 +382,9 @@ class StudyWorkspace:
         data["context"]["unit"] = update.context_unit
         data["context"]["after"] = update.context_after
         data["coding"]["cardinality"] = update.coding_cardinality
+        data["coding"]["decision_style"] = update.coding_decision_style
+        if update.coding_decision_style == "decide_each_code":
+            data["evidence_location"] = "unique_exact_quote"
         data["coding"]["allow_overlapping_spans"] = update.allow_overlapping_spans
         if update.coding_cardinality == "single_label":
             data["coding"]["max_codes_per_unit"] = 1
@@ -385,6 +392,9 @@ class StudyWorkspace:
             data["coding"].pop("max_codes_per_unit", None)
         data["partitioning"]["strategy"] = update.partition_strategy
         revised = MethodSpec.model_validate(data)
+        from qualframe.decision_style import validate_decision_style
+
+        validate_decision_style(pipeline, revised)
         version_path.write_text(
             yaml.safe_dump(revised.model_dump(exclude_none=True), sort_keys=False),
             encoding="utf-8",

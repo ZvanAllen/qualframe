@@ -72,7 +72,15 @@ def transcript_progress(run_root: Path, review_root: Path, current_inputs: list[
         empty_action = latest_empty_output_action(review_root, path)
         empty_state = 'not_applicable'
         zero_rows = bool(outputs) and all(a.get('parsed_output') and not any(a['parsed_output'].values()) for a in outputs)
-        if zero_rows and not own:
+        no_decision_count = sum(len(ids) for a in outputs for ids in a.get('no_decisions', {}).values())
+        if zero_rows and not own and no_decision_count:
+            # A successful request may omit every code. This is not an absence
+            # claim and must never be offered for "confirm zero proposals".
+            empty_issue = empty_issue or (
+                f"No decision was returned for {no_decision_count} requested codes. "
+                "Inspect coding QA before interpreting absence."
+            )
+        elif zero_rows and not own:
             empty_state = 'blocked'
             if completed and index.exists() and repo_root:
                 try:
@@ -94,6 +102,7 @@ def transcript_progress(run_root: Path, review_root: Path, current_inputs: list[
         pending = next((r for r in own if r.record_id not in actions or actions[r.record_id].decision == 'defer'), None)
         rows.append(dict(path=path, coding=coding, completed=completed, reviewed=reviewed,
             total=len(own), remaining=remaining, counts=dict(counts), empty_eligible=empty_eligible,
+            no_decision_count=no_decision_count,
             empty_binding=empty_binding, empty_state=empty_state, empty_action=empty_action, empty_issue=empty_issue, item=(pending or (own[0] if own else None)).record_id if own else None,
             changed=path in current and path in frozen and current[path]['sha256'] != frozen[path]['sha256']))
     return rows
@@ -115,6 +124,8 @@ def render_study_progress(app, run_id: str | None) -> str:
     table = ''
     for row in rows:
         state = f"{row['total'] - row['remaining']} / {row['total']} resolved" if row['total'] else ('Review not prepared / no proposals to confirm' if row['completed'] else 'Awaiting coding')
+        if row['completed'] and not row['total'] and row['no_decision_count']:
+            state = f"{row['no_decision_count']} codes have no decision; inspect coding QA"
         if row['empty_state'] != 'not_applicable':
             state = {'confirm_empty':'Zero proposals reviewed and confirmed', 'pending':'Confirm zero-proposal output',
                      'needs_recoding':'Researcher requested new coding', 'defer':'Zero-proposal review deferred',

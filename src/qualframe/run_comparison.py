@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from qualframe.directed_analysis import validate_evidence_span_against_source
 from qualframe.evidence_review import load_evidence_review_records, blocking_review_issues
-from qualframe.io.files import sha256_for_file
+from qualframe.io.files import sha256_for_file, sha256_for_text
 from qualframe.io.transcript_io import transcript_to_text
 from qualframe.reviewed_analysis import snapshot_identity, _within
 from qualframe.study_progress import transcript_progress
@@ -90,6 +90,42 @@ def raw_coding_payload(repo_root: Path, run_root: Path) -> dict:
         records.append(
             dict(item, start=span.start_offset, end=span.end_offset, exact_text=span.exact_text)
         )
+    no_decisions = []
+    omission_hashes = None
+    for artifact_rel in manifest.get("artifact_paths", []):
+        artifact_path = _within(run_root, artifact_rel)
+        artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+        source = str(artifact.get("input_path") or "").replace("\\", "/")
+        if source not in sources or artifact.get("stage_id") != stage_by_source[source]:
+            continue
+        missing = artifact.get("no_decisions") or {}
+        if missing or manifest.get("no_decision_count", 0):
+            if artifact.get("input_sha256") not in {sources[source], sha256_for_text(texts[source])}:
+                raise ValueError("No-decision artifact source identity differs from the run plan.")
+            inventory_rel = manifest.get("qa_inventory_path")
+            inventory_hash = manifest.get("qa_inventory_sha256")
+            if inventory_rel or inventory_hash:
+                if not inventory_rel or not inventory_hash:
+                    raise ValueError("A declared QA inventory requires both its path and hash.")
+                if omission_hashes is None:
+                    inventory_path = _within(run_root, inventory_rel)
+                    if sha256_for_file(inventory_path) != inventory_hash:
+                        raise ValueError("Run QA inventory hash differs from the manifest.")
+                    inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+                    omission_hashes = inventory.get("artifact_hashes", {})
+                if omission_hashes.get(artifact_rel) != sha256_for_file(artifact_path):
+                    raise ValueError("No-decision artifact changed after QA.")
+        if not missing:
+            continue
+        digest = sha256_for_file(artifact_path)
+        artifact_hashes[artifact_rel] = digest
+        for partition, code_ids in missing.items():
+            for code_id in code_ids:
+                no_decisions.append(dict(
+                    source=source, code_id=code_id, partition=partition,
+                    stage_id=artifact["stage_id"], artifact_path=artifact_rel,
+                    artifact_sha256=digest,
+                ))
     return dict(
         kind="qualframe_raw_comparison_input_v1",
         run_id=manifest["run_id"],
@@ -104,6 +140,7 @@ def raw_coding_payload(repo_root: Path, run_root: Path) -> dict:
         included=records,
         excluded=excluded,
         absences=absences,
+        no_decisions=no_decisions,
     )
 
 
@@ -148,7 +185,7 @@ def restrict_to_common_sources(left: dict, right: dict) -> tuple[dict, dict, lis
     def keep(payload: dict) -> dict:
         trimmed = dict(payload)
         trimmed["sources"] = {path: digest for path, digest in payload["sources"].items() if path in common}
-        for key in ("included", "excluded", "absences"):
+        for key in ("included", "excluded", "absences", "no_decisions"):
             if key in payload:
                 trimmed[key] = [item for item in payload[key] if item.get("source") in common]
         return trimmed

@@ -11,7 +11,7 @@ from uuid import uuid4
 import yaml
 
 from qualframe.io.files import sha256_for_file, sha256_for_text
-from qualframe.io.response_parser import strict_empty_tables
+from qualframe.io.response_parser import parse_decisions_json, strict_empty_tables
 from qualframe.io.transcript_io import transcript_to_text
 
 
@@ -62,6 +62,25 @@ def _required_headers(repo_root: Path, run_root: Path, stage: str, *, all_empty:
     return headers
 
 
+def _uses_decisions_contract(repo_root: Path, run_root: Path) -> bool:
+    """Read the locked method; an arbitrary JSON object cannot change its contract."""
+    lock = _read(run_root / "analysis_configuration_lock.json")
+    for asset in lock.get("assets", []):
+        if asset.get("kind") != "method":
+            continue
+        path = _within(repo_root, asset["path"])
+        if sha256_for_file(path) != asset["sha256"]:
+            raise ValueError("The frozen method changed; restore its version before review.")
+        method = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        return method.get("coding", {}).get("decision_style", "find_passages") == "decide_each_code"
+    return False
+
+
+def _is_empty_decisions(raw: str) -> bool:
+    # A valid empty decision array is an audited omission, never a claim of absence.
+    return parse_decisions_json(raw) == {"Directed Coding": []}
+
+
 def empty_table_issue(
     repo_root: Path | None, run_root: Path, calls: list[dict], outputs: list[dict]
 ) -> str:
@@ -78,7 +97,8 @@ def empty_table_issue(
     if repo_root is None:
         return "Empty output requires its frozen source and output contract for validation."
     try:
-        headers = set(
+        decisions_contract = _uses_decisions_contract(repo_root, run_root)
+        headers = set() if decisions_contract else set(
             _required_headers(
                 repo_root,
                 run_root,
@@ -128,6 +148,12 @@ def empty_table_issue(
                         sheet == domain or sheet.startswith(domain + ": ") for sheet in empty
                     ):
                         continue
+                    if decisions_contract:
+                        if not _is_empty_decisions(sections.get(domain, "")) or not output.get("no_decisions", {}).get(domain):
+                            raise ValueError(
+                                "An empty decision scope needs a valid decisions array and its missing-code audit."
+                            )
+                        continue
                     tables = strict_empty_tables(sections.get(domain, ""))
                     if len(tables) != 1 or not headers <= set(tables[0]["headers"]):
                         raise ValueError(
@@ -135,6 +161,12 @@ def empty_table_issue(
                             "it cannot be confirmed empty."
                         )
             else:
+                if decisions_contract:
+                    if len(empty) != 1 or any(parsed.values()) or not _is_empty_decisions(raw) or not any(output.get("no_decisions", {}).values()):
+                        raise ValueError(
+                            "An empty decision response needs a valid decisions array and its missing-code audit."
+                        )
+                    continue
                 tables = strict_empty_tables(raw)
                 if len(tables) != len(empty) or any(
                     not headers <= set(t["headers"]) for t in tables
