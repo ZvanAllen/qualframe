@@ -476,7 +476,7 @@ class ProjectManifest(BaseModel):
     project_id: str
     title: str | None = None
     created_at_utc: str | None = None
-    data_classification: Literal["synthetic", "deidentified", "sensitive"] | None = None
+    data_classification: Literal["synthetic", "published", "deidentified", "sensitive"] | None = None
     source_manifest: str | None = None
     metadata_file: str | None = None
     framework: str
@@ -508,7 +508,7 @@ class StudyCreationRequest(BaseModel):
         default=None,
         pattern=r"^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$",
     )
-    data_classification: Literal["synthetic", "deidentified", "sensitive"]
+    data_classification: Literal["synthetic", "published", "deidentified", "sensitive"]
     template: Literal["generic_directed", "cfir"] = "generic_directed"
     include_synthetic_fixtures: bool = False
 
@@ -543,7 +543,7 @@ class CreatedStudy(BaseModel):
     study_id: str
     title: str
     project_manifest_path: str
-    data_classification: Literal["synthetic", "deidentified", "sensitive"]
+    data_classification: Literal["synthetic", "published", "deidentified", "sensitive"]
     template: Literal["generic_directed", "cfir"]
     imported_source_count: int = Field(ge=0)
 

@@ -8,6 +8,7 @@ e = html.escape
 
 _CLASSIFICATION_LABELS = {
     "synthetic": "Synthetic data",
+    "published": "Published documents",
     "deidentified": "De-identified data",
     "sensitive": "Sensitive data",
 }

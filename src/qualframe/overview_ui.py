@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 from qualframe.study_status import next_action, review_counts, study_status, study_steps
 from qualframe.ui_kit import e, notices, plural, provider_display, run_model, run_time_from_id, friendly_time
 
-_CLASSIFICATION = {"synthetic": "Synthetic (demo or test data)", "deidentified": "De-identified research data",
+_CLASSIFICATION = {"synthetic": "Synthetic (demo or test data)", "published": "Published or public documents", "deidentified": "De-identified research data",
                    "sensitive": "Sensitive research data"}
 
 

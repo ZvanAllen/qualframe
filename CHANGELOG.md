@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- A study can be classified as **Published or public documents** (articles, reports, policy documents with no participant data). It is treated as real data, like de-identified data.
+
 - **Coding style choice.** General directed studies can find passages that fit (the existing default) or decide on every active code in each codebook part. The new style uses a separate versioned prompt, creates explicit absence records, and reports omitted codes as no decisions in run QA and QualBench profiles. Coding options save the style as a new method version and retain existing custom groups. The instructions panel shows the fixed decision prompt while preserving the study's editable Find passages instructions. Published CFIR reference prompts remain unchanged.
 
 - **Repeated reference quotations.** Table and CFIR imports preserve alternative locations as one annotation. QualBench matches any candidate under the same one-to-one rule, omits ambiguous locations from character-overlap totals with explicit counts, and reports unique/repeated/unanchored reference passages. Existing saved references remain readable and require a new import to gain alternatives.

@@ -357,3 +357,16 @@ def test_dashboard_runs_managed_mock_plan_in_background(tmp_path: Path) -> None:
     assert manifest["status"] == "completed"
     assert manifest["run_cost_usd"] == 0
     assert "Status" in app.render(run_id=run_id)
+
+
+def test_a_study_of_published_documents_is_treated_as_real_data(tmp_path):
+    from qualframe.models import StudyCreationRequest
+    from qualframe.study_setup import StudyWorkspace
+
+    root = make_test_repo(tmp_path)
+    created = StudyWorkspace(root).create(StudyCreationRequest(title="Published reports", data_classification="published"))
+    import yaml
+    manifest = yaml.safe_load((root / created.project_manifest_path).read_text(encoding="utf-8"))
+    assert manifest["data_classification"] == "published"
+    with pytest.raises(ValueError):
+        StudyCreationRequest(title="Fixtures", data_classification="published", include_synthetic_fixtures=True)

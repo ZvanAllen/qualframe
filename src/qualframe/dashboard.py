@@ -315,6 +315,7 @@ class DashboardApp:
 </div></fieldset>
 <fieldset><legend>What kind of data will this study hold?</legend><div class="choices">
 <label class="choice"><input type="radio" name="data_classification" value="deidentified" required><span><strong>De-identified research data</strong><small>Interviews with identifying details removed.</small></span></label>
+<label class="choice"><input type="radio" name="data_classification" value="published"><span><strong>Published or public documents</strong><small>Articles, reports or policy documents that are already public. No participant data.</small></span></label>
 <label class="choice"><input type="radio" name="data_classification" value="sensitive"><span><strong>Sensitive research data</strong><small>May still contain identifying or sensitive details. Prefer a local model.</small></span></label>
 <label class="choice"><input type="radio" name="data_classification" value="synthetic"><span><strong>Test or synthetic data</strong><small>Made-up material for trying things out. Enables the offline test models.</small></span></label>
 </div></fieldset>
