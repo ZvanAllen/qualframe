@@ -213,3 +213,37 @@ def test_each_declared_partition_needs_a_valid_response(tmp_path, monkeypatch):
     artifact["response_text"] = f"## Partition: A\n\n{EMPTY}\n\n## Partition: B\n\nNo rows found."
     artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
     assert not empty_output_state(project.parents[2], root, review, source)["completed"]
+
+
+def test_an_empty_json_answer_for_one_partition_counts_as_complete(tmp_path, monkeypatch):
+    # A partitioned run in which one part found nothing ({"codings": []}) is still complete.
+    project, run_id, root, review = prepared(tmp_path, monkeypatch)
+    plan_path = root / "run_plan.json"
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    first = plan["planned_stage_runs"][0]
+    source = first["input_path"]
+    plan["planned_stage_runs"] = [dict(first, domain="A"), dict(first, domain="B")] + [
+        call for call in plan["planned_stage_runs"] if call["input_path"] != source
+    ]
+    plan_path.write_text(json.dumps(plan), encoding="utf-8")
+    manifest = json.loads((root / "run_manifest.json").read_text(encoding="utf-8"))
+    artifact_path = next(
+        root / rel
+        for rel in manifest["artifact_paths"]
+        if json.loads((root / rel).read_text(encoding="utf-8"))["input_path"] == source
+    )
+    artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+    row = {"Meaning Unit ID": "mu-1", "Exact Evidence": "x", "Code ID": "a", "Rationale": "r"}
+    artifact["parsed_output"] = {"A: Directed Coding": [], "B: Directed Coding": [row]}
+    artifact["response_text"] = (
+        '## Partition: A\n\n{"codings": []}\n\n## Partition: B\n\n'
+        '{"codings": [{"meaning_unit": "mu-1", "quote": "x", "code_id": "a", "rationale": "r"}]}'
+    )
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+    progress = {row["path"]: row for row in transcript_progress(root, review, [], project.parents[2])}
+    assert "cannot be confirmed empty" not in progress[source]["empty_issue"]
+    # Unparsed text for a part is still not accepted as empty.
+    artifact["response_text"] = artifact["response_text"].replace('{"codings": []}', "Nothing relevant.")
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+    progress = {row["path"]: row for row in transcript_progress(root, review, [], project.parents[2])}
+    assert "cannot be confirmed empty" in progress[source]["empty_issue"] and not progress[source]["completed"]

@@ -76,6 +76,16 @@ def _uses_decisions_contract(repo_root: Path, run_root: Path) -> bool:
     return False
 
 
+def _is_empty_codings(raw: str) -> bool:
+    # A valid JSON answer with an empty codings list is an explicit "nothing fits" for that scope.
+    from qualframe.io.response_parser import parse_coding_json
+
+    try:
+        return parse_coding_json(raw) == {"Directed Coding": []}
+    except ValueError:
+        return False
+
+
 def _is_empty_decisions(raw: str) -> bool:
     # A valid empty decision array is an audited omission, never a claim of absence.
     return parse_decisions_json(raw) == {"Directed Coding": []}
@@ -154,6 +164,8 @@ def empty_table_issue(
                                 "An empty decision scope needs a valid decisions array and its missing-code audit."
                             )
                         continue
+                    if _is_empty_codings(sections.get(domain, "")):
+                        continue
                     tables = strict_empty_tables(sections.get(domain, ""))
                     if len(tables) != 1 or not headers <= set(tables[0]["headers"]):
                         raise ValueError(
@@ -166,6 +178,8 @@ def empty_table_issue(
                         raise ValueError(
                             "An empty decision response needs a valid decisions array and its missing-code audit."
                         )
+                    continue
+                if len(empty) == 1 and not any(parsed.values()) and _is_empty_codings(raw):
                     continue
                 tables = strict_empty_tables(raw)
                 if len(tables) != len(empty) or any(
