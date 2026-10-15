@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.10.0 (15 October 2026)
 
 - A study can be classified as **Published or public documents** (articles, reports, policy documents with no participant data). It is treated as real data, like de-identified data.
 

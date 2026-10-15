@@ -81,13 +81,13 @@ QualFrame grew out of the AI-assisted CFIR analysis in the Adaptive Mentorship N
 
 If you use QualFrame in your research, please cite the version you used:
 
-> van Allen, Z. (2026). *QualFrame: AI-assisted directed content analysis you can check* (Version 0.9.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23300233
+> van Allen, Z. (2026). *QualFrame: AI-assisted directed content analysis you can check* (Version 0.10.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23300233
 
 ```bibtex
 @software{vanallen_qualframe_2026,
   author  = {van Allen, Zack},
   title   = {{QualFrame}: {AI}-assisted directed content analysis you can check},
-  version = {0.9.0},
+  version = {0.10.0},
   year    = {2026},
   publisher = {Zenodo},
   doi     = {10.5281/zenodo.23300233},

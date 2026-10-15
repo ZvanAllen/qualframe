@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qualframe"
-version = "0.9.0"
+version = "0.10.0"
 description = "AI-assisted directed qualitative content analysis you can check: every proposed code beside its source passage"
 readme = "README.md"
 license = { file = "LICENSE" }
