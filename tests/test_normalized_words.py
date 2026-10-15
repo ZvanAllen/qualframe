@@ -169,3 +169,27 @@ def test_reference_repeated_words_remain_unlocated(tmp_path, kind):
     [item] = payload["excluded"]
     assert item["anchoring_method"] == "unresolved_exact_quote"
     assert payload["counts"]["quotations_not_found"] == 1
+
+
+def test_frozen_locator_opt_out_keeps_exact_and_typography_but_not_words():
+    assert locate_quote("A clear quote.", "A clear quote.", allow_word_normalization=False)[2] == "unique_exact_quote"
+    assert locate_quote("We  met.", "We met.", allow_word_normalization=False)[2] == "normalized_quote_candidate"
+    assert locate_quote("A clear quote.", "a clear quote!", allow_word_normalization=False) == (-1, -1, "unresolved_exact_quote")
+    assert locate_quote("A clear quote.", "a clear quote!")[2] == "normalized_words_candidate"
+
+
+@pytest.mark.parametrize("policy", ["legacy_v1", "qualified_delimiters_v2"])
+def test_frozen_historical_adapter_keeps_words_candidates_unlocated(tmp_path, policy):
+    from test_benchmark_inputs import fixture, payload
+    root, run, book = fixture(tmp_path)
+    path = run / "coding.json"
+    artifact = json.loads(path.read_text(encoding="utf-8"))
+    artifact["parsed_output"]["Innovation"][0]["Quote"] = "a clear quote!"
+    path.write_text(json.dumps(artifact), encoding="utf-8")
+    before = path.read_bytes()
+    result = payload(root, run, book, code_label_policy=policy)
+    assert len(result["included"]) == 1  # Existing typography candidate only.
+    item = next(i for i in result["excluded"] if i.get("proposed_quotation") == "a clear quote!")
+    assert item["anchoring_method"] == "unresolved_exact_quote"
+    assert item["issues"] == ["Missing source span", "Select the evidence in the transcript; the quotation is missing or ambiguous."]
+    assert path.read_bytes() == before

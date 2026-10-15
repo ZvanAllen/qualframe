@@ -81,7 +81,8 @@ def locate_words_quote(source: str, quote: str) -> tuple[int, int, str]:
     return -1, -1, 'unresolved_exact_quote'
 
 
-def locate_quote(source: str, quote: str) -> tuple[int, int, str]:
+def locate_quote(source: str, quote: str, *, allow_word_normalization: bool = True) -> tuple[int, int, str]:
+    """Locate a review candidate; frozen adapters can retain the exact/typography policy."""
     quote = quote.strip()
     if len(quote) > 1 and (quote[0], quote[-1]) in [('"', '"'), ('“', '”')]:
         quote = quote[1:-1]
@@ -95,8 +96,8 @@ def locate_quote(source: str, quote: str) -> tuple[int, int, str]:
     pos = normalized.find(needle)
     if pos >= 0 and normalized.find(needle, pos + 1) < 0:
         return offsets[pos][0], offsets[pos + len(needle) - 1][1], 'normalized_quote_candidate'
-    if pos >= 0:
-        return -1, -1, 'unresolved_exact_quote'  # Repeated typography matches remain ambiguous.
+    if pos >= 0 or not allow_word_normalization:
+        return -1, -1, 'unresolved_exact_quote'  # Repeats and frozen strict-policy misses stay unresolved.
     return locate_words_quote(source, quote)
 
 
@@ -241,7 +242,7 @@ def _frozen_policy_code(label: str, in_domain: list[dict[str, str]], current_par
 
 def cfir_records(*, artifact, artifact_rel: str, artifact_path: Path, source_path: Path,
                  repo_root: Path, manifest, codes: list[dict[str, str]], codebook_hash: str,
-                 code_label_policy: str = "legacy_v1"):
+                 code_label_policy: str = "legacy_v1", allow_word_normalization: bool = True):
     if code_label_policy not in LABEL_POLICIES:
         raise ValueError("Unknown CFIR code-label normalization policy.")
     source = transcript_to_text(source_path)
@@ -264,7 +265,8 @@ def cfir_records(*, artifact, artifact_rel: str, artifact_path: Path, source_pat
                 code, current_parent = _frozen_policy_code(label, in_domain, current_parent, code_label_policy)
             quote = str(row['Quote'])
             absent = quote.strip().strip('"“”').lower() == 'no relevant quote found'
-            start, end, method = (-1, -1, 'no_evidence') if absent else locate_quote(source, quote)
+            start, end, method = (-1, -1, 'no_evidence') if absent else locate_quote(
+                source, quote, allow_word_normalization=allow_word_normalization)
             identity = sha256_for_text(f'{artifact_rel}:{domain}:{number}')[:20]
             issues = []
             if code is None:

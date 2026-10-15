@@ -246,6 +246,7 @@ def historical_cfir_payload(
                 codes=codes,
                 codebook_hash=codebook.get("version") or snapshot_identity(codebook),
                 code_label_policy=code_label_policy,
+                allow_word_normalization=False,  # Frozen historical v1 quote policy.
             )
             for record in records:
                 code = record.assignment.code_id if record.assignment else record.proposed_code_id

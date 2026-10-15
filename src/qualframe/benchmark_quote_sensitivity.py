@@ -128,7 +128,7 @@ def _candidate(
     needle = normalized_with_offsets(_quote_text(quote))[0].casefold()
     if not needle.strip():
         return "empty_quotation", None
-    if locate_quote(source, quote)[2] != "unresolved_exact_quote":
+    if locate_quote(source, quote, allow_word_normalization=False)[2] != "unresolved_exact_quote":
         return "already_strictly_anchorable", None
     start = folded.find(needle)
     if start < 0:
