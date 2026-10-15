@@ -138,7 +138,9 @@ def _reference_quote_anchor(source: str, quote: str) -> dict | None:
     """
     start, end, method = locate_reference_quote(source, quote)
     if start >= 0:
-        return dict(start=start, end=end, exact_text=source[start:end], anchoring_method=method)
+        return dict(start=start, end=end, exact_text=source[start:end], anchoring_method=method,
+                    **(dict(requires_confirmation=True) if method in
+                       {"normalized_quote_candidate", "normalized_words_candidate"} else {}))
     needle = quote.strip()
     if len(needle) > 1 and (needle[0], needle[-1]) in [('"', '"'), ('“', '”')]:
         needle = needle[1:-1]
@@ -167,6 +169,14 @@ def _reference_quote_anchor(source: str, quote: str) -> dict | None:
         return None
     return dict(match="repeated", anchoring_method=method,
                 alternative_spans=[dict(start=a, end=b, exact_text=source[a:b]) for a, b in spans])
+
+
+def reference_confirmation_notices(included: list[dict]) -> list[str]:
+    count = sum(item.get("anchoring_method") in {"normalized_quote_candidate", "normalized_words_candidate"}
+                and not item.get("alternative_spans") for item in included)
+    return ([f"{count} reference quotation location(s) are normalized candidates requiring researcher confirmation. "
+             "Check these passages against their source; importing or comparing does not confirm them. "
+             "Reference imports do not have the model-proposal Accept workflow."] if count else [])
 
 
 def build_reference_coding(*, repo_root: Path, project_path: Path, reference_id: str, label: str,
@@ -252,7 +262,7 @@ def build_reference_coding(*, repo_root: Path, project_path: Path, reference_id:
         included=included,
         excluded=excluded,
         absences=absences,
-        notices=notices,
+        notices=notices + reference_confirmation_notices(included),
         counts=dict(included=len(included), excluded=len(excluded), absences=len(absences),
                     unmatched_constructs=sum(1 for item in excluded if item["code_id"] is None),
                     quotations_not_found=sum(1 for item in excluded if item["code_id"] in known)),
@@ -454,7 +464,7 @@ def build_reference_from_table(*, repo_root: Path, project_path: Path, reference
         sources=sources,
         files={"table": dict(workbook=table.name, original_path=str(table), workbook_sha256=table_hash)},
         included=included, excluded=excluded, absences=absences, presence_only=presence_only,
-        notices=[f"Not in this study: {name}" for name in sorted(unmatched_documents)],
+        notices=[f"Not in this study: {name}" for name in sorted(unmatched_documents)] + reference_confirmation_notices(included),
         counts=dict(included=len(included), excluded=len(excluded), absences=len(absences),
                     presence_only=len(presence_only),
                     unmatched_constructs=sum(1 for item in excluded if item.get("source") and item["code_id"] is None),

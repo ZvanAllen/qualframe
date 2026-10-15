@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **QualBench assessment masks.** Explicit-absence references leave unassessed document × code units out of every presence measure. Unit/domain and document exclusion files support sensitivity analyses with reason-level audit tables and conservative parent assessment.
+- **Absence-sensitive comparisons.** Sensitivity, specificity, balanced accuracy, MCC, every-code-present/absent baselines, and per-code prevalence/confusion tables. Undefined values remain blank.
+- **Document bootstrap intervals.** Optional seeded document or folder-then-document resampling, including paired coding-set differences on the same draws, with defined/undefined replicate counts.
+- **Word-normalized quotation candidates.** Model proposals and reference imports try unique case/punctuation-normalized word matches after exact/typography matching, retain original offsets, and require researcher confirmation. QualBench counts these candidates separately.
+
 ## 0.10.0 (15 October 2026)
 
 - A study can be classified as **Published or public documents** (articles, reports, policy documents with no participant data). It is treated as real data, like de-identified data.

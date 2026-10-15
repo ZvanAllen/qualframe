@@ -103,7 +103,7 @@ def test_build_qualbench_presence_passages_levels_and_stability(tmp_path):
     assert report["reference"]["statement"] == "Earlier coding, reviewed."
     folder = write_qualbench(report, tmp_path / "bench")
     assert {p.name for p in folder.iterdir()} == {"README.md", "report.json", "coding_sets.csv", "presence.csv",
-                                                 "passages.csv", "stability.csv", "units.csv"}
+                                                 "passages.csv", "stability.csv", "units.csv", "codes.csv", "bootstrap.csv", "exclusions.csv"}
     assert "Earlier coding, reviewed." in (folder / "README.md").read_text(encoding="utf-8")
     with pytest.raises(FileExistsError):
         write_qualbench(report, folder)

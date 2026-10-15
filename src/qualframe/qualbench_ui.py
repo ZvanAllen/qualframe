@@ -17,6 +17,7 @@ from qualframe.reference_coding import (
     load_reference_coding,
     reference_folder,
     save_reference_coding,
+    reference_confirmation_notices,
 )
 
 e = html.escape
@@ -35,7 +36,8 @@ def _references(app) -> list[dict]:
             continue
         found.append(dict(id=data["reference_id"], label=data["label"], statement=data["statement"],
                           transcripts=len(data["sources"]), path=path,
-                          independent_human_coding=bool(data.get("independent_human_coding"))))
+                          independent_human_coding=bool(data.get("independent_human_coding")),
+                          confirmation_notices=reference_confirmation_notices(data.get("included", []))))
     return found
 
 
@@ -204,7 +206,8 @@ def import_reference_table_upload(app, fields: dict[str, list[str]], uploads: li
         if counts["documents_not_found"] else ""
     return (f"Imported {label}: {count} transcript{'' if count == 1 else 's'}, {counts['included']} quotations found, "
             f"{counts['presence_only']} codes without a quotation, {counts['quotations_not_found']} quotations not found, "
-            f"{counts['unmatched_constructs']} codes not matched to the codebook.{skipped}")
+            f"{counts['unmatched_constructs']} codes not matched to the codebook.{skipped} "
+            + " ".join(reference_confirmation_notices(payload["included"])))
 
 
 def import_reference_upload(app, fields: dict[str, list[str]], uploads: list) -> str:
@@ -246,7 +249,7 @@ def import_reference_upload(app, fields: dict[str, list[str]], uploads: list) ->
     count = len(payload["sources"])
     return (f"Imported {label}: {count} transcript{'' if count == 1 else 's'}, {counts['included']} quotations found in the "
             f"transcripts, {counts['quotations_not_found']} not found, {counts['unmatched_constructs']} construct names "
-            f"not matched to the codebook.")
+            f"not matched to the codebook. " + " ".join(reference_confirmation_notices(payload["included"])))
 
 
 def _import_form(app, references: list[dict]) -> str:
@@ -273,7 +276,7 @@ def _import_form(app, references: list[dict]) -> str:
     listed = "".join(f'<li><strong>{e(r["label"])}</strong> ({r["transcripts"]} transcript{"" if r["transcripts"] == 1 else "s"}). '
                      f'<span class="muted">{e(r["statement"])}</span>'
                      + (' Independent human coding (declared by importer).' if r["independent_human_coding"] else ' Independent human coding not declared.')
-                     + '</li>' for r in references)
+                     + (' ' + e(' '.join(r.get('confirmation_notices', [])))) + '</li>' for r in references)
     listed = f'<h2>Earlier codings</h2><ul>{listed}</ul>' if listed else ""
     if not cfir:
         return f'<section>{listed}{table_form}</section>'
@@ -344,11 +347,19 @@ def _chooser(app, runs: list[str], references: list[dict]) -> str:
 def _report_html(app, folder: Path) -> str:
     report = json.loads((folder / "report.json").read_text(encoding="utf-8"))
     names = {s["set_id"]: s["label"] for s in report["coding_sets"]}
+    names.update({"baseline:always-present": "Every code present (baseline)", "baseline:always-absent": "Every code absent (baseline)"})
     name = lambda set_id: e(names.get(set_id, set_id))
     out = ""
     if report.get("warnings"):
         out += '<div class="notice"><strong>Codebook compatibility</strong><ul>' + "".join(
             f'<li>{e(note)}</li>' for note in report["warnings"]) + '</ul></div>'
+    if report.get("exclusion_summary"):
+        details = "; ".join(f"{r['excluded_units']} of {r['n_units_before_exclusions']} {r['level']} units excluded"
+                            for r in report["exclusion_summary"])
+        out += (f'<div class="notice"><strong>Assessed presence units.</strong> {e(details)}. '
+                f'{len(report.get("documents_excluded", []))} documents explicitly excluded. '
+                'Unassessed reference units do not count as negatives. The downloads list exclusions by reason, '
+                'absence-sensitive measures, per-code counts and any bootstrap intervals.</div>')
     reference = report.get("reference")
     if reference:
         out += (f'<div class="notice"><strong>About the reference.</strong> {e(reference["statement"])} '
@@ -380,6 +391,12 @@ def _report_html(app, folder: Path) -> str:
             'been asked to decide every code. Presence comparisons still describe which codes were '
             'applied, not whether an absence was explicitly declared.</p></section>')
 
+    pending_reference = sum(s.get("reference_candidates_requiring_confirmation", 0) for s in report["coding_sets"])
+    if pending_reference:
+        out += (f'<div class="notice"><strong>Reference locations need confirmation.</strong> {pending_reference} '
+                'quotations were located using normalization. They count as located for comparison, but have not '
+                'been confirmed by importing or comparing. Check the original source passages; reference imports '
+                'do not have the model-proposal Accept workflow.</div>')
     reference_locations = [s for s in report["coding_sets"] if "reference_passages_unique" in s]
     if reference_locations:
         location_rows = "".join(
@@ -464,6 +481,8 @@ def _report_html(app, folder: Path) -> str:
     links = " / ".join(app._file_link(folder / f, label) for f, label in (
         ("presence.csv", "Code agreement (CSV)"), ("passages.csv", "Passage agreement (CSV)"),
         ("coding_sets.csv", "Coding sets (CSV)"), ("units.csv", "Unit-level data (CSV)"),
+        ("codes.csv", "Per-code measures (CSV)"), ("bootstrap.csv", "Bootstrap intervals (CSV)"),
+        ("exclusions.csv", "Exclusions (CSV)"),
         ("README.md", "Definitions"), ("report.json", "Full report (JSON)")) if (folder / f).exists())
     out += f'<section><h2>Files</h2><p>{links}</p><p class="muted">Saved in the study\'s exports folder, qualbench/{e(folder.name)}.</p></section>'
     # Figures right-aligned and kept on one line.

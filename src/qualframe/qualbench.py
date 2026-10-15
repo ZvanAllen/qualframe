@@ -28,6 +28,10 @@ from statistics import mean, median
 
 from qualframe.benchmark_metrics import _maximum_matching_indices
 from qualframe.run_comparison import interval_overlap, raw_coding_payload
+from qualframe.qualbench_presence import (
+    REASONS, accuracy_statistics, assessment_masks, bootstrap_intervals, exclusion_counts,
+    load_document_exclusions, load_unit_exclusions,
+)
 
 KIND = "qualframe_qualbench_v1"
 # Passage matching thresholds as ratios (shared / combined extent), to avoid rounding at the boundary.
@@ -60,9 +64,10 @@ def agreement_statistics(both: int, left_only: int, right_only: int, neither: in
     )
 
 
-def reference_statistics(both: int, left_only: int, right_only: int) -> dict:
+def reference_statistics(both: int, left_only: int, right_only: int, neither: int | None = None) -> dict:
     """The left coding set judged against a reference on the right."""
     return dict(
+        **(accuracy_statistics(both, left_only, right_only, neither) if neither is not None else {}),
         precision=both / (both + left_only) if both + left_only else None,
         recall=both / (both + right_only) if both + right_only else None,
         f1=2 * both / (2 * both + left_only + right_only) if both + left_only + right_only else None,
@@ -373,10 +378,13 @@ def coding_profile(coding_set: dict) -> dict:
         passages_with_alternative_locations=repeated,
         coded_text_passages_excluded=repeated,
         **(dict(reference_passages_unique=len(unique), reference_passages_repeated=repeated,
-                reference_passages_unanchored=len(not_located))
+                reference_passages_unanchored=len(not_located),
+                reference_candidates_requiring_confirmation=sum(i.get("anchoring_method") in
+                    {"normalized_quote_candidate", "normalized_words_candidate"} for i in unique))
            if coding_set["set_kind"] == "reference" else {}),
         located_exactly=anchoring.get("unique_exact_quote", 0),
         located_after_typography=anchoring.get("normalized_quote_candidate", 0),
+        located_after_word_normalization=anchoring.get("normalized_words_candidate", 0),
         located_by_ellipsis_parts=anchoring.get("ellipsis_parts", 0),
         quotations_not_found=len(not_located),
         unknown_codes=len(unknown),
@@ -403,14 +411,27 @@ def _transcript_labels(sources: list[str]) -> dict[str, str]:
     return {source: source if counts[name] > 1 else name for source, name in names.items()}
 
 
+def _presence_counts(coding_set: dict, active_ids: set[str], projection: dict | None,
+                     child_mask: dict) -> Counter:
+    counts = Counter()
+    for (source, code), value in present_units(coding_set, active_code_ids=active_ids).items():
+        if (source, code) not in child_mask:
+            counts[(source, projection[code] if projection else code)] += value
+    return counts
+
+
 def _presence_rows(left: dict, right: dict, sources: list[str], codes: list[dict], level: str,
-                   projection: dict[str, str] | None, versus_reference: bool) -> list[dict]:
+                   projection: dict[str, str] | None, versus_reference: bool,
+                   mask: dict | None = None, child_mask: dict | None = None,
+                   bootstrap_data: dict | None = None) -> list[dict]:
+    mask, child_mask = mask or {}, child_mask or {}
     labels = _transcript_labels(sources)
     universe_codes = sorted({projection[c["id"]] if projection else c["id"]
                              for c in codes if c.get("active", True)})
     domains = {c["id"]: _domain(c) for c in codes}
     active_ids = {c["id"] for c in codes if c.get("active", True)}
-    a, b = present_units(left, projection, active_ids), present_units(right, projection, active_ids)
+    a = _presence_counts(left, active_ids, projection, child_mask)
+    b = _presence_counts(right, active_ids, projection, child_mask)
     scopes: dict[tuple[str, str], list[tuple[str, str]]] = {("all", "All"): []}
     for source in sources:
         for code in universe_codes:
@@ -419,29 +440,64 @@ def _presence_rows(left: dict, right: dict, sources: list[str], codes: list[dict
             scopes.setdefault(("domain", domains.get(code, "All codes")), []).append(unit)
             scopes.setdefault(("transcript", labels[source]), []).append(unit)
     rows = []
-    for (scope_kind, scope), units in scopes.items():
+    for (scope_kind, scope), universe in scopes.items():
+        units = [u for u in universe if u not in mask]
         both = sum(1 for u in units if a[u] and b[u])
         left_only = sum(1 for u in units if a[u] and not b[u])
         right_only = sum(1 for u in units if b[u] and not a[u])
         neither = len(units) - both - left_only - right_only
         row = dict(level=level, scope_kind=scope_kind, scope=scope, left=left["set_id"], right=right["set_id"],
                    comparison="versus reference" if versus_reference else "between coding sets",
-                   n_codes=len({code for _, code in units}),
+                   baseline=left.get("baseline"), n_codes=len({code for _, code in universe}),
                    both=both, left_only=left_only, right_only=right_only, neither=neither,
+                   **exclusion_counts(universe, mask),
                    **agreement_statistics(both, left_only, right_only, neither))
-        row.update(reference_statistics(both, left_only, right_only) if versus_reference
-                   else dict(precision=None, recall=None, f1=None))
+        row.update(reference_statistics(both, left_only, right_only, neither) if versus_reference
+                   else dict(precision=None, recall=None, f1=None, sensitivity=None, specificity=None,
+                             balanced_accuracy=None, mcc=None))
         rows.append(row)
+        if bootstrap_data is not None and versus_reference:
+            per_document = {source: [0, 0, 0, 0] for source in sources
+                            if scope_kind != "transcript" or labels[source] == scope}
+            for unit in units:
+                category = 0 if a[unit] and b[unit] else 1 if a[unit] else 2 if b[unit] else 3
+                per_document[unit[0]][category] += 1
+            bootstrap_data[(left["set_id"], level, scope_kind, scope)] = per_document
     per_transcript = [r for r in rows if r["scope_kind"] == "transcript"]
     if len(per_transcript) > 1:
-        # Each transcript weighted equally: the mean of the per-transcript figures.
         macro = dict(per_transcript[0], scope_kind="transcript mean", scope="Mean of transcripts",
                      n_units=sum(r["n_units"] for r in per_transcript))
         for key in ("both", "left_only", "right_only", "neither"):
             macro[key] = None
-        for key in ("percent_agreement", "cohen_kappa", "gwet_ac1", "pabak", "jaccard", "precision", "recall", "f1"):
+        for key in ("n_units_before_exclusions", "excluded_units", *REASONS):
+            macro[key] = sum(r[key] for r in per_transcript)
+        for key in ("percent_agreement", "cohen_kappa", "gwet_ac1", "pabak", "jaccard", "precision", "recall", "f1",
+                    "sensitivity", "specificity", "balanced_accuracy", "mcc"):
             macro[key] = _mean([r[key] for r in per_transcript])
         rows.append(macro)
+        if bootstrap_data is not None and versus_reference:
+            bootstrap_data[(left["set_id"], level, "transcript mean", "Mean of transcripts")] = dict(
+                bootstrap_data[(left["set_id"], level, "all", "All")])
+    return rows
+
+
+def _code_rows(coding_set: dict, reference: dict, sources: list[str], codes: list[dict], mask: dict) -> list[dict]:
+    active_ids = {code["id"] for code in codes}
+    a, b = present_units(coding_set, active_code_ids=active_ids), present_units(reference, active_code_ids=active_ids)
+    rows = []
+    for code in codes:
+        universe = [(source, code["id"]) for source in sources]
+        units = [u for u in universe if u not in mask]
+        tp = sum(bool(a[u]) and bool(b[u]) for u in units)
+        fp = sum(bool(a[u]) and not b[u] for u in units)
+        fn = sum(not a[u] and bool(b[u]) for u in units)
+        tn = len(units) - tp - fp - fn
+        rows.append(dict(coding_set=coding_set["set_id"], reference=reference["set_id"],
+                         code_id=code["id"], code=code.get("label", code["id"]), domain=_domain(code),
+                         n_units=len(units), reference_prevalence=(tp + fn) / len(units) if units else None,
+                         set_prevalence=(tp + fp) / len(units) if units else None,
+                         true_positive=tp, false_positive=fp, false_negative=fn, true_negative=tn,
+                         **exclusion_counts(universe, mask), **reference_statistics(tp, fp, fn, tn)))
     return rows
 
 
@@ -529,8 +585,17 @@ def _codebook_differences(sets: list[dict]) -> list[dict]:
 
 
 def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
-                    stability_groups: list[list[str]] | None = None) -> dict:
+                    stability_groups: list[list[str]] | None = None,
+                    exclude_units: Path | None = None, exclude_documents: Path | None = None,
+                    bootstrap: int = 0, seed: int = 0, cluster_by_folder: bool = False) -> dict:
     """Compare every pair of coding sets, and each with the reference, on the transcripts all share."""
+    if isinstance(bootstrap, bool) or not isinstance(bootstrap, int) or bootstrap < 0:
+        raise ValueError("Bootstrap replicates must be a nonnegative integer.")
+    if bootstrap and reference is None:
+        raise ValueError("Bootstrap comparisons require a reference coding.")
+    if cluster_by_folder and not bootstrap:
+        raise ValueError("Cluster resampling requires --bootstrap with a positive replicate count.")
+    explicit_absences = bool(reference and reference.get("absences"))
     everything = coding_sets + ([reference] if reference else [])
     if len(everything) < 2:
         raise ValueError("Choose at least two coding sets, or one with a reference.")
@@ -550,6 +615,14 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
     if not sources:
         raise ValueError("These coding sets have no transcripts in common.")
     omitted = sorted({path for s in everything for path in s["sources"]} - set(sources))
+    all_sources = sorted({path for s in everything for path in s["sources"]})
+    document_exclusions = load_document_exclusions(exclude_documents, all_sources)
+    manual = load_unit_exclusions(exclude_units, all_sources, _active_codes(everything[0]["codebook"]), _domain)
+    sources = [source for source in sources if source not in document_exclusions]
+    if not sources:
+        raise ValueError("No common transcripts remain after document exclusions.")
+    requested_manual = manual
+    manual = {unit: reasons for unit, reasons in manual.items() if unit[0] in sources}
     everything = [_restrict(s, set(sources)) for s in everything]
     coding_sets, reference = (everything[:-1], everything[-1]) if reference else (everything, None)
     codebook = everything[0]["codebook"]
@@ -560,31 +633,51 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
     code_universes = {"code": len(codes)}
     if merged_levels:
         code_universes["parent code"] = len({projection[c["id"]] for c in codes})
-    presence, passages = [], []
+    reference_present = set(present_units(reference, active_code_ids=active_ids)) if reference else set()
+    reference_absent = {(i["source"], i.get("code_id")) for i in reference.get("absences", [])} if reference else set()
+    code_mask, parent_mask = assessment_masks(sources, active_ids, reference_present, reference_absent,
+                                               explicit_absences, manual, projection)
+    levels = [("code", None, code_mask)] + ([("parent code", projection, parent_mask)] if merged_levels else [])
+    presence, passages, bootstrap_data = [], [], {}
+    codes_table = []
     pairs = [(left, right, False) for left, right in combinations(coding_sets, 2)]
     pairs += [(coding_set, reference, True) for coding_set in coding_sets] if reference else []
     for left, right, versus in pairs:
-        presence += _presence_rows(left, right, sources, codebook["codes"], "code", None, versus)
-        if merged_levels:
-            presence += _presence_rows(left, right, sources, codebook["codes"], "parent code", projection, versus)
+        for level, proj, mask in levels:
+            presence += _presence_rows(left, right, sources, codebook["codes"], level, proj, versus,
+                                       mask, code_mask, bootstrap_data)
+        if versus:
+            codes_table += _code_rows(left, right, sources, codes, code_mask)
         passages.append(passage_agreement(left, right, versus_reference=versus))
         if len(sources) > 1:
             passages += [passage_agreement(left, right, versus_reference=versus, source=source) for source in sources]
+    if reference:
+        for rule, baseline_id in (("every code present", "baseline:always-present"),
+                                  ("every code absent", "baseline:always-absent")):
+            if baseline_id in ids:
+                raise ValueError(f"Coding set ID {baseline_id} is reserved for a baseline.")
+            baseline = dict(set_id=baseline_id, baseline=rule, codebook=codebook, included=[], excluded=[],
+                            presence_only=[dict(source=source, code_id=c["id"]) for source in sources for c in codes]
+                            if rule == "every code present" else [])
+            for level, proj, mask in levels:
+                presence += _presence_rows(baseline, reference, sources, codebook["codes"], level, proj, True,
+                                           mask, code_mask, bootstrap_data)
     stability = []
     by_id = {s["set_id"]: s for s in everything}
     for group in stability_groups or []:
         members = [by_id[g] for g in group if g in by_id]
         if len(members) < 2:
             continue
-        for level, proj in (("code", None), ("parent code", projection)) if merged_levels else (("code", None),):
-            counts = [present_units(m, proj, active_ids) for m in members]
-            universe = sorted({(s, proj[c["id"]] if proj else c["id"]) for s in sources for c in codes})
+        for level, proj, mask in levels:
+            counts = [_presence_counts(m, active_ids, proj, code_mask) for m in members]
+            unfiltered = sorted({(s, proj[c["id"]] if proj else c["id"]) for s in sources for c in codes})
+            universe = [unit for unit in unfiltered if unit not in mask]
             values = [[1 if count[u] else 0 for count in counts] for u in universe]
             pairwise = [r for r in presence if r["level"] == level and r["scope_kind"] == "all"
                         and {r["left"], r["right"]} <= set(group) and r["comparison"] == "between coding sets"]
             stability.append(dict(
                 group=" + ".join(m["set_id"] for m in members), coding_sets=len(members), level=level,
-                n_codes=code_universes[level], n_units=len(universe), krippendorff_alpha=krippendorff_alpha_nominal(values),
+                n_codes=code_universes[level], n_units=len(universe), **exclusion_counts(unfiltered, mask), krippendorff_alpha=krippendorff_alpha_nominal(values),
                 units_all_agree=sum(1 for v in values if len(set(v)) == 1) / len(values) if values else None,
                 mean_pairwise_kappa=_mean([r["cohen_kappa"] for r in pairwise]),
             ))
@@ -596,8 +689,19 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
             for code in codes:
                 units.append(dict(coding_set=coding_set["set_id"], transcript=labels[source],
                                   domain=_domain(code), code_id=code["id"], code=code.get("label", code["id"]),
-                                  parent_code_id=projection[code["id"]], present=1 if counts[(source, code["id"])] else 0,
+                                  parent_code_id=projection[code["id"]],
+                                  assessed=(source, code["id"]) not in code_mask,
+                                  exclusion_reasons=";".join(sorted(code_mask.get((source, code["id"]), []))),
+                                  present=None if (source, code["id"]) in code_mask else int(bool(counts[(source, code["id"])])),
+                                  observed_present=int(bool(counts[(source, code["id"])])),
                                   proposals=counts[(source, code["id"])]))
+    exclusions = [dict(level=level, document=source, code_id=code, reason=reason)
+                  for level, _, mask in levels for (source, code), reasons in sorted(mask.items())
+                  for reason in sorted(reasons)]
+    exclusions += [dict(level="document", document=source, code_id=None, reason="excluded_document")
+                   for source in document_exclusions]
+    bootstrap_rows = bootstrap_intervals(bootstrap_data, sources, [s["set_id"] for s in coding_sets],
+                                         reference["set_id"] if reference else "", bootstrap, seed, cluster_by_folder)
     return dict(
         kind=KIND,
         created_at_utc=datetime.now(timezone.utc).isoformat(),
@@ -609,6 +713,17 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
         transcripts=sources,
         warnings=warnings, codebook_differences=differences,
         transcripts_left_out=omitted,
+        documents_excluded=document_exclusions,
+        unit_exclusions_requested=[dict(document=source, code_id=code, reasons=sorted(reasons))
+                                   for (source, code), reasons in sorted(requested_manual.items())],
+        reference_records_explicit_absences=explicit_absences,
+        exclusions=exclusions,
+        exclusion_summary=[dict(level=level, **exclusion_counts(
+            {(source, proj[c["id"]] if proj else c["id"]) for source in sources for c in codes}, mask))
+            for level, proj, mask in levels],
+        bootstrap_settings=dict(replicates=bootstrap, seed=seed, cluster_by_folder=cluster_by_folder),
+        bootstrap=bootstrap_rows,
+        codes_table=codes_table,
         codes=len(codes),
         codebook_codes=len(codebook["codes"]),
         inactive_codes=len(codebook["codes"]) - len(codes),
@@ -642,6 +757,11 @@ Created {created}. {sets} coding sets on {transcripts} transcript(s) and {codes}
 {universes}
 {reference}
 
+Assessment and sensitivity-analysis exclusions:
+{exclusion_summary}
+{document_exclusions}
+{bootstrap_summary}
+
 Resource accounting uses the ledger path saved in run settings, then the manifest, then the conventional study logs path. Missing ledgers or missing request usage produce unknown (null) cost/token totals, not zero. Profiles include accounting notes, estimated-cost flags and cached/write-cache/reasoning token totals when recorded. Legacy records without a token category leave it unknown.
 
 Files (tidy tables, one row per observation):
@@ -649,6 +769,12 @@ Files (tidy tables, one row per observation):
 - `presence.csv`: agreement on whether each code was applied to each transcript, for every pair
   of coding sets and for each set against the reference. Scopes: all units, each domain, each
   transcript. Levels: codes as coded, and sub-codes merged into their parent code.
+- `codes.csv`: one row per active code and coding set against the reference: assessed-document prevalence,
+  confusion counts, sensitivity, specificity and F1. Missing units never enter the denominator.
+- `bootstrap.csv`: 95% percentile intervals for F1, kappa, MCC and balanced accuracy, including paired
+  coding-set differences (left minus right). Empty when bootstrap is off.
+- `exclusions.csv`: every excluded presence unit and reason, plus explicitly excluded documents.
+  A unit may have several reasons; reason counts overlap and must not be summed as unique exclusions.
 - `passages.csv`: agreement on the coded passages themselves.
 - `stability.csv`: agreement among repeat runs (Krippendorff's alpha).
 - `units.csv`: the presence data itself (coding set × transcript × code), for your own analysis.
@@ -665,6 +791,21 @@ Definitions
   (`no_evidence_rows`), not failed requests. Older runs without recorded omissions count zero;
   this does not mean they were asked to decide every code. Presence measures remain based on applied
   codes: a zero is no observed application, not necessarily an explicit absence decision.
+- When the reference contains explicit absence records, a document x code with neither a recognized
+  presence nor an explicit absence is not assessed. It is excluded from every presence statistic,
+  pairwise comparison, stability statistic, baseline and bootstrap. A presence-only reference retains
+  its original implicit-negative interpretation; this is an assumption, not proof of exhaustive coding.
+  `--exclude-units` also removes units from presence measures. `units.csv` keeps them with assessed=false,
+  blank present, the original observed_present, and exclusion_reasons. Presence exclusions do not remove
+  quotations from passage comparisons. Document exclusions remove documents from all compared tables;
+  whole-run resource totals remain whole-run totals.
+- Parent projections use only assessed child units. A parent is assessed if an assessed reference child
+  is positive, or all active children are assessed. A partially unassessed family without an assessed
+  positive is excluded, rather than counted absent. Without a reference, a partially excluded family
+  is excluded. Parent exclusion reason counts refer to parent units, not child units.
+- Baseline rows (`baseline:always-present`, `baseline:always-absent`) read no documents and apply the
+  same assessed units, parent projections and scopes as coding sets. They appear in presence.csv;
+  they are not model runs and do not contribute to usage or repeat-run stability.
 - Percent agreement: share of units where both sets agree (present or absent).
 - Cohen's kappa: agreement corrected for chance using each set's own rate of applying codes.
   Low when codes are rarely applied, even if agreement is high.
@@ -673,7 +814,27 @@ Definitions
 - Jaccard: units both sets marked present, out of units either set marked present.
 - Precision, recall, F1 (against a reference only): precision is the share of the set's present
   units that the reference also has; recall is the share of the reference's present units that the
-  set also has; F1 is their harmonic mean.
+  set also has; F1 = 2 TP / (2 TP + FP + FN). Presence `both`, `left_only`, `right_only`, `neither`
+  are respectively TP, FP, FN and TN against the reference.
+- Sensitivity equals recall, TP / (TP + FN). Specificity = TN / (TN + FP). Balanced accuracy is the
+  mean of sensitivity and specificity. MCC = (TP TN - FP FN) / sqrt((TP+FP)(TP+FN)(TN+FP)(TN+FN)).
+- Undefined values are blank in CSV and null in JSON: precision needs a predicted positive;
+  recall/sensitivity need a reference positive; specificity needs a reference negative; balanced
+  accuracy needs both reference classes; MCC needs nonzero reference and prediction marginals;
+  F1/Jaccard need at least one positive on either side; kappa needs nondegenerate chance agreement;
+  every agreement rate needs at least one assessed unit. Transcript means average defined values only.
+- Bootstrap draws whole documents with replacement, never individual document x code units.
+  Cluster mode draws as many parent folders as observed, with replacement, then draws each sampled
+  folder's original number of documents with replacement. Unequal folder sizes can change sample size.
+  All sets, levels and scopes share each draw. Transcript means weight sampled document occurrences
+  equally; domain rows keep the same sampled documents and restrict their codes. Individual-transcript
+  intervals are conditional on that document being drawn and provide no within-document uncertainty.
+  Undefined replicates are omitted separately for each estimate; paired differences require both
+  estimates defined in the same draw. valid_replicates and undefined_replicates make this visible.
+  Intervals use linear-interpolated 2.5th/97.5th percentiles of defined replicates and stay blank if
+  none are defined. With few documents/folders, percentile coverage can be poor; these are descriptive
+  resampling intervals, not evidence of generalizability. Baselines receive intervals; paired
+  differences compare actual coding sets only.
 - Passage F1: passages for the same code in the same transcript matched one to one: exactly
   (same start and end), with shared text at least a quarter, half or three quarters of their
   combined extent (IoU ≥ 0.25, 0.5, 0.75), or with any overlap.
@@ -684,6 +845,11 @@ Definitions
   at a threshold if any candidate location meets it; it is still one passage and can match only once.
   Coding-set profiles count unique, repeated and unanchored reference passages with recognized codes;
   unknown-code rows, presence-only rows and explicit absences are reported separately.
+  `located_after_word_normalization` separately counts uniquely located `normalized_words_candidate`
+  quotations; these are located candidates awaiting researcher confirmation, as typography candidates are.
+  Imported-reference candidates are flagged requires_confirmation and counted separately. References do
+  not have the model-proposal Accept workflow: check locations against sources and record the check in
+  reference provenance (or correct quotes and import a new reference). Comparison never confirms them.
   Passage-word medians and duplicate-span counts use uniquely located passages only.
 - Coded-text Jaccard: characters both sets coded with the same code, out of characters either did.
   Passages with alternative locations are omitted from all character-overlap totals, with counts
@@ -707,7 +873,8 @@ def write_qualbench(report: dict, folder: Path) -> Path:
     profiles = [{k: v for k, v in row.items() if k != "per_transcript_passages"} for row in report["coding_sets"]]
     for name, rows in (("coding_sets", profiles), ("presence", report["presence"]),
                        ("passages", report["passages"]), ("stability", report["stability"]),
-                       ("units", report["units"])):
+                       ("units", report["units"]), ("codes", report.get("codes_table", [])),
+                       ("bootstrap", report.get("bootstrap", [])), ("exclusions", report.get("exclusions", []))):
         (folder / f"{name}.csv").write_text(_csv(rows), encoding="utf-8")
     reference = report["reference"]
     (folder / "README.md").write_text(README.format(
@@ -716,6 +883,12 @@ def write_qualbench(report: dict, folder: Path) -> Path:
         universes="Presence universes: " + "; ".join(
             f"{level}: {count} codes" for level, count in report.get("code_universes", {"code": report["codes"]}).items()) + ".",
         reference=f"Reference: {reference['label']}." if reference else "No reference coding.",
+        exclusion_summary="\n".join(
+            f"- {row['level']}: {row['excluded_units']} of {row['n_units_before_exclusions']} units excluded; "
+            + "; ".join(f"{reason}: {row[reason]}" for reason in REASONS) + "."
+            for row in report.get("exclusion_summary", [])) or "- No unit exclusion metadata (legacy report).",
+        document_exclusions="Explicit document exclusions: " + ("; ".join(report.get("documents_excluded", [])) or "none") + ".",
+        bootstrap_summary="Bootstrap settings: " + json.dumps(report.get("bootstrap_settings", {})) + ".",
         statement=(reference["statement"] if reference else ""),
         warnings="\n".join("- Warning: " + note for note in report.get("warnings", [])),
     ), encoding="utf-8")

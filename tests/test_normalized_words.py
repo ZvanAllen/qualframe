@@ -157,6 +157,8 @@ def test_reference_import_retains_word_candidate_provenance(tmp_path, kind):
     assert payload["excluded"] == []
     assert item["quote"] == quote
     assert item["anchoring_method"] == "normalized_words_candidate"
+    assert item["requires_confirmation"] is True
+    assert any("requiring researcher confirmation" in note for note in payload["notices"])
     assert item["exact_text"] == source[item["start"]:item["end"]] == "WE met, every week"
     assert locate_reference_quote(source, quote) == (item["start"], item["end"], "normalized_words_candidate")
     assert "alternative_spans" not in item

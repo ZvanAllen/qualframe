@@ -85,7 +85,10 @@ def compare(args) -> None:
         path = reference_folder(project, args.reference) / "reference.json"
         reference = reference_coding_set(load_reference_coding(path, repo_root))
     groups = [group.split(",") for group in args.stability or []]
-    report = build_qualbench(sets, reference=reference, stability_groups=groups)
+    report = build_qualbench(sets, reference=reference, stability_groups=groups,
+                             exclude_units=Path(args.exclude_units).expanduser() if args.exclude_units else None,
+                             exclude_documents=Path(args.exclude_documents).expanduser() if args.exclude_documents else None,
+                             bootstrap=args.bootstrap, seed=args.seed, cluster_by_folder=args.cluster_by_folder)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out = Path(args.out).expanduser() if args.out else project.parent / "exports" / "qualbench" / stamp
     write_qualbench(report, out)
@@ -94,8 +97,10 @@ def compare(args) -> None:
         if row["scope_kind"] == "all" and row["level"] == "code":
             extra = f", F1 {row['f1']:.2f}" if row["f1"] is not None else ""
             kappa = "n/a" if row["cohen_kappa"] is None else f"{row['cohen_kappa']:.2f}"
-            print(f"  {row['left']} vs {row['right']}: agreement {row['percent_agreement']:.2f}, "
-                  f"kappa {kappa}, AC1 {row['gwet_ac1']:.2f}{extra}")
+            agreement = "n/a" if row["percent_agreement"] is None else f"{row['percent_agreement']:.2f}"
+            ac1 = "n/a" if row["gwet_ac1"] is None else f"{row['gwet_ac1']:.2f}"
+            print(f"  {row['left']} vs {row['right']}: agreement {agreement}, "
+                  f"kappa {kappa}, AC1 {ac1}{extra}")
 
 
 def main() -> None:
@@ -119,9 +124,17 @@ def main() -> None:
     two.add_argument("--reference", help="Reference ID")
     two.add_argument("--stability", action="append", help="Comma-separated run IDs that repeat one configuration")
     two.add_argument("--out", help="Folder for the report (default: the study's exports/qualbench)")
+    two.add_argument("--exclude-units", help="CSV with document,code or document,domain columns; these units are not assessed")
+    two.add_argument("--exclude-documents", help="Text file with one unambiguous document path or file name per line")
+    two.add_argument("--bootstrap", type=int, default=0, metavar="N", help="Document bootstrap replicates (default: off)")
+    two.add_argument("--seed", type=int, default=0, help="Bootstrap random seed (default: 0)")
+    two.add_argument("--cluster-by-folder", action="store_true", help="Resample parent folders, then documents within each sampled folder")
     two.set_defaults(func=compare)
     args = parser.parse_args()
-    args.func(args)
+    try:
+        args.func(args)
+    except ValueError as exc:
+        parser.error(str(exc))
 
 
 if __name__ == "__main__":
