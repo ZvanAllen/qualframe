@@ -240,10 +240,10 @@ def test_an_empty_json_answer_for_one_partition_counts_as_complete(tmp_path, mon
         '{"codings": [{"meaning_unit": "mu-1", "quote": "x", "code_id": "a", "rationale": "r"}]}'
     )
     artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
-    progress = {row["path"]: row for row in transcript_progress(root, review, [], project.parents[2])}
-    assert "cannot be confirmed empty" not in progress[source]["empty_issue"]
+    state = empty_output_state(project.parents[2], root, review, source)
+    assert "cannot be confirmed empty" not in state["empty_issue"]
     # Unparsed text for a part is still not accepted as empty.
     artifact["response_text"] = artifact["response_text"].replace('{"codings": []}', "Nothing relevant.")
     artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
-    progress = {row["path"]: row for row in transcript_progress(root, review, [], project.parents[2])}
-    assert "cannot be confirmed empty" in progress[source]["empty_issue"] and not progress[source]["completed"]
+    state = empty_output_state(project.parents[2], root, review, source)
+    assert "cannot be confirmed empty" in state["empty_issue"] and not state["completed"]
