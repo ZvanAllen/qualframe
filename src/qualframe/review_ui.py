@@ -131,6 +131,9 @@ def render_review(app, *, run_id: str, item_id: str = '', message: str = '', err
     if record.anchoring_method == 'normalized_quote_candidate' and not needs_edit:
         warning += ('<p class="review-guidance">The model\'s quotation differs from the transcript only in punctuation or spacing. '
                     'The highlighted passage is the transcript\'s own text.</p>')
+    if record.anchoring_method == 'normalized_words_candidate' and not needs_edit:
+        warning += ('<p class="review-guidance">The model\'s quotation differs in case or punctuation. '
+                    'Check the highlighted source passage before accepting; accepting confirms this match.</p>')
     if reviewer:
         who = (f'<input type="hidden" name="reviewer" value="{e(reviewer)}">'
                f'<p class="reviewer-line">Recording decisions as {e(reviewer)}. <a href="/home#name-form">Change</a></p>')

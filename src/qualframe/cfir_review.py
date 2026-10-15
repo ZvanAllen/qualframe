@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from pathlib import Path
 
 from qualframe.io.files import sha256_for_file, sha256_for_text
@@ -32,6 +33,54 @@ def normalized_with_offsets(text: str) -> tuple[str, list[tuple[int, int]]]:
     return ''.join(chars), offsets
 
 
+def normalized_words_with_offsets(text: str) -> tuple[str, list[tuple[int, int]]]:
+    """Lower-case words, remove punctuation and retain original character offsets.
+
+    Apostrophes (including typographic variants) remain significant. Other punctuation
+    and symbols are dropped, whitespace is collapsed, and combining marks are kept.
+    Lower-casing can expand a character, so each resulting character retains its full
+    source range. No stemming, spelling correction or word substitutions are attempted.
+    """
+    chars: list[str] = []
+    offsets: list[tuple[int, int]] = []
+    for index, original in enumerate(text):
+        char = _TYPOGRAPHY.get(original, original)
+        if char.isspace():
+            if chars and chars[-1] == ' ':
+                offsets[-1] = (offsets[-1][0], index + 1)
+            elif chars:
+                chars.append(' ')
+                offsets.append((index, index + 1))
+        elif char == "'" or char.isalnum() or unicodedata.category(char).startswith('M'):
+            lowered = char.lower()
+            chars.extend(lowered)
+            offsets.extend([(index, index + 1)] * len(lowered))
+    if chars and chars[-1] == ' ':
+        chars.pop()
+        offsets.pop()
+    return ''.join(chars), offsets
+
+
+def locate_words_quote(source: str, quote: str) -> tuple[int, int, str]:
+    """Suggest one whole-word match for confirmation, never choose among repeats."""
+    normalized, offsets = normalized_words_with_offsets(source)
+    needle = normalized_words_with_offsets(quote)[0]
+    if not needle or not any(char.isalnum() for char in needle):
+        return -1, -1, 'unresolved_exact_quote'
+    position = normalized.find(needle)
+    match = None
+    while position >= 0:
+        end = position + len(needle)
+        if (position == 0 or normalized[position - 1] == ' ') and (end == len(normalized) or normalized[end] == ' '):
+            if match is not None:
+                return -1, -1, 'unresolved_exact_quote'
+            match = offsets[position][0], offsets[end - 1][1]
+        position = normalized.find(needle, position + 1)
+    if match is not None:
+        return *match, 'normalized_words_candidate'
+    return -1, -1, 'unresolved_exact_quote'
+
+
 def locate_quote(source: str, quote: str) -> tuple[int, int, str]:
     quote = quote.strip()
     if len(quote) > 1 and (quote[0], quote[-1]) in [('"', '"'), ('“', '”')]:
@@ -46,7 +95,9 @@ def locate_quote(source: str, quote: str) -> tuple[int, int, str]:
     pos = normalized.find(needle)
     if pos >= 0 and normalized.find(needle, pos + 1) < 0:
         return offsets[pos][0], offsets[pos + len(needle) - 1][1], 'normalized_quote_candidate'
-    return -1, -1, 'unresolved_exact_quote'
+    if pos >= 0:
+        return -1, -1, 'unresolved_exact_quote'  # Repeated typography matches remain ambiguous.
+    return locate_words_quote(source, quote)
 
 
 def reference_codes(path: Path) -> list[dict[str, str]]:
@@ -220,6 +271,8 @@ def cfir_records(*, artifact, artifact_rel: str, artifact_path: Path, source_pat
                 issues.append('Construct could not be identified uniquely in the reference codebook.')
             if method == 'normalized_quote_candidate':
                 issues.append('Formatting differs from the model quotation. Confirm the highlighted source passage with Save changes.')
+            elif method == 'normalized_words_candidate':
+                issues.append('Case or punctuation differs from the model quotation. Confirm the highlighted source passage before accepting.')
             elif method == 'unresolved_exact_quote':
                 issues.append('Select the evidence in the transcript; the quotation is missing or ambiguous.')
             span = EvidenceSpan(id='span-' + identity, meaning_unit_id='meaning-' + identity,

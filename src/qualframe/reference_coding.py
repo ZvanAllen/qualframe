@@ -105,7 +105,11 @@ def read_cfir_coding_workbook(path: Path) -> tuple[list[dict], list[str]]:
 
 
 def locate_reference_quote(source: str, quote: str) -> tuple[int, int, str]:
-    """Locate a quotation; quotations shortened with an ellipsis are located by their parts."""
+    """Locate exact, typography or word candidates; then try shortened ellipsis parts.
+
+    Normalized candidates retain their label and original source slice, as in model
+    review, so their location is not represented as a verbatim quotation match.
+    """
     start, end, method = locate_quote(source, quote)
     if start >= 0:
         return start, end, method

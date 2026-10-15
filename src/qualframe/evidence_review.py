@@ -71,6 +71,8 @@ def run_context_policy(project_path: Path, artifact_root: Path) -> tuple[str, in
 
 
 TYPOGRAPHY_NOTICE = 'Formatting differs from the model quotation. Confirm the highlighted source passage with Save changes.'
+WORDS_NOTICE = 'Case or punctuation differs from the model quotation. Confirm the highlighted source passage before accepting.'
+NORMALIZED_CANDIDATES = {'normalized_quote_candidate', 'normalized_words_candidate'}
 RESEARCHER_ADDED = "researcher_selection"
 
 
@@ -226,13 +228,13 @@ def build_evidence_review_records(
                     start, end = anchor.start if anchor.start is not None else -1, anchor.end if anchor.end is not None else -1
                     anchoring_method = "unique_exact_quote" if anchor.match_count == 1 else "unresolved_exact_quote"
                     if anchor.match_count == 0:
-                        # Same words, different typography (curly quotes, hyphen variants, spacing):
+                        # Try typography, then words with case/punctuation differences:
                         # suggest the transcript's passage; accepting rechecks it against the source.
                         from qualframe.cfir_review import locate_quote
                         located_start, located_end, located = locate_quote(source_text, exact_text)
-                        if located == "normalized_quote_candidate":
+                        if located in NORMALIZED_CANDIDATES:
                             start, end, anchoring_method = located_start, located_end, located
-                            issues.append(TYPOGRAPHY_NOTICE)
+                            issues.append(TYPOGRAPHY_NOTICE if located == "normalized_quote_candidate" else WORDS_NOTICE)
                     if anchoring_method == "unresolved_exact_quote":
                         issues.append("Exact quotation is missing or occurs more than once; locate evidence through review.")
                 else:
@@ -277,9 +279,9 @@ def build_evidence_review_records(
                             source_sha256=source_text_hash,
                             start_offset=start,
                             end_offset=end,
-                            # A typography-only match keeps the transcript's characters; the
+                            # A normalized candidate keeps the transcript's characters; the
                             # model's quotation stays in proposed_exact_text.
-                            exact_text=source_text[start:end] if anchoring_method == "normalized_quote_candidate" else exact_text,
+                            exact_text=source_text[start:end] if anchoring_method in NORMALIZED_CANDIDATES else exact_text,
                             context_start_offset=context_start,
                             context_end_offset=context_end,
                             creation_method="automatic" if automatic else "model_proposed",
@@ -446,15 +448,15 @@ def latest_evidence_action_by_record(review_dir: Path) -> dict[str, EvidenceRevi
 
 
 def blocking_review_issues(record: EvidenceReviewRecord, source_text: str) -> list[str]:
-    """Accept itself confirms uniquely located typography-only differences."""
+    """Accept itself confirms a uniquely located normalized quotation candidate."""
     issues = list(record.validation_issues)
-    legacy_notice = TYPOGRAPHY_NOTICE
-    if record.anchoring_method == 'normalized_quote_candidate' and record.evidence_span:
+    notice = WORDS_NOTICE if record.anchoring_method == 'normalized_words_candidate' else TYPOGRAPHY_NOTICE
+    if record.anchoring_method in NORMALIZED_CANDIDATES and record.evidence_span:
         from qualframe.cfir_review import locate_quote
         span = record.evidence_span
         start, end, method = locate_quote(source_text, record.proposed_exact_text)
-        if (start, end) == (span.start_offset, span.end_offset) and method == 'normalized_quote_candidate':
-            issues = [issue for issue in issues if issue != legacy_notice]
+        if (start, end) == (span.start_offset, span.end_offset) and method == record.anchoring_method:
+            issues = [issue for issue in issues if issue != notice]
     return issues
 
 

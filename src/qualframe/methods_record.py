@@ -74,7 +74,7 @@ def build_methods_record(app, run_id: str) -> dict:
     proposal_ids = {r.record_id for r in records}
     seconds = sorted(timing[a.action_id] for a in all_actions if a.action_id in timing and a.record_id in proposal_ids)
     decisions = Counter(latest[r.record_id].decision if r.record_id in latest else "undecided" for r in records)
-    needs_location = [r for r in records if r.anchoring_method in {"unresolved_exact_quote", "normalized_quote_candidate"}]
+    needs_location = [r for r in records if r.anchoring_method in {"unresolved_exact_quote", "normalized_quote_candidate", "normalized_words_candidate"}]
     resolved_location = Counter(latest[r.record_id].decision if r.record_id in latest else "undecided" for r in needs_location)
     times = sorted(a.timestamp_utc for a in all_actions)
     comparisons = sorted(p.name for p in (root / "comparisons").glob("comparison-*.json")) if (root / "comparisons").exists() else []
