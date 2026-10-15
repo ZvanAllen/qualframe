@@ -6,7 +6,7 @@ How each part of QualFrame works, and the choices you can make. For a first walk
 
 A study holds one set of transcripts, one active codebook, and any number of coding runs. Each study is a folder under `QualFrame/studies/` in your home directory. **All studies** lists them; the left-hand panel shows where the current study stands.
 
-The data type you choose when creating a study (de-identified, sensitive, or test data) is shown at the top of every page as a reminder. Test-data studies can use the offline test models; other studies cannot, so real data is never coded with placeholder output by mistake.
+The data type you choose when creating a study (published documents, de-identified, sensitive, or test data) is shown at the top of every page as a reminder. Test-data studies can use the offline test models; other studies cannot, so real data is never coded with placeholder output by mistake.
 
 ## Sources
 

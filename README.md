@@ -12,11 +12,12 @@ QualFrame applies your codebook to interview transcripts with a large language m
 
 ## What it does
 
-- **Codes transcripts against your codebook.** Import a codebook from Excel (flat or hierarchical), add Word or text transcripts, and choose a model. CFIR is included as a reference workflow.
+- **Codes transcripts or documents against your codebook.** Import a codebook from Excel (flat or hierarchical), add Word or text files, and choose a model. CFIR is included as a reference workflow.
+- **Two ways to code.** Ask the model to find passages that fit your codes, or to decide on every code, quoting its evidence or recording the code as absent. Deciding on every code suits checklist-style codebooks such as CFIR or behaviour change techniques.
 - **Shows every proposal with its evidence.** Each proposed code is located in the transcript by its exact quotation. Quotations the model changed or invented can't be located, so they are flagged for you instead of being quietly accepted.
 - **Keeps you in charge.** Accept, change the code or passage, reject, or leave a proposal for later, using the keyboard if you like. Your decisions are saved as new records; the model's original output is never overwritten.
 - **Summarises what you kept.** See codes by transcript and site, read the passages behind any count, and export to Excel.
-- **Compares runs.** Code the same study with two models, or the same model twice, and see where they agree and which passages only one of them coded.
+- **Compares runs and benchmarks models.** Code the same study with two models, or the same model twice, and see where they agree and which passages only one of them coded. **QualBench** compares any runs, across studies, with a reference coding you import, such as a human coding or an earlier one. It reports agreement on which codes apply and on the passages behind them, run-to-run stability, cost and time.
 - **Records everything needed to report it.** Transcript and codebook hashes, prompt versions, model settings, costs and every review decision are kept with the study.
 
 ## Try it
@@ -50,10 +51,10 @@ qualframe start            # add --workspace PATH to choose where studies are sa
 
 ## Use it with your own study
 
-1. **New study.** Name it and say whether it holds de-identified, sensitive, or test data.
+1. **New study.** Name it and say whether it holds published documents, de-identified data, sensitive data, or test data.
 2. **Sources.** Drop in your transcripts (.docx or .txt). Optionally add a CSV of participant information, such as site or role, to compare groups later.
 3. **Codebook.** Import an Excel sheet and match its columns to code name, definition, parent code, and inclusion and exclusion guidance. [An example codebook](demo/datasets/ai-scribe/codebook.xlsx) shows the layout.
-4. **Run coding.** Pick a model, check the estimated cost, and start. Hosted models need an API key; local models don't.
+4. **Run coding.** Pick a model, check the estimated cost, and start. Hosted models need an API key; local models don't. Long runs can also be started from the command line (`qualframe code`) and left to finish unattended.
 5. **Review, then Results.** Decide on each proposal, then explore and export your reviewed coding.
 
 The [getting started guide](docs/getting-started.md) walks through each step, and the [user guide](docs/guide.md) covers the details.
