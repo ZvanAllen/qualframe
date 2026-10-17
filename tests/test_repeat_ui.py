@@ -34,8 +34,8 @@ def test_browser_prepare_start_and_one_active_job(tmp_path, monkeypatch):
     )
     dispatched = []
     monkeypatch.setattr(
-        "qualframe.repeat_ui.threading.Thread",
-        lambda **kwargs: SimpleNamespace(start=lambda: dispatched.append(kwargs)),
+        "qualframe.repeat_ui.threading",
+        SimpleNamespace(Thread=lambda **kwargs: SimpleNamespace(start=lambda: dispatched.append(kwargs))),
     )
     assert start_repeat_job(app, start) == identifier
     assert len(dispatched) == 1

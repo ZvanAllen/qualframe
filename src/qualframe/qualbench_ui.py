@@ -449,14 +449,17 @@ def _report_html(app, folder: Path) -> str:
             + f'<details><summary>By domain</summary>{presence_table("code", "domain")}</details>'
             f'<details><summary>By transcript</summary>{presence_table("code", "transcript")}</details></section>')
     lines = "".join(
-        f'<tr><td>{name(r["left"])}</td><td>{name(r["right"])}</td><td>{r["left_passages"]} / {r["right_passages"]}</td>'
+        f'<tr><td>{name(r["left"])}</td><td>{name(r["right"])}</td>'
+        f'<td class="passage-scope">{e(r["scope"] if r.get("scope") in ("all pairs", "shared positives") else "all pairs")}</td>'
+        f'<td>{_num(r.get("shared_positive_pairs"), 0)}</td><td>{r["left_passages"]} / {r["right_passages"]}</td>'
         f'<td>{_num(r["f1_exact"])}</td><td>{_num(r["f1_iou_half"])}</td><td>{_num(r["f1_any_overlap"])}</td>'
         f'<td>{_pct(r["coded_text_jaccard"])}</td>'
         f'<td>{_num(r.get("left_coded_text_passages_excluded"), 0)} / {_num(r.get("right_coded_text_passages_excluded"), 0)}</td></tr>' for r in report["passages"] if r.get("scope_kind", "all") == "all")
     out += (f'<section><div class="section-head"><h2>Which passages were coded</h2><span class="muted">Same code, same transcript</span></div>'
-            f'<div class="progress-table"><table><thead><tr><th>Coding</th><th>Compared with</th><th>Passages</th><th>F1, exact</th>'
+            f'<div class="progress-table"><table><thead><tr><th>Coding</th><th>Compared with</th><th>Scope</th><th>Shared pairs</th><th>Passages</th><th>F1, exact</th>'
             f'<th>F1, mostly overlapping</th><th>F1, any overlap</th><th>Same text coded</th><th>Excluded from text overlap, left / right</th></tr></thead><tbody>{lines}</tbody></table></div>'
             f'<p class="muted">Passages are matched one to one. Mostly overlapping means the shared text is at least half of the two passages combined. '
+            f'Shared positives includes only transcript and code pairs with located passages on both sides. All pairs retains the pooled comparison. '
             f'A repeated reference quotation can match at any of its alternative locations, but still matches only one passage. '
             f'Same text coded compares characters marked with the same code, excluding passages with alternative locations. '
             f'The counts beside it show how many passages were excluded on each side; all remaining unique passages stay in the comparison.</p></section>')
@@ -483,6 +486,7 @@ def _report_html(app, folder: Path) -> str:
         ("coding_sets.csv", "Coding sets (CSV)"), ("units.csv", "Unit-level data (CSV)"),
         ("codes.csv", "Per-code measures (CSV)"), ("bootstrap.csv", "Bootstrap intervals (CSV)"),
         ("exclusions.csv", "Exclusions (CSV)"),
+        ("reference_differences.csv", "Paired reference differences (CSV)"),
         ("README.md", "Definitions"), ("report.json", "Full report (JSON)")) if (folder / f).exists())
     out += f'<section><h2>Files</h2><p>{links}</p><p class="muted">Saved in the study\'s exports folder, qualbench/{e(folder.name)}.</p></section>'
     # Figures right-aligned and kept on one line.

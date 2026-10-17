@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.11.0
+
+- **Shared-positive passage agreement.** Passage tables retain pooled measurements and add a scope restricted to document × code pairs with located passages on both sides, with pair and passage counts.
+- **Precise code provenance.** New runs and QualBench reports record the executing code's Git commit and whether its checkout has uncommitted changes. Methods records show both; older or non-Git records remain readable with unavailable provenance identified.
+- **Unlabelled review notes.** CFIR workbook and table imports retain nonempty cells under blank headers using column-letter note keys. Coding and labelled notes are unchanged; existing references are not rewritten.
+- **Paired reference comparisons.** `--second-reference` adds sensitivity, specificity, balanced accuracy and MCC for each coding set and deterministic baseline on units assessed in both references, with second-minus-first intervals from shared document or folder draws.
 
 - **QualBench assessment masks.** Explicit-absence references leave unassessed document × code units out of every presence measure. Unit/domain and document exclusion files support sensitivity analyses with reason-level audit tables and conservative parent assessment.
 - **Absence-sensitive comparisons.** Sensitivity, specificity, balanced accuracy, MCC, every-code-present/absent baselines, and per-code prevalence/confusion tables. Undefined values remain blank.

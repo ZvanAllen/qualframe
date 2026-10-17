@@ -86,6 +86,8 @@ def build_methods_record(app, run_id: str) -> dict:
         "data_classification": project.data_classification,
         "run_id": run_id,
         "qualframe_version": settings.get("qualframe_version"),
+        "git_commit": settings.get("git_commit"),
+        "git_dirty": settings.get("git_dirty"),
         "started_at_utc": settings.get("started_at_utc"),
         "completed_at_utc": manifest.get("completed_at_utc"),
         "model": {"label": provider_display(provider, model), **{k: v for k, v in provider_settings.items() if v is not None}},
@@ -165,6 +167,8 @@ def methods_markdown(record: dict) -> str:
         "",
         f"- Run ID: {record['run_id']}",
         f"- QualFrame version: {record['qualframe_version']}",
+        f"- Git commit: {record.get('git_commit') or 'not recorded'}",
+        f"- Uncommitted code changes: {_git_dirty_label(record.get('git_dirty'))}",
         f"- Started: {record['started_at_utc']}; completed: {record['completed_at_utc']}",
         f"- Configuration fingerprint (SHA-256): {record['configuration_fingerprint']}",
         f"- Requests planned: {record['requests_planned']}; recorded cost (USD): {record['recorded_cost_usd']}",
@@ -204,6 +208,12 @@ def methods_markdown(record: dict) -> str:
     return "\n".join(lines)
 
 
+def _git_dirty_label(dirty: bool | None) -> str:
+    if dirty is None:
+        return "not recorded"
+    return "yes" if dirty else "no"
+
+
 def render_methods_page(app, run_id: str) -> str:
     import html
     from urllib.parse import urlencode
@@ -227,6 +237,8 @@ def render_methods_page(app, run_id: str) -> str:
             ("Codes added by reviewers", review["added_by_researchers"]),
             ("Median time per decision", f'{review["median_seconds_per_decision"]} seconds' if review["median_seconds_per_decision"] is not None else "Not recorded"),
             ("QualFrame version", record["qualframe_version"] or "not recorded (run started before version 0.9)"),
+            ("Git commit", record.get("git_commit") or "not recorded"),
+            ("Uncommitted code changes", _git_dirty_label(record.get("git_dirty"))),
         ])
     body = f'''<section><h2>Suggested methods paragraph</h2><p class="muted">Generated from this run's records. Edit it to fit your study and journal.</p>
 <textarea class="methods-text" rows="9" readonly>{e(paragraph)}</textarea>

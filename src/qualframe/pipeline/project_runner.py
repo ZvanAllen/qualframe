@@ -266,11 +266,13 @@ class ProjectRunner:
         if path.exists():
             return
         from qualframe import __version__
+        from qualframe.code_provenance import get_code_provenance
 
         settings = self.project.provider.model_dump(exclude={"api_key_env"})
         path.write_text(json.dumps({
             "run_id": run_id,
             "qualframe_version": __version__,
+            **get_code_provenance(),
             "started_at_utc": datetime.now(timezone.utc).isoformat(),
             "provider": settings,
             "method_id": self.method.id if self.method else None,

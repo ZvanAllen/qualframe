@@ -27,6 +27,9 @@ from pathlib import Path
 from statistics import mean, median
 
 from qualframe.benchmark_metrics import _maximum_matching_indices
+from qualframe import __version__
+from qualframe.code_provenance import get_code_provenance
+from qualframe.qualbench_references import reference_differences
 from qualframe.run_comparison import interval_overlap, raw_coding_payload
 from qualframe.qualbench_presence import (
     REASONS, accuracy_statistics, assessment_masks, bootstrap_intervals, exclusion_counts,
@@ -507,20 +510,30 @@ def _passage_threshold(left: dict, right: dict, numerator: int, denominator: int
     return intersection > 0 and intersection * denominator >= union * numerator
 
 
-def passage_agreement(left: dict, right: dict, *, versus_reference: bool, source: str | None = None) -> dict:
-    """Passage agreement over all transcripts, or within one transcript."""
+def passage_agreement(left: dict, right: dict, *, versus_reference: bool, source: str | None = None,
+                      scope: str = "all pairs") -> dict:
+    """Compare located passages across all pairs or pairs located on both sides."""
+    if scope not in ("all pairs", "shared positives"):
+        raise ValueError("Passage scope must be 'all pairs' or 'shared positives'.")
+
     def located(coding_set: dict) -> list[dict]:
         return [i for i in coding_set["included"] if source is None or i["source"] == source]
 
     left_items, right_items = located(left), located(right)
+    shared_pairs = ({(i["source"], i["code_id"]) for i in left_items}
+                    & {(i["source"], i["code_id"]) for i in right_items})
+    if scope == "shared positives":
+        left_items = [i for i in left_items if (i["source"], i["code_id"]) in shared_pairs]
+        right_items = [i for i in right_items if (i["source"], i["code_id"]) in shared_pairs]
     # One graph vertex per annotation, regardless of how many locations it could have.
     a = [i.get("alternative_spans") or [i] for i in left_items]
     b = [i.get("alternative_spans") or [i] for i in right_items]
     labels = _transcript_labels(sorted(set(left["sources"]) | set(right["sources"])))
     row = dict(scope_kind="all" if source is None else "transcript",
-               scope="All" if source is None else labels[source],
+               scope=scope, transcript="All" if source is None else labels[source],
                left=left["set_id"], right=right["set_id"],
                comparison="versus reference" if versus_reference else "between coding sets",
+               shared_positive_pairs=len(shared_pairs),
                left_passages=len(a), right_passages=len(b))
     for name, ratio in MATCH_THRESHOLDS:
         numerator, denominator = ratio
@@ -585,6 +598,7 @@ def _codebook_differences(sets: list[dict]) -> list[dict]:
 
 
 def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
+                    second_reference: dict | None = None,
                     stability_groups: list[list[str]] | None = None,
                     exclude_units: Path | None = None, exclude_documents: Path | None = None,
                     bootstrap: int = 0, seed: int = 0, cluster_by_folder: bool = False) -> dict:
@@ -595,8 +609,14 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
         raise ValueError("Bootstrap comparisons require a reference coding.")
     if cluster_by_folder and not bootstrap:
         raise ValueError("Cluster resampling requires --bootstrap with a positive replicate count.")
+    if second_reference is not None and reference is None:
+        raise ValueError("A second reference requires the first --reference.")
+    if not coding_sets:
+        raise ValueError("Choose at least one coding set.")
+    coding_set_count = len(coding_sets)
     explicit_absences = bool(reference and reference.get("absences"))
-    everything = coding_sets + ([reference] if reference else [])
+    second_explicit_absences = bool(second_reference and second_reference.get("absences"))
+    everything = coding_sets + ([reference] if reference else []) + ([second_reference] if second_reference else [])
     if len(everything) < 2:
         raise ValueError("Choose at least two coding sets, or one with a reference.")
     ids = [s["set_id"] for s in everything]
@@ -624,7 +644,12 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
     requested_manual = manual
     manual = {unit: reasons for unit, reasons in manual.items() if unit[0] in sources}
     everything = [_restrict(s, set(sources)) for s in everything]
-    coding_sets, reference = (everything[:-1], everything[-1]) if reference else (everything, None)
+    coding_sets = everything[:coding_set_count]
+    reference = everything[coding_set_count] if reference is not None else None
+    second_reference = everything[coding_set_count + 1] if second_reference is not None else None
+    # Existing tables retain the first reference's assessment policy. The new paired
+    # table below alone intersects the two assessment masks.
+    everything = coding_sets + ([reference] if reference else [])
     codebook = everything[0]["codebook"]
     codes = _active_codes(codebook)
     active_ids = {c["id"] for c in codes}
@@ -648,9 +673,11 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
                                        mask, code_mask, bootstrap_data)
         if versus:
             codes_table += _code_rows(left, right, sources, codes, code_mask)
-        passages.append(passage_agreement(left, right, versus_reference=versus))
-        if len(sources) > 1:
-            passages += [passage_agreement(left, right, versus_reference=versus, source=source) for source in sources]
+        for passage_scope in ("all pairs", "shared positives"):
+            passages.append(passage_agreement(left, right, versus_reference=versus, scope=passage_scope))
+            if len(sources) > 1:
+                passages += [passage_agreement(left, right, versus_reference=versus, source=source,
+                                              scope=passage_scope) for source in sources]
     if reference:
         for rule, baseline_id in (("every code present", "baseline:always-present"),
                                   ("every code absent", "baseline:always-absent")):
@@ -702,14 +729,44 @@ def build_qualbench(coding_sets: list[dict], *, reference: dict | None = None,
                    for source in document_exclusions]
     bootstrap_rows = bootstrap_intervals(bootstrap_data, sources, [s["set_id"] for s in coding_sets],
                                          reference["set_id"] if reference else "", bootstrap, seed, cluster_by_folder)
+    reference_difference_rows = []
+    reference_difference_assessment = None
+    if second_reference is not None:
+        second_present = set(present_units(second_reference, active_code_ids=active_ids))
+        second_absent = {(i["source"], i.get("code_id")) for i in second_reference.get("absences", [])}
+        second_mask, _ = assessment_masks(sources, active_ids, second_present, second_absent,
+                                          second_explicit_absences, manual, projection)
+        universe = {(source, code) for source in sources for code in active_ids}
+        first_assessed, second_assessed = universe - code_mask.keys(), universe - second_mask.keys()
+        shared_units = sorted(first_assessed & second_assessed)
+        predictions = {s["set_id"]: set(present_units(s, active_code_ids=active_ids)) for s in coding_sets}
+        baselines = {"baseline:always-present": "every code present", "baseline:always-absent": "every code absent"}
+        predictions.update({"baseline:always-present": set(shared_units), "baseline:always-absent": set()})
+        reference_difference_rows = reference_differences(
+            predictions, baselines, reference_present, second_present, shared_units, sources,
+            reference["set_id"], second_reference["set_id"], bootstrap, seed, cluster_by_folder)
+        reference_difference_assessment = dict(
+            n_units_before_exclusions=len(universe), first_assessed_units=len(first_assessed),
+            second_assessed_units=len(second_assessed), jointly_assessed_units=len(shared_units),
+            first_only_assessed_units=len(first_assessed - second_assessed),
+            second_only_assessed_units=len(second_assessed - first_assessed))
+        if not shared_units:
+            warnings.append("No units are assessed in both references after exclusions; paired reference measures are undefined.")
     return dict(
         kind=KIND,
         created_at_utc=datetime.now(timezone.utc).isoformat(),
+        qualframe_version=__version__, **get_code_provenance(),
         coding_sets=[coding_profile(s) for s in everything],
         reference=dict(set_id=reference["set_id"], label=reference["label"],
                        statement=reference.get("statement"),
                        independent_human_coding=bool(reference.get("independent_human_coding")))
         if reference else None,
+        second_reference=dict(set_id=second_reference["set_id"], label=second_reference["label"],
+                              statement=second_reference.get("statement"),
+                              independent_human_coding=bool(second_reference.get("independent_human_coding")))
+        if second_reference else None,
+        reference_differences=reference_difference_rows,
+        reference_difference_assessment=reference_difference_assessment,
         transcripts=sources,
         warnings=warnings, codebook_differences=differences,
         transcripts_left_out=omitted,
@@ -754,8 +811,10 @@ def _csv(rows: list[dict]) -> str:
 README = """# QualBench report
 
 Created {created}. {sets} coding sets on {transcripts} transcript(s) and {codes} active codes.
+{code_provenance}
 {universes}
 {reference}
+{second_reference}
 
 Assessment and sensitivity-analysis exclusions:
 {exclusion_summary}
@@ -773,6 +832,8 @@ Files (tidy tables, one row per observation):
   confusion counts, sensitivity, specificity and F1. Missing units never enter the denominator.
 - `bootstrap.csv`: 95% percentile intervals for F1, kappa, MCC and balanced accuracy, including paired
   coding-set differences (left minus right). Empty when bootstrap is off.
+- `reference_differences.csv`: each coding set and baseline scored against two references on jointly
+  assessed code-level units, with paired differences (second minus first). Empty without a second reference.
 - `exclusions.csv`: every excluded presence unit and reason, plus explicitly excluded documents.
   A unit may have several reasons; reason counts overlap and must not be summed as unique exclusions.
 - `passages.csv`: agreement on the coded passages themselves.
@@ -839,7 +900,12 @@ Definitions
   (same start and end), with shared text at least a quarter, half or three quarters of their
   combined extent (IoU ≥ 0.25, 0.5, 0.75), or with any overlap.
   F1 = 2 × matched / (passages in left + passages in right).
-- Scopes: "all" pools every unit or passage; "transcript" rows give each transcript separately;
+- Passage `scope` is "all pairs" (the original pooled analysis) or "shared positives" (only document ×
+  code pairs with at least one located passage on each side). `shared_positive_pairs` counts these pairs;
+  left_passages/right_passages count passages within the selected scope. Both scopes use identical
+  matching and coded-text rules, including alternative-location exclusions. The document label formerly
+  in passage `scope` is retained in `transcript`; numeric pooled measurements are unchanged.
+- `scope_kind` "all" pools every unit or passage; "transcript" rows give each transcript separately;
   "transcript mean" weights each transcript equally (the mean of the transcript rows). When filenames repeat, transcript labels use relative paths so distinct sources stay separate.
 - Repeated reference quotations retain alternative spans with match: repeated. An annotation matches
   at a threshold if any candidate location meets it; it is still one passage and can match only once.
@@ -859,6 +925,19 @@ Definitions
   Earlier saved references remain readable and unchanged; only a new import gains alternatives.
 - Krippendorff's alpha (nominal): agreement among several coding sets on the same units, corrected
   for chance. 1 is perfect agreement; 0 is agreement at chance.
+- With `--second-reference`, all inputs must share the report's document cohort. Ordinary presence,
+  codes, units and bootstrap tables continue to use the first reference's assessment mask. The separate
+  reference-difference table intersects both references' assessed code-level units after manual exclusions;
+  both reference estimates, prevalences and baselines use that identical denominator. Documents without
+  jointly assessed units are omitted from this paired resampling. No parent-code projection is applied.
+  a/b denote the first/second reference; difference is b minus a. Every coding set and baseline uses
+  identical document or folder-then-document draws for both references, and percentile limits are
+  interpolated as in bootstrap.csv. Each marginal interval retains its defined replicates; a difference
+  requires both values defined in the same draw. Counts of defined and undefined replicates are explicit.
+  Without bootstrap, point estimates remain available and intervals are blank. The earlier standalone
+  paired script used random.choice and non-interpolated percentile ranks and could use different assessed
+  units per reference; numerical equivalence therefore requires identical assessment masks, while its
+  intervals need not be identical even with the same seed.
 
 Interpretation
 {warnings}
@@ -874,15 +953,23 @@ def write_qualbench(report: dict, folder: Path) -> Path:
     for name, rows in (("coding_sets", profiles), ("presence", report["presence"]),
                        ("passages", report["passages"]), ("stability", report["stability"]),
                        ("units", report["units"]), ("codes", report.get("codes_table", [])),
-                       ("bootstrap", report.get("bootstrap", [])), ("exclusions", report.get("exclusions", []))):
+                       ("bootstrap", report.get("bootstrap", [])), ("exclusions", report.get("exclusions", [])),
+                       ("reference_differences", report.get("reference_differences", []))):
         (folder / f"{name}.csv").write_text(_csv(rows), encoding="utf-8")
     reference = report["reference"]
+    second = report.get("second_reference")
+    dirty = report.get("git_dirty")
     (folder / "README.md").write_text(README.format(
         created=report["created_at_utc"][:16].replace("T", " ") + " UTC",
+        code_provenance=f"QualFrame {report.get('qualframe_version') or 'not recorded'}; Git commit: "
+                        f"{report.get('git_commit') or 'not recorded'}; uncommitted changes: "
+                        f"{'yes' if dirty is True else 'no' if dirty is False else 'not recorded'}.",
         sets=len(report["coding_sets"]), transcripts=len(report["transcripts"]), codes=report["codes"],
         universes="Presence universes: " + "; ".join(
             f"{level}: {count} codes" for level, count in report.get("code_universes", {"code": report["codes"]}).items()) + ".",
         reference=f"Reference: {reference['label']}." if reference else "No reference coding.",
+        second_reference=(f"Second reference: {second['label']}. Paired assessment: "
+                          + json.dumps(report.get("reference_difference_assessment", {})) + ".") if second else "",
         exclusion_summary="\n".join(
             f"- {row['level']}: {row['excluded_units']} of {row['n_units_before_exclusions']} units excluded; "
             + "; ".join(f"{reason}: {row[reason]}" for reason in REASONS) + "."

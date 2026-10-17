@@ -68,6 +68,8 @@ def import_reference(args) -> None:
 
 
 def compare(args) -> None:
+    if args.second_reference and not args.reference:
+        raise ValueError("--second-reference requires --reference.")
     project, repo_root = _study(args.study)
     manifest = load_project_manifest(project)
     artifacts = resolve_repo_path(repo_root, manifest.paths["artifacts"])
@@ -84,8 +86,12 @@ def compare(args) -> None:
     if args.reference:
         path = reference_folder(project, args.reference) / "reference.json"
         reference = reference_coding_set(load_reference_coding(path, repo_root))
+    second_reference = None
+    if args.second_reference:
+        path = reference_folder(project, args.second_reference) / "reference.json"
+        second_reference = reference_coding_set(load_reference_coding(path, repo_root))
     groups = [group.split(",") for group in args.stability or []]
-    report = build_qualbench(sets, reference=reference, stability_groups=groups,
+    report = build_qualbench(sets, reference=reference, second_reference=second_reference, stability_groups=groups,
                              exclude_units=Path(args.exclude_units).expanduser() if args.exclude_units else None,
                              exclude_documents=Path(args.exclude_documents).expanduser() if args.exclude_documents else None,
                              bootstrap=args.bootstrap, seed=args.seed, cluster_by_folder=args.cluster_by_folder)
@@ -122,6 +128,7 @@ def main() -> None:
     two.add_argument("--run", action="append", default=[],
                      help="Run ID (repeat); STUDY-ID:RUN-ID for a run of another study with the same transcripts")
     two.add_argument("--reference", help="Reference ID")
+    two.add_argument("--second-reference", help="Second reference ID; paired second-minus-first measures on jointly assessed units (requires --reference)")
     two.add_argument("--stability", action="append", help="Comma-separated run IDs that repeat one configuration")
     two.add_argument("--out", help="Folder for the report (default: the study's exports/qualbench)")
     two.add_argument("--exclude-units", help="CSV with document,code or document,domain columns; these units are not assessed")

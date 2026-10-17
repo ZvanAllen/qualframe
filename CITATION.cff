@@ -5,9 +5,8 @@ title: "QualFrame: AI-assisted directed content analysis you can check"
 authors:
   - family-names: "van Allen"
     given-names: "Zack"
-version: 0.10.0
+version: 0.11.0
 doi: 10.5281/zenodo.23300233
-date-released: "2026-10-15"
 license: MIT
 repository-code: "https://github.com/ZvanAllen/qualframe"
 url: "https://doi.org/10.5281/zenodo.23300233"

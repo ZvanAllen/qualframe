@@ -85,7 +85,8 @@ def test_mixed_reference_profile_and_saved_report_show_location_counts(tmp_path)
     assert (profile['reference_passages_unique'],profile['reference_passages_repeated'],profile['reference_passages_unanchored'])==(1,1,1)
     assert profile['unknown_codes']==1 and profile['codes_without_quotation']==1 and profile['no_evidence_rows']==1
     assert profile['coded_passages']==3 and profile['passages_located']==2
-    by_source={r['scope']:r for r in report['passages'] if r['scope_kind']=='transcript'}
+    by_source={r['transcript']:r for r in report['passages']
+               if r['scope_kind']=='transcript' and r['scope']=='all pairs'}
     assert by_source['one.txt']['right_coded_text_passages_excluded']==1
     assert by_source['two.txt']['right_coded_text_passages_excluded']==0
     folder=write_qualbench(report,tmp_path/'report')

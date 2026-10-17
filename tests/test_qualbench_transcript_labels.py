@@ -21,7 +21,8 @@ def test_duplicate_filenames_have_separate_presence_passage_and_mean_rows():
     assert presence["a/shared.txt"]["both"] == 1 and presence["b/shared.txt"]["both"] == 0
     macro = next(row for row in report["presence"] if row["level"] == "code" and row["scope_kind"] == "transcript mean")
     assert macro["percent_agreement"] == pytest.approx((1 + 2 / 3 + 1) / 3)
-    passage = {row["scope"]: row for row in report["passages"] if row["scope_kind"] == "transcript"}
+    passage = {row["transcript"]: row for row in report["passages"]
+               if row["scope_kind"] == "transcript" and row["scope"] == "all pairs"}
     assert set(passage) == set(presence)
     assert passage["a/shared.txt"]["matched_exact"] == 1
     assert passage["b/shared.txt"]["matched_exact"] == 0
@@ -32,4 +33,5 @@ def test_duplicate_filenames_have_separate_presence_passage_and_mean_rows():
 
 def test_direct_passage_comparison_uses_the_same_unique_label():
     left, right = _duplicates()
-    assert passage_agreement(left, right, versus_reference=False, source="b/shared.txt")["scope"] == "b/shared.txt"
+    row = passage_agreement(left, right, versus_reference=False, source="b/shared.txt")
+    assert row["scope"] == "all pairs" and row["transcript"] == "b/shared.txt"

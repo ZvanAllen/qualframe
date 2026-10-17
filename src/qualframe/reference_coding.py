@@ -17,6 +17,8 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
+from openpyxl.utils.cell import get_column_letter
+
 from qualframe.cfir_review import (
     REVIEW_LABEL_POLICY,
     _outline_candidates,
@@ -58,6 +60,28 @@ def _cell(value) -> str:
     return str(value).strip()
 
 
+def _unlabelled_notes(cells: list[str], header: list[str]) -> dict[str, str]:
+    """Name unlabelled columns without replacing a labelled note, ignoring case.
+
+    Reserve every heading before choosing keys, including later columns and empty
+    labelled cells, so the generated key stays the same across rows.
+    """
+    reserved = {name.casefold() for name in header if name}
+    notes = {}
+    for index, value in enumerate(cells):
+        if not value or (index < len(header) and header[index]):
+            continue
+        base = f"column {get_column_letter(index + 1)}"
+        name = base
+        suffix = 1
+        while name.casefold() in reserved:
+            name = f"{base} (unlabelled{f' {suffix}' if suffix > 1 else ''})"
+            suffix += 1
+        notes[name] = value
+        reserved.add(name.casefold())
+    return notes
+
+
 def read_cfir_coding_workbook(path: Path) -> tuple[list[dict], list[str]]:
     """Coding rows from every domain sheet, and notes about sheets that were skipped."""
     import openpyxl
@@ -72,12 +96,14 @@ def read_cfir_coding_workbook(path: Path) -> tuple[list[dict], list[str]]:
                 skipped.append(f"Sheet '{sheet.title}' is not a CFIR domain.")
                 continue
             header: dict[str, int] | None = None
+            column_names: list[str] = []
             found = False
             for number, values in enumerate(sheet.iter_rows(values_only=True), 1):
                 cells = [_cell(value) for value in values]
                 lowered = [cell.casefold() for cell in cells]
                 if "cfir construct" in lowered and "quote" in lowered:
                     header = {name: index for index, name in enumerate(lowered) if name}
+                    column_names = lowered
                     found = True
                     continue
                 if header is None:
@@ -91,6 +117,7 @@ def read_cfir_coding_workbook(path: Path) -> tuple[list[dict], list[str]]:
                     for name, index in header.items()
                     if name not in _STANDARD_COLUMNS and index < len(cells) and cells[index]
                 }
+                notes.update(_unlabelled_notes(cells, column_names))
                 explanation_index = header.get("explanation")
                 rows.append(dict(
                     sheet=sheet.title, row=number, domain=domain, construct=construct, quote=quote,
@@ -353,6 +380,7 @@ def read_coding_table(path: Path) -> tuple[list[dict], dict[str, str]]:
         row = row + [""] * (len(header) - len(row))
         notes = {table[0][i]: row[i] for i in range(len(header))
                  if i not in {document, code, quote} and table[0][i] and row[i]}
+        notes.update(_unlabelled_notes(row, table[0]))
         rows.append(dict(row=number, document=row[document], code=row[code],
                          quote=row[quote] if quote is not None else "", notes=notes))
     return rows, used

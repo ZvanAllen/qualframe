@@ -87,10 +87,12 @@ def test_build_qualbench_presence_passages_levels_and_stability(tmp_path):
     # Sub-codes merged into parents: the reference's two/c becomes two/p, which left has.
     merged = rows[("parent code", "all", "All", "left", "reference:ref")]
     assert (merged["both"], merged["left_only"], merged["right_only"]) == (2, 1, 0)
-    passages = {(r["left"], r["right"]): r for r in report["passages"] if r["scope_kind"] == "all"}
+    passages = {(r["left"], r["right"]): r for r in report["passages"]
+                if r["scope_kind"] == "all" and r["scope"] == "all pairs"}
     lr = passages[("left", "right")]
-    per_transcript = [r for r in report["passages"] if r["scope_kind"] == "transcript" and r["right"] == "right"]
-    assert [r["scope"] for r in per_transcript if r["left"] == "left"] == ["one.txt", "two.txt"]
+    per_transcript = [r for r in report["passages"] if r["scope_kind"] == "transcript"
+                      and r["scope"] == "all pairs" and r["right"] == "right"]
+    assert [r["transcript"] for r in per_transcript if r["left"] == "left"] == ["one.txt", "two.txt"]
     assert lr["matched_iou_quarter"] == 2 and lr["matched_iou_three_quarters"] == 1
     macro = rows[("code", "transcript mean", "Mean of transcripts", "left", "right")]
     by_transcript = [rows[("code", "transcript", name, "left", "right")]["percent_agreement"] for name in ("one.txt", "two.txt")]
@@ -103,7 +105,7 @@ def test_build_qualbench_presence_passages_levels_and_stability(tmp_path):
     assert report["reference"]["statement"] == "Earlier coding, reviewed."
     folder = write_qualbench(report, tmp_path / "bench")
     assert {p.name for p in folder.iterdir()} == {"README.md", "report.json", "coding_sets.csv", "presence.csv",
-                                                 "passages.csv", "stability.csv", "units.csv", "codes.csv", "bootstrap.csv", "exclusions.csv"}
+                                                 "passages.csv", "stability.csv", "units.csv", "codes.csv", "bootstrap.csv", "exclusions.csv", "reference_differences.csv"}
     assert "Earlier coding, reviewed." in (folder / "README.md").read_text(encoding="utf-8")
     with pytest.raises(FileExistsError):
         write_qualbench(report, folder)

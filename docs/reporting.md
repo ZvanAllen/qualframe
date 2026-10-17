@@ -8,7 +8,7 @@ Open **Results**, then **Methods record**. It fills in a draft methods paragraph
 
 | Item | Where it is recorded |
 | --- | --- |
-| QualFrame version, model, provider and settings | `artifacts/<run>/run_settings.json` (no API keys) |
+| QualFrame version, Git commit and uncommitted changes, model, provider and settings | `artifacts/<run>/run_settings.json` (no API keys) |
 | Dates | `run_settings.json` (start) and `run_manifest.json` (finish) |
 | Coding instructions | The prompt file listed in `analysis_configuration_lock.json`, with its SHA-256 hash |
 | Codebook and version | The codebook file listed in the same lock file, with its hash |
@@ -19,6 +19,14 @@ Open **Results**, then **Methods record**. It fills in a draft methods paragraph
 | Codes reviewers added | `review_queue/<run>/evidence/additions.jsonl`; marked "Added by researcher" in exports |
 | Time spent reviewing | `review_queue/<run>/evidence/timing.jsonl` (seconds per decision, while the window was visible) |
 | Agreement between runs, if used | A comparison saved from Compare runs |
+
+Runs started with version 0.11.0 or later also record `git_commit` and `git_dirty`
+for the executing QualFrame checkout. The latter is true when the checkout has
+uncommitted changes, including untracked files. These describe the code when the
+run started and are preserved on resume. Installed packages, source archives,
+and checkouts where Git metadata cannot be read store null values. Older runs
+show "not recorded"; opening their Methods record does not fill in today's code
+identity. No credentials or environment values are included.
 
 ## Template paragraph
 

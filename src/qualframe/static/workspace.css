@@ -393,6 +393,7 @@ table.compact{width:auto;margin-top:10px}
 
 /* QualBench report tables */
 table.bench td.n{white-space:nowrap;font-variant-numeric:tabular-nums}
+table.bench td.passage-scope{white-space:nowrap}
 table.bench th{vertical-align:bottom}
 
 /* Confirming a failed paid request */
