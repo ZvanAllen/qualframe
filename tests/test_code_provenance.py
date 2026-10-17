@@ -32,7 +32,7 @@ def checkout(tmp_path: Path, monkeypatch):
     (package / "code_provenance.py").write_text("# synthetic code\n", encoding="utf-8")
     _git(root, "init")
     _git(root, "add", "src")
-    _git(root, "-c", "user.name=Synthetic Test", "-c", "user.email=test@example.invalid",
+    _git(root, "-c", "user.name=Synthetic Test", "-c", "user.email=test@localhost",
          "-c", "commit.gpgsign=false", "commit", "-m", "synthetic fixture")
     monkeypatch.setattr(code_provenance, "__file__", str(package / "code_provenance.py"))
     return root, package, _git(root, "rev-parse", "HEAD")
