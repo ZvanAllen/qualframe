@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.11.0
+## 0.11.0 (17 October 2026)
 
 - **Shared-positive passage agreement.** Passage tables retain pooled measurements and add a scope restricted to document × code pairs with located passages on both sides, with pair and passage counts.
 - **Precise code provenance.** New runs and QualBench reports record the executing code's Git commit and whether its checkout has uncommitted changes. Methods records show both; older or non-Git records remain readable with unavailable provenance identified.

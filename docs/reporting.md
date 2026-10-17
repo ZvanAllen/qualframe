@@ -36,7 +36,7 @@ Adapt this to your study; replace the bracketed parts.
 
 ## Citing the software
 
-van Allen, Z. (2026). *QualFrame: AI-assisted directed content analysis you can check* (Version 0.10.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23300233
+van Allen, Z. (2026). *QualFrame: AI-assisted directed content analysis you can check* (Version 0.11.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23300233
 
 Replace the version with the one you used (the Methods record page shows it). GitHub's **Cite this repository** button gives the same citation in other formats, and the [Zenodo record](https://doi.org/10.5281/zenodo.23300233) lists each version's own DOI.
 
