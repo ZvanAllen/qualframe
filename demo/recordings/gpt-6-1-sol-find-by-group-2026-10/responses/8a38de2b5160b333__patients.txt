@@ -1,0 +1,94 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "The first time, I didn't really understand what I was agreeing to. She said something like, \"Is it okay if I use a tool that helps me write my notes?\" and I said yes, because why would I say no to that? It was only afterwards, reading the sign in the hallway, that I realised it was listening to our whole conversation.",
+      "code_id": "patients_consent",
+      "rationale": "The participant describes agreeing without understanding that the tool would listen to the whole conversation."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "A bit uneasy. Not angry, just like I'd agreed to something without knowing what it was. I don't think anyone meant to hide anything. The question was just phrased in a way that made it sound like a spell-checker.",
+      "code_id": "patients_consent",
+      "rationale": "The participant expresses discomfort arising from inadequate understanding and misleadingly limited framing of the tool."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "The next time, I asked more questions, and she explained it properly, that the recording is deleted and only the note is kept. I said yes again, and honestly that visit was one of the best I've had.",
+      "code_id": "patients_consent",
+      "rationale": "The participant describes receiving an explanation of recording retention and agreeing again after asking questions."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "I said yes again, and honestly that visit was one of the best I've had. She looked at me the whole time. I felt like she was really hearing me, instead of half-listening while she typed.",
+      "code_id": "patients_experience",
+      "rationale": "The participant reports an unusually positive visit, attributing it to sustained eye contact and feeling heard rather than competing with typing."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "That's the thing, the tool itself made the visit better, but the way I was asked made me feel less in control.",
+      "code_id": "patients_consent",
+      "rationale": "The participant explicitly links the way consent was requested to a reduced sense of control."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "That's the thing, the tool itself made the visit better, but the way I was asked made me feel less in control.",
+      "code_id": "patients_experience",
+      "rationale": "The participant explicitly states that the tool improved the visit while distinguishing that improvement from problems with consent."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "I was there about something personal, and when he asked about the tool, I said no.",
+      "code_id": "patients_consent",
+      "rationale": "The participant describes declining use of the tool during a visit concerning a personal matter."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "He seemed a little surprised and then typed a lot, and the visit felt rushed. I wondered afterwards whether saying no meant I got a worse appointment. I hope not. But that's how it felt.",
+      "code_id": "patients_experience",
+      "rationale": "The participant perceived the visit without the tool as rushed and wondered whether refusal had resulted in poorer care."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "Not formally, which is the strange part. We meet every two months, and nobody brought it to us before it started. We heard about it from patients asking questions in the waiting room.",
+      "code_id": "patients",
+      "rationale": "The participant criticises the lack of patient advisory group involvement before implementation. This concerns patient participation in adoption rather than individual consent or visit quality."
+    },
+    {
+      "meaning_unit": "mu-9",
+      "quote": "People want to be asked clearly, in plain language, and ideally before they're sitting in the room with the doctor, when it's harder to say no.",
+      "code_id": "patients_consent",
+      "rationale": "The participant reports preferences for understandable, early consent requests that reduce pressure to agree."
+    },
+    {
+      "meaning_unit": "mu-10",
+      "quote": "Some people wanted to know if they could read the note afterwards to check it was right.",
+      "code_id": "patients",
+      "rationale": "The participant reports patients' desire to review the resulting notes for accuracy, a perspective not specifically about recording consent or perceived visit quality."
+    },
+    {
+      "meaning_unit": "mu-11",
+      "quote": "A few people, especially those who've been through the system in hard ways, said they would never agree to it and wanted to be sure that wouldn't be held against them.",
+      "code_id": "patients_consent",
+      "rationale": "The participant reports refusal to use the tool and concern about negative consequences for declining."
+    },
+    {
+      "meaning_unit": "mu-12",
+      "quote": "Ask clearly and early. Have the information in the languages our community speaks. Make it easy to say no, and make sure saying no doesn't mean a shorter visit.",
+      "code_id": "patients_consent",
+      "rationale": "These recommendations address clear, accessible consent and the ability to decline without a penalty."
+    },
+    {
+      "meaning_unit": "mu-13",
+      "quote": "And let patients see their notes.",
+      "code_id": "patients",
+      "rationale": "The participant recommends patient access to documentation produced through the tool; neither child code specifically captures this recommendation."
+    },
+    {
+      "meaning_unit": "mu-14",
+      "quote": "Just that patients aren't against new tools. Most of us want our doctors to be less exhausted. We just want to be part of the decision, not something that happens to us.",
+      "code_id": "patients",
+      "rationale": "The participant expresses general support for new tools and clinician wellbeing while calling for patient involvement in decisions about adoption."
+    }
+  ]
+}

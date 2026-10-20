@@ -1,0 +1,58 @@
+{
+  "decisions": [
+    {
+      "code_id": "people",
+      "present": false,
+      "quote": "",
+      "rationale": "The explicit effects on clinicians fit the more specific workload and trust codes, so no separate parent-code assignment is needed."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "To check a note properly, I have to remember the visit in detail and compare it line by line. That took me about as long as writing a short note myself. So for me the time savings didn't materialise.",
+      "rationale": "Checking drafts requires substantial effort and takes as long as writing a note, eliminating the anticipated time savings."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "A proper connection to our record system so I'm not copying and pasting.",
+      "rationale": "The participant identifies manual copying and pasting as documentation work that better integration would remove."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "First, accuracy. I found errors in roughly one note out of five. Small ones mostly, a dose recorded wrong, laterality flipped, left knee instead of right. But one note said I'd examined a patient's abdomen when I hadn't. That's a falsified record if I sign it without noticing. The software doesn't get tired, but it also doesn't know when it's guessing.",
+      "rationale": "Draft errors undermine confidence in the tool and create professional accountability concerns when signing the record."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "But I also think some of them are reading less carefully than they think they are. That's not a criticism of them, it's human nature. If something is right ninety percent of the time, your attention drifts. Our regulatory college is clear that the physician is responsible for the content of the record, no matter who or what drafted it.",
+      "rationale": "The participant describes over-reliance, reduced scrutiny of drafts, and physicians' continuing responsibility for record content."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "Training residents. We supervise family medicine residents here. Writing a note is how residents learn to organise their thinking: what's the problem, what's the evidence, what's the plan. If the machine writes the note, what happens to that skill? I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+      "rationale": "The participant worries that automated documentation could impair trainees' clinical reasoning and skill development."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "Evidence from independent evaluations, not just the vendor's numbers, about error rates. And a clear way to see which parts of the note came from the conversation and which parts the software inferred. If it highlighted what it wasn't sure about, I'd trust it more, not less.",
+      "rationale": "Independent accuracy evidence, provenance, and visible uncertainty are identified as conditions for greater trust in drafts."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "I'm not against the technology. I'm against using it without knowing how good it is. If someone showed me that it was as accurate as a good human scribe, I'd use it tomorrow.",
+      "rationale": "Willingness to use the assistant depends on demonstrated accuracy and confidence in its performance."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": false,
+      "quote": "",
+      "rationale": "The only explicit account of changed interaction is patients' reported appreciation of less typing, which the codebook excludes as patients' own views; no other passage establishes changed attention, conversation, or rapport."
+    }
+  ]
+}

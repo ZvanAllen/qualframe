@@ -1,0 +1,172 @@
+{
+  "decisions": [
+    {
+      "code_id": "tech",
+      "present": false,
+      "quote": "",
+      "rationale": "Comments on the technology concern accuracy, integration, or confidence and fit more specific codes."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": true,
+      "quote": "First, accuracy. I found errors in roughly one note out of five. Small ones mostly, a dose recorded wrong, laterality flipped, left knee instead of right. But one note said I'd examined a patient's abdomen when I hadn't.",
+      "rationale": "Identifies the frequency of errors and examples of incorrect and invented clinical content."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": true,
+      "quote": "If something is right ninety percent of the time, your attention drifts.",
+      "rationale": "Discusses draft correctness as a condition that can encourage reduced vigilance."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": true,
+      "quote": "Evidence from independent evaluations, not just the vendor's numbers, about error rates.",
+      "rationale": "Requests independent evidence about how often the tool makes errors."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": true,
+      "quote": "I'm not against the technology. I'm against using it without knowing how good it is. If someone showed me that it was as accurate as a good human scribe, I'd use it tomorrow.",
+      "rationale": "Makes demonstrated accuracy comparable to a human scribe a condition for adoption."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": false,
+      "quote": "",
+      "rationale": "There is no evidence about operational ease, devices, starting or stopping recording, or learning how to operate the tool."
+    },
+    {
+      "code_id": "tech_integration",
+      "present": true,
+      "quote": "A proper connection to our record system so I'm not copying and pasting.",
+      "rationale": "Requests direct record-system integration to eliminate copying and pasting."
+    },
+    {
+      "code_id": "people",
+      "present": false,
+      "quote": "",
+      "rationale": "Effects on clinicians and trainees fit the more specific workload and professional judgement codes."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "To check a note properly, I have to remember the visit in detail and compare it line by line. That took me about as long as writing a short note myself. So for me the time savings didn't materialise. Maybe if you write very long notes it's different. My notes are short.",
+      "rationale": "Describes the checking burden and the absence of documentation time savings."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "I believe them, and I don't think they're wrong to use it.",
+      "rationale": "In the context of colleagues reporting substantial time savings, the participant accepts that other clinicians may save time."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "That's a falsified record if I sign it without noticing. The software doesn't get tired, but it also doesn't know when it's guessing.",
+      "rationale": "Connects unnoticed fabricated content with responsibility for signing the record and doubts about the tool's judgement."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "But I also think some of them are reading less carefully than they think they are. That's not a criticism of them, it's human nature. If something is right ninety percent of the time, your attention drifts. Our regulatory college is clear that the physician is responsible for the content of the record, no matter who or what drafted it.",
+      "rationale": "Describes over-reliance, reduced scrutiny, and professional accountability for drafted notes."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "Training residents. We supervise family medicine residents here. Writing a note is how residents learn to organise their thinking: what's the problem, what's the evidence, what's the plan. If the machine writes the note, what happens to that skill? I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+      "rationale": "Raises concerns about trainees losing clinical reasoning skills and describes a restriction intended to protect learning."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "And a clear way to see which parts of the note came from the conversation and which parts the software inferred. If it highlighted what it wasn't sure about, I'd trust it more, not less.",
+      "rationale": "Identifies transparency about inference and uncertainty as a way to increase trust."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "I'm not against the technology. I'm against using it without knowing how good it is. If someone showed me that it was as accurate as a good human scribe, I'd use it tomorrow.",
+      "rationale": "Describes insufficient confidence in the tool and the evidence that would make its use acceptable."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": false,
+      "quote": "",
+      "rationale": "The interaction-related observation is explicitly a patient's view of reduced typing and therefore belongs under Patient experience of care."
+    },
+    {
+      "code_id": "org",
+      "present": false,
+      "quote": "",
+      "rationale": "Organisational evidence fits the more specific leadership, training, and privacy codes."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+      "rationale": "Shows program leadership supporting a restriction on adoption by first-year residents."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "I did, at a staff meeting and in writing to our executive director. To her credit she took it seriously and asked the health authority for clearer answers about data use. We got a better document a month later. But the decision to join the pilot had already been made above our heads, so it felt like we were fixing the plane while flying it.",
+      "rationale": "Describes leadership responsiveness alongside a top-down pilot decision made without the participant's involvement."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+      "rationale": "Describes locally developed guidance restricting tool use during residents' first year."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "Our regulatory college is clear that the physician is responsible for the content of the record, no matter who or what drafted it.",
+      "rationale": "Reports an institutional governance requirement assigning responsibility for the clinical record."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "One patient asked me directly whether the company would use her conversation to improve its product, and I couldn't give her a confident answer at the time. That bothered me. I don't like telling patients things I'm not sure about.",
+      "rationale": "Identifies uncertainty about the vendor's secondary use of patient conversation data."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "To her credit she took it seriously and asked the health authority for clearer answers about data use. We got a better document a month later.",
+      "rationale": "Describes organisational efforts to clarify data-use governance through improved documentation."
+    },
+    {
+      "code_id": "patients",
+      "present": false,
+      "quote": "",
+      "rationale": "Patient perspectives are covered by the more specific consent and experience codes."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "I tried it for about three weeks, properly, in every visit where the patient agreed.",
+      "rationale": "Indicates that use was conditional on patient agreement."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "Most didn't mind.",
+      "rationale": "In context, reports that most patients were comfortable with the tool's use."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "One patient asked me directly whether the company would use her conversation to improve its product, and I couldn't give her a confident answer at the time.",
+      "rationale": "Shows a patient seeking information about how her recorded conversation would be used and an unresolved gap in informed understanding."
+    },
+    {
+      "code_id": "patients_experience",
+      "present": true,
+      "quote": "A couple of my older patients were quite pleased, actually, they said it was nice to see me not typing.",
+      "rationale": "Reports patients' positive perceptions of the visit when the clinician was not typing."
+    }
+  ]
+}

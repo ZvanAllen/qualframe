@@ -1,0 +1,136 @@
+{
+  "id": "sonnet-5-5-find-by-group-2026-10",
+  "label": "Claude Sonnet 5.5: find, by group",
+  "kind": "model",
+  "description": "Responses recorded from Claude Sonnet 5.5: find, by group over the fictional demo transcripts.",
+  "dataset": "ai-scribe",
+  "recorded_at_utc": "2026-10-20T15:41:44.989132+00:00",
+  "status": "completed",
+  "complete": true,
+  "requests": 24,
+  "completed_requests": 24,
+  "expected_requests": 24,
+  "total_requests": 24,
+  "coding_style": "find_passages",
+  "codebook_division": "top_level_categories",
+  "partition_strategy": "per_top_level_category",
+  "provider_settings": {
+    "name": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "max_tokens": 16000,
+    "api_mode": "chat_completions",
+    "prices_usd_per_million": {
+      "input": 2.0,
+      "output": 10.0,
+      "checked_on": "2026-10-10"
+    }
+  },
+  "method_policy": {
+    "analysis_family": "directed_content_analysis",
+    "evidence_location": "unique_exact_quote",
+    "segmentation": {
+      "strategy": "model_proposed",
+      "editable": true,
+      "allow_overlapping_units": false
+    },
+    "context": {
+      "unit": "sentences",
+      "before": 1,
+      "after": 1
+    },
+    "coding": {
+      "decision_style": "find_passages",
+      "cardinality": "multi_label",
+      "allow_overlapping_spans": true,
+      "max_codes_per_unit": null
+    },
+    "partitioning": {
+      "strategy": "per_top_level_category",
+      "custom_groups": {}
+    },
+    "calibration": {
+      "complete_review_required": true,
+      "reference_status": "human_adjudicated"
+    }
+  },
+  "returned_models": [
+    "claude-sonnet-5-5"
+  ],
+  "configuration_fingerprint": "1f047c362d85a01a8874b8a33f5e613f5fb11f56e80e43dd5759f19563b0006b",
+  "reported_usage": {
+    "input_tokens": 76538,
+    "output_tokens": 28488
+  },
+  "usage_breakdown": {
+    "input_tokens": 76538,
+    "cached_input_tokens": 0,
+    "cache_write_tokens": 0,
+    "output_tokens": 28488,
+    "reasoning_tokens": 0
+  },
+  "response_status": [
+    "completed"
+  ],
+  "actual_cost_usd": 0.437956,
+  "estimated_cost_usd": 0.437956,
+  "cost_source": "provider_usage_ledger",
+  "cost_is_estimated": false,
+  "elapsed_request_seconds": 229.222,
+  "qa_failure_count": 0,
+  "no_decision_count": 0,
+  "response_sha256": {
+    "42c1fb2ffd021040__org": "bfddb9d8688e8e7d31614ad054ff6f30af4ec894cb749325abb55f40fa1c5b41",
+    "42c1fb2ffd021040__patients": "702d671d0afc13596d98b886296717d13edc8f6dabf7592e0d50a5a65e269ba6",
+    "42c1fb2ffd021040__people": "5b686fc582f69f885c9a50134a25216261868f4f6a5dacc4a79d8b59c6f1eefe",
+    "42c1fb2ffd021040__tech": "e800a827af2c31c2cc7c589434d8e63542fd168919110b3aadd599809d0b1de0",
+    "68b3fa4c375a0d6f__org": "70a664593dc5030ab6634eab9aeb53307429e0059277953feb598cd64ef658ce",
+    "68b3fa4c375a0d6f__patients": "2ec6ace69e4a678fc67f70ee242890ce8c594cfd1eb62be1c15d2fdf735404c1",
+    "68b3fa4c375a0d6f__people": "4fd72ff8f9518e93747d57fd3b4f642a8bacb36eda28ffd97ea630b8223c72f0",
+    "68b3fa4c375a0d6f__tech": "bb2f8234c5e943142794e28894c36f1b0c139d54ef5fb8ec093c5247de3c93ce",
+    "71b8d9f7753d39f2__org": "d1682a5b054d1dba2dda66dda7a3814f6663d70fef02416fd34f778510be426f",
+    "71b8d9f7753d39f2__patients": "f184f79274f4346dcd3dd7eadc7b4436e604c8a96b73a5b801b9d876a9f00049",
+    "71b8d9f7753d39f2__people": "e929593dc064b90ddd81c796fd1eb538cf7a31634c014001123ab9dbdabd9de4",
+    "71b8d9f7753d39f2__tech": "8f0400f0a71b924f0e279f9b4b46ff83eb52dcc1885c5faa027893f20d7f60ac",
+    "841ff02648280ff1__org": "dfd3bd3cb90f84ac9e0f887fde4fe978ae40bc446f115b11c0a0675a85c98fbc",
+    "841ff02648280ff1__patients": "b8cb05993726d095653f06ece154a21f4fc69ab5e93f416fe2353e04b06c7c4d",
+    "841ff02648280ff1__people": "76b9c0b69f27f5b373ed81fafe39498e7e2f44de3623b470197272337c7103f1",
+    "841ff02648280ff1__tech": "54bf0f394ca32923b6956e5e835c0fc2385be127d81748260991a80fe8fa142c",
+    "8a38de2b5160b333__org": "27835c142853fdba3136ce9f851f6713a3a01a9b36afb2b26dd9639a24b18db8",
+    "8a38de2b5160b333__patients": "87118b71f93900b99e9201e8d3ae3f9c558d686454dbd730484292379ffb2744",
+    "8a38de2b5160b333__people": "18cbc0383683a1b4621e873fe31d22eecc90046964375666d2ef041dcb103ed7",
+    "8a38de2b5160b333__tech": "889e6413a11ddca7083d2513b6429a27bf58bd276b207520f3aa4f9ff3763cce",
+    "b22b584b1c80fdbc__org": "a5e96f398fcfc50b36c56fa3ae377fcb66d0bfed881026040176a93041b3de77",
+    "b22b584b1c80fdbc__patients": "120e80dab36aaa1286f601fd35d3a97a2452d0c91a99245f99779d7327466395",
+    "b22b584b1c80fdbc__people": "ec511c61eaa16fde059288aac1615f4b2fb7cc0c2a424a3283cf24a5ec995a7e",
+    "b22b584b1c80fdbc__tech": "b467bfbccfef3c79f02308f99e8c0e52c0d4d2ba5806d748663c713b40780113"
+  },
+  "prompt_sha256": "8f56ef2978a587e6ab747fbbcf72fce860c5f57cb5aea752a7a9310d5b72b2be",
+  "prompt_file": "prompts/directed/v3/directed_coding.md",
+  "codebook_sha256": "d94a88fdc7bc4cbd12a1c048859f1b99411a3cc83af0f38672eac358d92a3a7c",
+  "transcripts": [
+    {
+      "file": "P01 family physician.txt",
+      "sha256": "b22b584b1c80fdbc598e4a2b892973b8888efd4b774bb5be1294cf2ededcc26f"
+    },
+    {
+      "file": "P02 clinic manager.txt",
+      "sha256": "71b8d9f7753d39f2d91c8b7883dbd43b169100bb324758c7cd07b294a6860db5"
+    },
+    {
+      "file": "P03 medical office assistant.txt",
+      "sha256": "841ff02648280ff15d03c06e5d4c7b76d7f1711cba872ec63e1c6b0c78f26d68"
+    },
+    {
+      "file": "P04 nurse practitioner.txt",
+      "sha256": "68b3fa4c375a0d6f3ac36b5077cc7c6372de4745fabc84c2b46c0c8145144236"
+    },
+    {
+      "file": "P05 family physician.txt",
+      "sha256": "42c1fb2ffd021040a124b7602767b68c405a1efcc0126f2f0bee9eb6c1f446f4"
+    },
+    {
+      "file": "P06 patient partner.txt",
+      "sha256": "8a38de2b5160b3332fe55b03a047be03e0449764c8dd5f085d3dc3f5d08f4ccc"
+    }
+  ]
+}

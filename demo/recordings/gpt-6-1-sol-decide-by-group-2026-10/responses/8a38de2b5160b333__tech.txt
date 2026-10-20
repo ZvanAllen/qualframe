@@ -1,0 +1,34 @@
+{
+  "decisions": [
+    {
+      "code_id": "tech",
+      "present": true,
+      "quote": "I said yes again, and honestly that visit was one of the best I've had. She looked at me the whole time. I felt like she was really hearing me, instead of half-listening while she typed.",
+      "rationale": "Describes a general benefit of using the technology: less distraction from typing and greater clinician attention. No child code specifically covers this benefit."
+    },
+    {
+      "code_id": "tech",
+      "present": true,
+      "quote": "That's the thing, the tool itself made the visit better, but the way I was asked made me feel less in control.",
+      "rationale": "Explicitly evaluates the tool positively while distinguishing its benefit from problems with the consent process."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": true,
+      "quote": "Some people wanted to know if they could read the note afterwards to check it was right.",
+      "rationale": "Expresses a desire to verify the accuracy of the resulting note, though no actual error is reported."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": false,
+      "quote": "",
+      "rationale": "The document describes consent and effects on clinician attention, but does not describe how easy the tool is to start, operate, or fit operationally into a visit."
+    },
+    {
+      "code_id": "tech_integration",
+      "present": false,
+      "quote": "",
+      "rationale": "There is no discussion of transferring drafts into the electronic health record or matching its formatting, templates, or structured fields."
+    }
+  ]
+}

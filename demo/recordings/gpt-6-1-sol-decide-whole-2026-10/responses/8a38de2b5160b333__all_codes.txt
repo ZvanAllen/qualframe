@@ -1,0 +1,178 @@
+{
+  "decisions": [
+    {
+      "code_id": "tech",
+      "present": false,
+      "quote": "",
+      "rationale": "Comments about the tool concern specific issues of accuracy, consent, or care experience rather than general technological characteristics."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": true,
+      "quote": "Some people wanted to know if they could read the note afterwards to check it was right.",
+      "rationale": "Patients want to verify the accuracy of the generated note."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": false,
+      "quote": "",
+      "rationale": "The document does not describe operating the tool, its interface, or practical ease of use."
+    },
+    {
+      "code_id": "tech_integration",
+      "present": false,
+      "quote": "",
+      "rationale": "There is no discussion of transferring notes into the health record or matching its structure."
+    },
+    {
+      "code_id": "people",
+      "present": true,
+      "quote": "Most of us want our doctors to be less exhausted.",
+      "rationale": "The participant expresses a desired benefit for clinician wellbeing, without specifying documentation time or another child-code mechanism."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "He seemed a little surprised and then typed a lot, and the visit felt rushed.",
+      "rationale": "After the tool is declined, the participant describes substantial typing and a rushed visit, linking documentation activity to visit pace."
+    },
+    {
+      "code_id": "people_trust",
+      "present": false,
+      "quote": "",
+      "rationale": "The document does not address clinicians' confidence in drafts, professional accountability, clinical reasoning, or learning."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": false,
+      "quote": "",
+      "rationale": "Descriptions of attention and interaction are patients' own experiences and are coded under Patient experience of care, following this code's exclusion guidance."
+    },
+    {
+      "code_id": "org",
+      "present": false,
+      "quote": "",
+      "rationale": "Organisational evidence fits the more specific leadership and privacy codes."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "Those are two different problems, and I think the clinic only thought about the first one.",
+      "rationale": "The participant criticises the clinic's adoption priorities for overlooking patients' control over consent."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "Not formally, which is the strange part. We meet every two months, and nobody brought it to us before it started. We heard about it from patients asking questions in the waiting room. When we finally put it on our agenda, people had a lot to say.",
+      "rationale": "The patient advisory group was not consulted before implementation and only discussed the tool after learning about it indirectly."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "We just want to be part of the decision, not something that happens to us.",
+      "rationale": "The participant calls for patient involvement in adoption decisions."
+    },
+    {
+      "code_id": "org_training",
+      "present": false,
+      "quote": "",
+      "rationale": "The document does not describe staff onboarding, ongoing support, troubleshooting, or operational guidance for using the tool."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "The next time, I asked more questions, and she explained it properly, that the recording is deleted and only the note is kept.",
+      "rationale": "The explanation identifies the clinic's recording deletion and note retention arrangements."
+    },
+    {
+      "code_id": "patients",
+      "present": true,
+      "quote": "And let patients see their notes. Those seem like small things, but they're about respect.",
+      "rationale": "The recommendation concerns patient access to notes and respect, beyond consent or the perceived quality of a particular visit."
+    },
+    {
+      "code_id": "patients",
+      "present": true,
+      "quote": "Just that patients aren't against new tools.",
+      "rationale": "The participant expresses a general patient attitude toward new tools rather than a specific consent or care experience."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "The first time, I didn't really understand what I was agreeing to. She said something like, \"Is it okay if I use a tool that helps me write my notes?\" and I said yes, because why would I say no to that? It was only afterwards, reading the sign in the hallway, that I realised it was listening to our whole conversation.",
+      "rationale": "Initial agreement was obtained without the patient understanding that the entire conversation would be recorded."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "A bit uneasy. Not angry, just like I'd agreed to something without knowing what it was. I don't think anyone meant to hide anything. The question was just phrased in a way that made it sound like a spell-checker.",
+      "rationale": "The participant describes discomfort and misunderstanding caused by the wording of the consent request."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "The next time, I asked more questions, and she explained it properly, that the recording is deleted and only the note is kept. I said yes again, and honestly that visit was one of the best I've had.",
+      "rationale": "The patient asks questions, receives a clearer explanation, and agrees again."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "That's the thing, the tool itself made the visit better, but the way I was asked made me feel less in control.",
+      "rationale": "The participant explicitly links the consent process to diminished control."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "I was there about something personal, and when he asked about the tool, I said no.",
+      "rationale": "The participant declines the tool during a visit about a personal matter."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "I wondered afterwards whether saying no meant I got a worse appointment. I hope not. But that's how it felt.",
+      "rationale": "The participant worries that declining the tool adversely affected their care."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "People want to be asked clearly, in plain language, and ideally before they're sitting in the room with the doctor, when it's harder to say no.",
+      "rationale": "Patients request clearer and earlier consent discussions that reduce pressure to agree."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "A few people, especially those who've been through the system in hard ways, said they would never agree to it and wanted to be sure that wouldn't be held against them.",
+      "rationale": "Some patients reject recording and want assurance that refusal will not have adverse consequences."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "Ask clearly and early. Have the information in the languages our community speaks. Make it easy to say no, and make sure saying no doesn't mean a shorter visit.",
+      "rationale": "The advisory group's recommendations address accessible information, timely consent, and consequence-free refusal."
+    },
+    {
+      "code_id": "patients_experience",
+      "present": true,
+      "quote": "I said yes again, and honestly that visit was one of the best I've had. She looked at me the whole time. I felt like she was really hearing me, instead of half-listening while she typed.",
+      "rationale": "The participant describes improved visit quality, eye contact, and feeling heard when the tool was used."
+    },
+    {
+      "code_id": "patients_experience",
+      "present": true,
+      "quote": "That's the thing, the tool itself made the visit better, but the way I was asked made me feel less in control.",
+      "rationale": "The participant distinguishes an improved care experience from dissatisfaction with the consent process."
+    },
+    {
+      "code_id": "patients_experience",
+      "present": true,
+      "quote": "He seemed a little surprised and then typed a lot, and the visit felt rushed. I wondered afterwards whether saying no meant I got a worse appointment. I hope not. But that's how it felt.",
+      "rationale": "The participant perceives the visit without the tool as rushed and potentially worse because they declined."
+    },
+    {
+      "code_id": "patients_experience",
+      "present": true,
+      "quote": "Make it easy to say no, and make sure saying no doesn't mean a shorter visit.",
+      "rationale": "The recommendation seeks to ensure that patients who decline the tool do not receive a shorter visit."
+    }
+  ]
+}

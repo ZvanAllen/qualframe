@@ -1,0 +1,34 @@
+{
+  "decisions": [
+    {
+      "code_id": "people",
+      "present": false,
+      "quote": "",
+      "rationale": "The relevant effects on clinicians and their work fit the more specific child codes, so no separate parent-code assignment is needed."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "He seemed a little surprised and then typed a lot, and the visit felt rushed.",
+      "rationale": "Following refusal of the tool, the clinician's increased typing and the rushed visit describe documentation effort and its effect on visit pace."
+    },
+    {
+      "code_id": "people_trust",
+      "present": false,
+      "quote": "",
+      "rationale": "The document does not describe clinicians' confidence in drafts, responsibility for the record, or effects on clinical reasoning or learning; patients' requests to check notes do not establish these."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": true,
+      "quote": "I said yes again, and honestly that visit was one of the best I've had. She looked at me the whole time. I felt like she was really hearing me, instead of half-listening while she typed.",
+      "rationale": "This describes specific changes in clinician eye contact, attention, and listening during tool use, rather than merely the patient's opinion of the tool."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": true,
+      "quote": "He seemed a little surprised and then typed a lot, and the visit felt rushed. I wondered afterwards whether saying no meant I got a worse appointment. I hope not. But that's how it felt.",
+      "rationale": "The passage describes typing and a rushed interaction after the patient declined the tool, with a perceived deterioration in the clinician–patient encounter."
+    }
+  ]
+}

@@ -1,0 +1,184 @@
+{
+  "decisions": [
+    {
+      "code_id": "tech",
+      "present": false,
+      "quote": "",
+      "rationale": "The technological difficulty described fits Ease of use rather than requiring the general technology code."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": false,
+      "quote": "",
+      "rationale": "There is no discussion of whether drafted notes accurately reflect visits."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": true,
+      "quote": "When the phone app doesn't work, the doctor sometimes comes out to the desk to ask for a charger or for help, and I'm not tech support.",
+      "rationale": "App failures and the need for a charger are practical difficulties running the tool."
+    },
+    {
+      "code_id": "tech_integration",
+      "present": false,
+      "quote": "",
+      "rationale": "The transcript does not describe transferring drafts into the health record or matching its structure."
+    },
+    {
+      "code_id": "people",
+      "present": true,
+      "quote": "I don't use it myself, it's for the doctors and the nurse practitioner. But it changed my day more than I expected, because patients ask me about it. They see the sign in the waiting room and they want to know what it is before they go in.",
+      "rationale": "The assistant changes the front-desk employee's role by making them a source of information for patients, an effect not fully captured by the specific child codes."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "The doctors are a bit more on time in the afternoons, I've noticed that. Before, the last appointments would run late because they were catching up on charts between patients. Now they're not doing that as much. That makes my end of the day less stressful because I'm not apologising to people in the waiting room as often.",
+      "rationale": "Reduced between-visit charting improves clinic timing and reduces front-desk stress and apology work."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "When the phone app doesn't work, the doctor sometimes comes out to the desk to ask for a charger or for help, and I'm not tech support.",
+      "rationale": "Technical problems create additional troubleshooting demands on front-desk staff."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "And when a patient declines, the doctor goes back to typing, and you can tell they're a bit slower that day.",
+      "rationale": "Returning to manual documentation when patients decline slows the doctor's work."
+    },
+    {
+      "code_id": "people_trust",
+      "present": false,
+      "quote": "",
+      "rationale": "There is no evidence about confidence in drafts, record accountability, clinical reasoning, or learning."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": false,
+      "quote": "",
+      "rationale": "Concerns about reluctance to refuse concern consent rather than observed changes in attention, conversation, or rapport during visits."
+    },
+    {
+      "code_id": "org",
+      "present": false,
+      "quote": "",
+      "rationale": "The organisational evidence fits the more specific Training and support or Privacy and governance codes."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": false,
+      "quote": "",
+      "rationale": "The transcript does not describe adoption decisions, funding, champions, or consultation about whether to adopt."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "At first I didn't really know what to say. Nobody had told us much, it was mainly the doctors who got trained. I'd say, \"You can ask the doctor to turn it off,\" which was true but felt like I was passing the buck.",
+      "rationale": "Initial training excluded front-desk staff and left them inadequately prepared to answer patients."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "After a few weeks our manager gave us the information sheet and went through it with us, and now I can explain the basics: it helps write the note, the audio gets deleted, and they can say no without any problem.",
+      "rationale": "The manager provides an information sheet and instruction that enable staff to explain the assistant."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "Some do. Usually they tell me, and I put a little flag on their appointment so the doctor knows before they walk in. That way the patient doesn't have to say it twice. I came up with that myself, actually, and now everyone does it.",
+      "rationale": "The employee develops a local procedure for communicating refusals that becomes shared practice."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "When the phone app doesn't work, the doctor sometimes comes out to the desk to ask for a charger or for help, and I'm not tech support.",
+      "rationale": "Troubleshooting falls informally to front-desk staff who do not regard technical support as their role."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "Train the front desk at the same time as the doctors. We're the first people patients talk to, so we should be able to answer their questions properly from day one.",
+      "rationale": "The participant explicitly requests simultaneous onboarding for front-desk staff and clinicians."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "And maybe have the information sheet in more languages. We have a lot of patients who speak Punjabi and Arabic, and right now it's only in English and French.",
+      "rationale": "The participant identifies a language-access gap in locally supplied explanatory materials."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "After a few weeks our manager gave us the information sheet and went through it with us, and now I can explain the basics: it helps write the note, the audio gets deleted, and they can say no without any problem.",
+      "rationale": "The manager's explanation includes the organisation's stated handling of recorded audio through deletion."
+    },
+    {
+      "code_id": "patients",
+      "present": false,
+      "quote": "",
+      "rationale": "The patient-perspective evidence concerns understanding, recording comfort, and refusal, all covered by Consent and comfort."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "They see the sign in the waiting room and they want to know what it is before they go in.",
+      "rationale": "Patients seek information about the assistant before their appointments."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "\"Is the doctor recording me?\" is the big one. Some people ask if it's like a smart speaker that's always listening. An older gentleman asked me whether the government would get the recording. A mother asked if it would be okay to talk about her teenager's mental health with it on.",
+      "rationale": "Patients express uncertainty and privacy-related discomfort about recording, access, and discussing sensitive information."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "I'd say, \"You can ask the doctor to turn it off,\" which was true but felt like I was passing the buck.",
+      "rationale": "The employee initially communicates that patients may ask for recording to stop."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "After a few weeks our manager gave us the information sheet and went through it with us, and now I can explain the basics: it helps write the note, the audio gets deleted, and they can say no without any problem.",
+      "rationale": "Staff can now explain the tool, audio handling, and patients' ability to decline."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "Some do. Usually they tell me, and I put a little flag on their appointment so the doctor knows before they walk in. That way the patient doesn't have to say it twice. I came up with that myself, actually, and now everyone does it.",
+      "rationale": "Patients decline through the front desk, and an appointment flag communicates their refusal to the doctor."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "It helps. It's a small thing, but people who are nervous about it don't want to argue with their doctor. If the flag is there, the doctor just doesn't turn it on and nobody has to make a fuss.",
+      "rationale": "The flag accommodates discomfort and avoids requiring patients to confront their doctor to decline."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "I don't think patients should feel pressured because of that, but I've wondered whether some people say yes because they think it's expected.",
+      "rationale": "The participant questions whether perceived expectations compromise voluntary consent."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "Just the way some people answer. They say \"I guess it's fine\" in a voice that doesn't sound fine. I've started telling people, \"It's completely up to you, and the doctor won't mind either way.\" I don't know if that's my place, but it feels right.",
+      "rationale": "Reluctant agreement prompts explicit reassurance that accepting the tool is optional."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "And maybe have the information sheet in more languages. We have a lot of patients who speak Punjabi and Arabic, and right now it's only in English and French.",
+      "rationale": "Limited translated information creates a potential barrier to patients understanding the tool and their choices."
+    },
+    {
+      "code_id": "patients_experience",
+      "present": false,
+      "quote": "",
+      "rationale": "No patient assessment of visit quality is reported; improved punctuality is the staff member's observation."
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "id": "gpt-6-1-sol-find-by-group-2026-10",
+  "label": "GPT-6.1 Sol: find, by group",
+  "kind": "model",
+  "description": "Responses recorded from GPT-6.1 Sol: find, by group over the fictional demo transcripts.",
+  "dataset": "ai-scribe",
+  "recorded_at_utc": "2026-10-20T15:47:20.343556+00:00",
+  "status": "completed",
+  "complete": true,
+  "requests": 24,
+  "completed_requests": 24,
+  "expected_requests": 24,
+  "total_requests": 24,
+  "coding_style": "find_passages",
+  "codebook_division": "top_level_categories",
+  "partition_strategy": "per_top_level_category",
+  "provider_settings": {
+    "name": "openai",
+    "model": "gpt-6.1-sol",
+    "max_tokens": 16000,
+    "api_mode": "responses",
+    "reasoning_effort": "low",
+    "prices_usd_per_million": {
+      "input": 2.0,
+      "output": 10.0,
+      "checked_on": "2026-10-10"
+    }
+  },
+  "method_policy": {
+    "analysis_family": "directed_content_analysis",
+    "evidence_location": "unique_exact_quote",
+    "segmentation": {
+      "strategy": "model_proposed",
+      "editable": true,
+      "allow_overlapping_units": false
+    },
+    "context": {
+      "unit": "sentences",
+      "before": 1,
+      "after": 1
+    },
+    "coding": {
+      "decision_style": "find_passages",
+      "cardinality": "multi_label",
+      "allow_overlapping_spans": true,
+      "max_codes_per_unit": null
+    },
+    "partitioning": {
+      "strategy": "per_top_level_category",
+      "custom_groups": {}
+    },
+    "calibration": {
+      "complete_review_required": true,
+      "reference_status": "human_adjudicated"
+    }
+  },
+  "returned_models": [
+    "gpt-6.1-sol"
+  ],
+  "configuration_fingerprint": "955f8b81fbd330fe73086e7eeee2c1faa1a0ca3484ab7354089c7a26f52a6fc7",
+  "reported_usage": {
+    "input_tokens": 46204,
+    "output_tokens": 15234
+  },
+  "usage_breakdown": {
+    "input_tokens": 46204,
+    "cached_input_tokens": 0,
+    "cache_write_tokens": 0,
+    "output_tokens": 13619,
+    "reasoning_tokens": 1615
+  },
+  "response_status": [
+    "completed"
+  ],
+  "actual_cost_usd": 0.244748,
+  "estimated_cost_usd": 0.244748,
+  "cost_source": "provider_usage_ledger",
+  "cost_is_estimated": false,
+  "elapsed_request_seconds": 333.405,
+  "qa_failure_count": 0,
+  "no_decision_count": 0,
+  "response_sha256": {
+    "42c1fb2ffd021040__org": "418cffbb13efa3962a390805d4af046e6a5ca22fd7d2ec656cb40249afa6b53d",
+    "42c1fb2ffd021040__patients": "ce2fd6d6522d4c2da6227895fcd5dfa35cf24f1d57b02e41f0c67a1d2e20c5f2",
+    "42c1fb2ffd021040__people": "190a450fd8894d0d50ff8a8333e7013f718e752103789a7970136bd6f60e4bbd",
+    "42c1fb2ffd021040__tech": "6cab720ca0114b9ed585e91d11dc23149be58e960ff90d849581d683a6b564db",
+    "68b3fa4c375a0d6f__org": "26a78ad595e77ae6f6aa8d0bf412250565bbb778cf6d2c444943be8a3950c921",
+    "68b3fa4c375a0d6f__patients": "e9fb1d520cd4a019efb4c231d96c210f202796dd41035fb3d9440c10f3b2ecb4",
+    "68b3fa4c375a0d6f__people": "93f8c6f07a757715700fcb3a6dfec3010fcbc74ba5198af76b14113983058306",
+    "68b3fa4c375a0d6f__tech": "8aedf6822385c3eb82ef135a255202489f7ec7d00dd4b5ac682cd3ba2afac907",
+    "71b8d9f7753d39f2__org": "f1b2f5c9581a5dc5805e4e189224a4e708ca224a2a09fb321ba598d205104147",
+    "71b8d9f7753d39f2__patients": "5937a7658a651ff987a671c7cfb2ec2f8dd8cc6d8167329bf760a754217e12f6",
+    "71b8d9f7753d39f2__people": "f151c7b02d3129fd6ad5cd09df7d61d390c1b1ef5fbb2fb79bf89a2f6d000fa2",
+    "71b8d9f7753d39f2__tech": "2cb7df70b90e8b3aea0669287a262d352e169a8c0b7901149849c8e93f04db7a",
+    "841ff02648280ff1__org": "059dbc17be42ae58d892706a0919275ef992f196315ffacbe00462662a507396",
+    "841ff02648280ff1__patients": "f0c4cba8309b59be287cc207cf9eb159ff0e7a41ce1727b34003e2c1ed67417a",
+    "841ff02648280ff1__people": "184ca9504dd662cd329ef8405514aa493fbf9cb10b98d619e1748a47dab3012f",
+    "841ff02648280ff1__tech": "f3afcafa0b0178d2734ee17619c0c514d99d404dcb99ea54a256e576a991296c",
+    "8a38de2b5160b333__org": "98e559663ea17281edb7a19b6c615ceeaf63c690a49b22665ab84df9924bda5f",
+    "8a38de2b5160b333__patients": "42b06697f0e02bd0bd955794072ad524a4eaf6b238d3c52afe337093870bb769",
+    "8a38de2b5160b333__people": "861e9b3d4168228e5825372ecaec99bba07c26176298ec291783142eb0375f6e",
+    "8a38de2b5160b333__tech": "8720ccdd2a3f04edecf141e1279d96cdb757c7ce542283398cbc4aae427fd199",
+    "b22b584b1c80fdbc__org": "f1618772b1a6162683919ab3c3520768f0ccc66f0d1210d4c795abdeeca7c186",
+    "b22b584b1c80fdbc__patients": "00a611eae44856162a15899114c24f2c9fbaa19d26bb455bd185605976d1fc5f",
+    "b22b584b1c80fdbc__people": "a8a6de704529a7eab4826bdb4941ec616b0312bd23e32169a9398f8e18c75e18",
+    "b22b584b1c80fdbc__tech": "2cbac8fddf05e08b2afa1b9de91703316b89f87dd52f3586e8deb8ca9887a99c"
+  },
+  "prompt_sha256": "8f56ef2978a587e6ab747fbbcf72fce860c5f57cb5aea752a7a9310d5b72b2be",
+  "prompt_file": "prompts/directed/v3/directed_coding.md",
+  "codebook_sha256": "d94a88fdc7bc4cbd12a1c048859f1b99411a3cc83af0f38672eac358d92a3a7c",
+  "transcripts": [
+    {
+      "file": "P01 family physician.txt",
+      "sha256": "b22b584b1c80fdbc598e4a2b892973b8888efd4b774bb5be1294cf2ededcc26f"
+    },
+    {
+      "file": "P02 clinic manager.txt",
+      "sha256": "71b8d9f7753d39f2d91c8b7883dbd43b169100bb324758c7cd07b294a6860db5"
+    },
+    {
+      "file": "P03 medical office assistant.txt",
+      "sha256": "841ff02648280ff15d03c06e5d4c7b76d7f1711cba872ec63e1c6b0c78f26d68"
+    },
+    {
+      "file": "P04 nurse practitioner.txt",
+      "sha256": "68b3fa4c375a0d6f3ac36b5077cc7c6372de4745fabc84c2b46c0c8145144236"
+    },
+    {
+      "file": "P05 family physician.txt",
+      "sha256": "42c1fb2ffd021040a124b7602767b68c405a1efcc0126f2f0bee9eb6c1f446f4"
+    },
+    {
+      "file": "P06 patient partner.txt",
+      "sha256": "8a38de2b5160b3332fe55b03a047be03e0449764c8dd5f085d3dc3f5d08f4ccc"
+    }
+  ]
+}

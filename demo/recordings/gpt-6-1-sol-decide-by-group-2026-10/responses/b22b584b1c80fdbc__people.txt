@@ -1,0 +1,94 @@
+{
+  "decisions": [
+    {
+      "code_id": "people",
+      "present": false,
+      "quote": "",
+      "rationale": "The relevant effects on clinicians are captured by the more specific workload, trust and professional judgement, and clinician–patient interaction codes."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "Honestly, the charting. I was finishing notes at nine or ten at night, three or four nights a week. My partner started calling it my second shift.",
+      "rationale": "Describes the after-hours documentation burden that motivated adoption."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "It has. On a good week I'm done with my notes before I leave the building. I'd say I've gained back something like forty-five minutes a day, maybe an hour on a heavy clinic day. That's real. That's dinner with my kids.",
+      "rationale": "Reports time saved and reduced evening charting, with benefits for family time."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "A bad week is when the drafts need a lot of fixing.",
+      "rationale": "Identifies editing drafts as a source of documentation burden."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "I read every note before I sign it. That's non-negotiable for me. But I'll admit that on a busy afternoon my reading gets faster than it should.",
+      "rationale": "Describes mandatory draft-checking effort and how clinic workload affects that checking."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "That's clunkier than it should be. The draft appears in a separate window, and I copy sections into the record. The formatting sometimes breaks, bullet points turn into one long paragraph, and the medication list doesn't land in the medication field, so I retype it.",
+      "rationale": "Manual copying, formatting problems, and retyping add documentation work."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "Only that the time savings are real, and I don't want the worries to drown that out. I'm a better doctor at four in the afternoon than I was a year ago because I'm not dreading the evening.",
+      "rationale": "Links time savings and reduced anticipation of evening work to improved functioning during the clinic day."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "It's not that it makes things up all the time, but when it does, it's convincing. Last month it wrote that a patient had denied chest pain, and we never discussed chest pain at all. That kind of thing worries me more than a missing detail, because it reads like something I asked.",
+      "rationale": "Convincing fabricated content undermines confidence in the accuracy of drafts."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "I read every note before I sign it. That's non-negotiable for me. But I'll admit that on a busy afternoon my reading gets faster than it should. The risk is that you start to trust it because it's usually right.",
+      "rationale": "Describes verification before signing, less careful review under pressure, and the risk of over-reliance."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "It's my name on the note. If something is wrong in the record, it's not the software's licence on the line, it's mine. So I treat it like a draft from a student. A good student, but a student.",
+      "rationale": "Emphasizes professional accountability and the need to treat the output as a draft requiring supervision."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "I've also noticed I'm less sure what I would have written myself. The draft frames the visit for you, and then you edit around its framing.",
+      "rationale": "Describes the draft influencing independent judgement and framing of the clinical encounter."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "A little. Writing the note used to be part of how I thought through the case. Now I'm reviewing someone else's thinking about my case. For simple visits that's fine. For the complicated ones, the frail older patient with six problems, I sometimes turn it off and write the assessment myself.",
+      "rationale": "Identifies changes to clinical reasoning and preserves independent assessment by disabling the tool for complex cases."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "I'd say yes, but go in with your eyes open. Read every note. Turn it off when it doesn't fit the visit.",
+      "rationale": "Recommends cautious reliance, verification of drafts, and professional judgement about when to use the tool."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": true,
+      "quote": "That's the part I didn't expect. I look at people more. I used to type while they talked, and I'd catch myself saying \"mm-hmm\" to the screen. Now my hands are in my lap and I'm actually watching their face.",
+      "rationale": "Describes increased visual attention and reduced screen-focused interaction during visits."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": true,
+      "quote": "What took longer was learning how to talk so that it gets things right. I've started saying the plan out loud at the end of the visit, which actually helps the patient too, because they hear the plan summarised.",
+      "rationale": "Adapting speech for the tool changes the consultation conversation by adding an audible plan summary for the patient."
+    }
+  ]
+}

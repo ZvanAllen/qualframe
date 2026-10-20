@@ -1,0 +1,1 @@
+{"codings":[{"meaning_unit":"mu-1","quote":"the tool itself made the visit better","code_id":"tech","rationale":"This is a general comment on the tool as a technology: the participant says it improved the visit. No child code fits, because it does not address accuracy, ease of use, or record integration. The comment separates the tool's effect from how consent was handled."}]}

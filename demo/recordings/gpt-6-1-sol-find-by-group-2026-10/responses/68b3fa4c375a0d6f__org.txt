@@ -1,0 +1,58 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "The regional health authority offered it to a handful of community clinics as part of a pilot.",
+      "code_id": "org_leadership",
+      "rationale": "Identifies the health authority's pilot as the organisational route through which adoption was offered."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "Our executive director signed us up, and then there was a staff meeting where we were told it was coming. It wasn't a long conversation. I think some people felt it was decided for us.",
+      "code_id": "org_leadership",
+      "rationale": "Describes an executive-led adoption decision with limited staff involvement."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "Partly for the patient's comfort, partly because I'm not confident enough about where that audio goes, even with what we've been told.",
+      "code_id": "org_privacy",
+      "rationale": "Explicitly identifies uncertainty about audio storage or transfer despite institutional assurances. The coding concerns data governance, rather than the accompanying reference to patient comfort."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "That it's deleted after the note is created. We got a short document from the health authority.",
+      "code_id": "org_privacy",
+      "rationale": "Reports the health authority's communicated policy on deletion of recorded audio."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "It answered the basic questions, but when I asked about legal requests for records, or about errors in the note being used in court, nobody had an answer for me. Our policy is basically \"use your professional judgement,\" which I appreciate, but it puts it back on us.",
+      "code_id": "org_privacy",
+      "rationale": "Describes unresolved legal-governance questions and a policy that leaves responsibility with individual practitioners."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "Our clinic uses a different record system from the one the vendor built their connection for, so we copy and paste everything. It also doesn't know our templates, so the structure of the draft doesn't match the structure our charts are supposed to follow. I spend time rearranging sections.",
+      "code_id": "org",
+      "rationale": "The clinic's existing record system and required chart templates create organisational barriers to integration. None of the child codes addresses this infrastructure and workflow mismatch."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "We had one session from the health authority, online. It covered how to start and stop it. Nobody covered the things I actually needed, like how to edit efficiently, or how to explain it to patients with limited English.",
+      "code_id": "org_training",
+      "rationale": "Describes the onboarding provided and specific gaps in its practical coverage."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "Another NP and I made our own cheat sheet and shared it around.",
+      "code_id": "org_training",
+      "rationale": "Describes locally developed guidance shared with colleagues to support use."
+    },
+    {
+      "meaning_unit": "mu-9",
+      "quote": "Ask the people who'll use it, before signing up. And ask our patients, through our community advisory group. We have a group of patients who advise the clinic, and they were never consulted.",
+      "code_id": "org_leadership",
+      "rationale": "Calls for staff and patient involvement in adoption decisions and explicitly identifies the lack of consultation with the patient advisory group."
+    }
+  ]
+}

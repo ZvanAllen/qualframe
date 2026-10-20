@@ -1,0 +1,28 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "With others, especially people who've had bad experiences with institutions, the idea that something is listening changes the conversation.",
+      "code_id": "patients_consent",
+      "rationale": "The participant describes patients' discomfort with being listened to by the tool, particularly among those with negative institutional experiences."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "One woman stopped mid-sentence and asked, \"Is that thing getting this?\" She was about to tell me about her partner. I turned it off and she continued, but I could see the trust had dipped for a minute.",
+      "code_id": "patients_consent",
+      "rationale": "The patient's question and interrupted disclosure indicate concern about being recorded. The clinician responds by turning the tool off."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "One woman stopped mid-sentence and asked, \"Is that thing getting this?\" She was about to tell me about her partner. I turned it off and she continued, but I could see the trust had dipped for a minute.",
+      "code_id": "patients_experience",
+      "rationale": "The participant reports a temporary loss of patient trust and disruption of disclosure during the visit, followed by resumed conversation when the tool is turned off."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "Anything involving substance use, intimate partner violence, or child protection, I just don't use it. Partly for the patient's comfort, partly because I'm not confident enough about where that audio goes, even with what we've been told.",
+      "code_id": "patients_consent",
+      "rationale": "The participant explicitly identifies patient comfort as a reason for avoiding recording during sensitive visits, alongside the clinician's own privacy concerns."
+    }
+  ]
+}

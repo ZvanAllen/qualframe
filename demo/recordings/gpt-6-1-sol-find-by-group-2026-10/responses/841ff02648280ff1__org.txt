@@ -1,0 +1,46 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "At first I didn't really know what to say. Nobody had told us much, it was mainly the doctors who got trained.",
+      "code_id": "org_training",
+      "rationale": "The participant describes inadequate front-desk onboarding and training concentrated on doctors."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "After a few weeks our manager gave us the information sheet and went through it with us, and now I can explain the basics: it helps write the note, the audio gets deleted, and they can say no without any problem.",
+      "code_id": "org_training",
+      "rationale": "The manager provided written guidance and instruction that enabled front-desk staff to explain the assistant to patients."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "After a few weeks our manager gave us the information sheet and went through it with us, and now I can explain the basics: it helps write the note, the audio gets deleted, and they can say no without any problem.",
+      "code_id": "org_privacy",
+      "rationale": "The clinic-provided guidance communicates an audio-deletion practice and patients' ability to refuse recording, rather than merely describing individual reactions."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "Usually they tell me, and I put a little flag on their appointment so the doctor knows before they walk in. That way the patient doesn't have to say it twice. I came up with that myself, actually, and now everyone does it.",
+      "code_id": "org",
+      "rationale": "The participant describes a staff-developed workflow adopted across the clinic to communicate refusals. This organisational coordination practice does not specifically concern training, adoption leadership, or a formal governance policy."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "When the phone app doesn't work, the doctor sometimes comes out to the desk to ask for a charger or for help, and I'm not tech support.",
+      "code_id": "org_training",
+      "rationale": "The passage describes troubleshooting requests being directed to front-desk staff despite their lack of a technical support role."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "Train the front desk at the same time as the doctors. We're the first people patients talk to, so we should be able to answer their questions properly from day one.",
+      "code_id": "org_training",
+      "rationale": "The participant recommends simultaneous onboarding for front-desk staff and doctors so staff can answer patient questions from implementation onward."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "And maybe have the information sheet in more languages. We have a lot of patients who speak Punjabi and Arabic, and right now it's only in English and French.",
+      "code_id": "org_training",
+      "rationale": "The participant identifies a language-access limitation in the clinic's informational support materials and recommends multilingual guidance."
+    }
+  ]
+}

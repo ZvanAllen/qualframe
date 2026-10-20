@@ -1,0 +1,58 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "I don't use it myself, it's for the doctors and the nurse practitioner. But it changed my day more than I expected, because patients ask me about it. They see the sign in the waiting room and they want to know what it is before they go in.",
+      "code_id": "people",
+      "rationale": "The assistant creates a new patient-facing responsibility for front-desk staff who do not themselves use it. This staff-role effect fits the parent code rather than a specific child code."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "At first I didn't really know what to say. Nobody had told us much, it was mainly the doctors who got trained. I'd say, \"You can ask the doctor to turn it off,\" which was true but felt like I was passing the buck.",
+      "code_id": "people",
+      "rationale": "Unequal training leaves front-desk staff unprepared to answer questions and uncertain about their role. No child code specifically addresses staff preparation."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "After a few weeks our manager gave us the information sheet and went through it with us, and now I can explain the basics: it helps write the note, the audio gets deleted, and they can say no without any problem.",
+      "code_id": "people",
+      "rationale": "Manager-provided information enables the participant to handle a new responsibility arising from the tool's adoption. This is a staff-support effect, not confidence in the tool's clinical drafts."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "Usually they tell me, and I put a little flag on their appointment so the doctor knows before they walk in. That way the patient doesn't have to say it twice. I came up with that myself, actually, and now everyone does it.",
+      "code_id": "people",
+      "rationale": "The participant develops a shared staff workflow for communicating patients' decisions to clinicians. This describes an adaptation in staff responsibilities without explicitly establishing a workload or time effect."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "The doctors are a bit more on time in the afternoons, I've noticed that. Before, the last appointments would run late because they were catching up on charts between patients. Now they're not doing that as much.",
+      "code_id": "people_workload",
+      "rationale": "The participant links reduced between-patient charting to fewer delays and improved clinic pace."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "That makes my end of the day less stressful because I'm not apologising to people in the waiting room as often.",
+      "code_id": "people_workload",
+      "rationale": "Improved clinic timeliness reduces the participant's work managing waiting-room delays and the associated end-of-day stress."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "When the phone app doesn't work, the doctor sometimes comes out to the desk to ask for a charger or for help, and I'm not tech support.",
+      "code_id": "people",
+      "rationale": "Technical problems bring troubleshooting demands to front-desk staff outside their perceived role. The passage does not explicitly describe time lost or documentation burden, so the parent code is the best fit."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "And when a patient declines, the doctor goes back to typing, and you can tell they're a bit slower that day.",
+      "code_id": "people_workload",
+      "rationale": "Returning to manual documentation is described as slowing the doctor's work."
+    },
+    {
+      "meaning_unit": "mu-9",
+      "quote": "Train the front desk at the same time as the doctors. We're the first people patients talk to, so we should be able to answer their questions properly from day one.",
+      "code_id": "people",
+      "rationale": "The participant identifies a need for front-desk training to support their patient-facing responsibilities during adoption. None of the child codes specifically covers staff training needs."
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "decisions": [
+    {
+      "code_id": "org",
+      "present": true,
+      "quote": "And push the vendor harder, earlier, on how the drafts get into the health record, because the copying back and forth is the number one complaint I hear.",
+      "rationale": "Health-record integration and manual transfer are organisational workflow conditions shaping adoption that are not specifically covered by the child codes."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "I manage operations for the team, so I ended up coordinating most of the rollout: the contract, the devices, the training sessions, the consent forms. Our medical director made the decision, and I made it happen.",
+      "rationale": "Identifies who decided to adopt and who coordinated implementation."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "It started with burnout. We'd lost two physicians in eighteen months, and in both exit conversations documentation came up. Our medical director had heard about these tools at a conference and asked me to find out what it would take. She was very clear that it would be voluntary and that we'd start small.",
+      "rationale": "Explains the motivation for adoption and the medical director's role in initiating and setting conditions for it."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "Partly budget, partly caution. We licensed eight seats for a three-month pilot. The idea was that if it went badly, we'd have learned something cheaply. And having a few enthusiastic people go first made a big difference. When the doubters see a colleague leaving on time, that does more than any presentation from me.",
+      "rationale": "Describes budget considerations, a limited pilot, and enthusiastic early adopters influencing colleagues."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "Mostly me and two of the physician champions. It's informal. I worry about that, honestly. If either champion leaves, a lot of the know-how leaves with them. We haven't written much down.",
+      "rationale": "Identifies physician champions and the organisation's dependence on their expertise."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "The licence isn't cheap, and it's per clinician per month. For the pilot we used a small innovation fund. To expand, I had to make a case to our board, and the hardest part was putting a number on benefits. Time saved is real, but it doesn't show up as revenue. I ended up framing it around retention: what it costs us to recruit a physician versus what the tool costs.",
+      "rationale": "Discusses licensing costs, pilot funding, and the business case presented to the board for expansion."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "They approved expansion to the whole team, with a review in a year. One board member asked a pointed question about what happens if the vendor is bought or goes out of business. We didn't have a great answer.",
+      "rationale": "Reports the board's expansion decision, review requirement, and scrutiny of vendor continuity."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "Involve the front desk and nursing staff earlier.",
+      "rationale": "Identifies earlier involvement of additional staff groups as a needed improvement to adoption."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "I manage operations for the team, so I ended up coordinating most of the rollout: the contract, the devices, the training sessions, the consent forms.",
+      "rationale": "Explicitly identifies training sessions as a coordinated component of onboarding."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "The vendor ran one webinar, which was fine for the basics but quite generic. What actually worked was our own lunch-and-learn, where Dr. Okafor showed her real workflow on a test patient. People asked practical questions, like what to do when the phone dies mid-visit. After that we set up a channel where people post problems and someone usually answers within the hour.",
+      "rationale": "Describes vendor onboarding, locally developed practical training, troubleshooting, and an ongoing support channel."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "Mostly me and two of the physician champions. It's informal. I worry about that, honestly. If either champion leaves, a lot of the know-how leaves with them. We haven't written much down.",
+      "rationale": "Describes informal support provision and risks arising from undocumented knowledge concentrated in a few people."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "But the front desk staff noticed patients sometimes ask them about it before they see the doctor, and they weren't prepared for those questions at first. We had to bring them into the training afterwards, which in hindsight we should have done from the start.",
+      "rationale": "Identifies an onboarding gap and subsequent training for front desk staff."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "Write down the workflow and troubleshooting steps instead of relying on two champions.",
+      "rationale": "Recommends documented local workflow and troubleshooting guidance rather than reliance on informal expertise."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "I manage operations for the team, so I ended up coordinating most of the rollout: the contract, the devices, the training sessions, the consent forms.",
+      "rationale": "Identifies contractual arrangements and consent documentation as organisational implementation responsibilities."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "That was the slowest part by far. Our privacy officer had a long list of questions for the vendor: where the audio is processed, whether it's stored, whether it's used to train their models, which country the servers are in. It took six weeks to get written answers. Some of the first answers were vague, and we went back twice.",
+      "rationale": "Describes institutional privacy review of vendor processing, storage, model-training use, and server location."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "A written agreement that audio is deleted after the note is generated, that our data isn't used for training, and that processing happens in Canada. We also built a one-page patient information sheet and a verbal consent script. The clinicians document consent in the chart each time.",
+      "rationale": "Specifies contractual data safeguards and institutional procedures for informing patients and documenting consent."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "One board member asked a pointed question about what happens if the vendor is bought or goes out of business. We didn't have a great answer. We've since added an exit clause about getting our data back, but there's real dependency there.",
+      "rationale": "Addresses vendor continuity, organisational dependency, and a contractual provision for data retrieval."
+    }
+  ]
+}

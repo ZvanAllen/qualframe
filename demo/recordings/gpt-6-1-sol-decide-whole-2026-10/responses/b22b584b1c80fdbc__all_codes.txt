@@ -1,0 +1,196 @@
+{
+  "decisions": [
+    {
+      "code_id": "tech",
+      "present": false,
+      "quote": "",
+      "rationale": "Comments about technological design and performance fit the more specific accuracy, usability, or integration codes."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": true,
+      "quote": "It's not that it makes things up all the time, but when it does, it's convincing. Last month it wrote that a patient had denied chest pain, and we never discussed chest pain at all. That kind of thing worries me more than a missing detail, because it reads like something I asked.",
+      "rationale": "Describes convincing invented content and contrasts it with omissions."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": true,
+      "quote": "The risk is that you start to trust it because it's usually right.",
+      "rationale": "Explicitly judges the drafts to be usually accurate."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": true,
+      "quote": "For simple visits that's fine. For the complicated ones, the frail older patient with six problems, I sometimes turn it off and write the assessment myself.",
+      "rationale": "Describes selectively turning the tool off when it does not fit a complex visit."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": true,
+      "quote": "Starting it is easy. One button on the phone. What took longer was learning how to talk so that it gets things right. I've started saying the plan out loud at the end of the visit, which actually helps the patient too, because they hear the plan summarised.",
+      "rationale": "Describes easy phone-based startup and learning a speaking technique that supports capture."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": true,
+      "quote": "Turn it off when it doesn't fit the visit.",
+      "rationale": "Recommends adapting tool use to the visit by switching it off."
+    },
+    {
+      "code_id": "tech_integration",
+      "present": true,
+      "quote": "That's clunkier than it should be. The draft appears in a separate window, and I copy sections into the record. The formatting sometimes breaks, bullet points turn into one long paragraph, and the medication list doesn't land in the medication field, so I retype it. Our manager says a proper connection is coming. I'll believe it when I see it.",
+      "rationale": "Describes manual transfer, formatting failures, mismatched structured fields, and a promised direct connection."
+    },
+    {
+      "code_id": "people",
+      "present": false,
+      "quote": "",
+      "rationale": "Effects on the clinician fit the specific workload, trust, or interaction codes."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "Honestly, the charting. I was finishing notes at nine or ten at night, three or four nights a week. My partner started calling it my second shift.",
+      "rationale": "Identifies after-hours documentation burden as the motivation for adoption."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "On a good week I'm done with my notes before I leave the building. I'd say I've gained back something like forty-five minutes a day, maybe an hour on a heavy clinic day. That's real. That's dinner with my kids.",
+      "rationale": "Quantifies time saved and describes reduced evening charting."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "A bad week is when the drafts need a lot of fixing.",
+      "rationale": "Identifies the burden of correcting drafts."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "I read every note before I sign it. That's non-negotiable for me. But I'll admit that on a busy afternoon my reading gets faster than it should.",
+      "rationale": "Describes routine draft-checking effort and pressure on that work during busy periods."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "The formatting sometimes breaks, bullet points turn into one long paragraph, and the medication list doesn't land in the medication field, so I retype it.",
+      "rationale": "Integration problems create additional manual documentation work."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "Only that the time savings are real, and I don't want the worries to drown that out. I'm a better doctor at four in the afternoon than I was a year ago because I'm not dreading the evening.",
+      "rationale": "Reaffirms time savings and their effect on the clinician's experience of the working day."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "I read every note before I sign it. That's non-negotiable for me. But I'll admit that on a busy afternoon my reading gets faster than it should. The risk is that you start to trust it because it's usually right.",
+      "rationale": "Connects verification practices with reduced scrutiny and the risk of over-reliance."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "It's my name on the note. If something is wrong in the record, it's not the software's licence on the line, it's mine. So I treat it like a draft from a student. A good student, but a student. I've also noticed I'm less sure what I would have written myself. The draft frames the visit for you, and then you edit around its framing.",
+      "rationale": "Addresses professional accountability, qualified confidence, and the draft's influence on independent judgement."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "Writing the note used to be part of how I thought through the case. Now I'm reviewing someone else's thinking about my case. For simple visits that's fine. For the complicated ones, the frail older patient with six problems, I sometimes turn it off and write the assessment myself.",
+      "rationale": "Describes changes to clinical reasoning and preserving independent assessment in complex cases."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "I'd say yes, but go in with your eyes open. Read every note.",
+      "rationale": "Recommends cautious adoption with verification rather than uncritical reliance."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": true,
+      "quote": "I look at people more. I used to type while they talked, and I'd catch myself saying \"mm-hmm\" to the screen. Now my hands are in my lap and I'm actually watching their face.",
+      "rationale": "Describes greater visual attention and less screen-focused interaction."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": true,
+      "quote": "I've started saying the plan out loud at the end of the visit, which actually helps the patient too, because they hear the plan summarised.",
+      "rationale": "Describes a tool-related change in conversation that makes the plan audible to patients."
+    },
+    {
+      "code_id": "org",
+      "present": false,
+      "quote": "",
+      "rationale": "Organisational evidence fits the more specific leadership, training, and privacy codes."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "I was in the first group at Riverside, so I've seen it go from a bit of a novelty to something I use in most visits.",
+      "rationale": "Identifies participation in an initial adoption group."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "When our medical director said we could try a tool that drafts the note from the conversation, I said yes before she finished the sentence.",
+      "rationale": "Identifies the medical director's role in offering the trial and the clinician's decision to participate."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "Our manager says a proper connection is coming. I'll believe it when I see it.",
+      "rationale": "Reports managerial communication about a planned implementation improvement."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "I tell them what our clinic told us: the recording is processed and then deleted, and the note stays in our record like any other note. I believe that's accurate, but I'm repeating what I was told. I couldn't explain the technical details if someone pushed me.",
+      "rationale": "Describes clinic-provided guidance and limitations in the clinician's resulting understanding."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "And make sure someone at your clinic can answer the privacy questions properly, because patients will ask you, not the vendor.",
+      "rationale": "Recommends having local expertise available to support clinicians with privacy questions."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "I explain that it listens to help write my note, that the audio isn't kept, and that they can say no.",
+      "rationale": "States the recording-retention arrangement communicated to patients."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "I tell them what our clinic told us: the recording is processed and then deleted, and the note stays in our record like any other note. I believe that's accurate, but I'm repeating what I was told. I couldn't explain the technical details if someone pushed me.",
+      "rationale": "Reports the clinic's account of recording processing, deletion, and note storage, while acknowledging uncertainty."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "And make sure someone at your clinic can answer the privacy questions properly, because patients will ask you, not the vendor.",
+      "rationale": "Identifies a need for organisational capacity to explain privacy arrangements."
+    },
+    {
+      "code_id": "patients",
+      "present": false,
+      "quote": "",
+      "rationale": "Evidence about patients' perspectives fits the specific consent or care-experience codes."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "Most say yes without much thought. I explain that it listens to help write my note, that the audio isn't kept, and that they can say no. Maybe one in twenty says no, usually people who are already uneasy with technology, or someone discussing something very personal. A few people have asked who else can hear it, which is a fair question.",
+      "rationale": "Describes consent explanations, acceptance, refusal, discomfort, and questions about who can hear the recording."
+    },
+    {
+      "code_id": "patients_experience",
+      "present": true,
+      "quote": "One of my long-time patients said, \"You seem less rushed today,\" and I hadn't changed anything except not typing.",
+      "rationale": "Reports a patient's perception of a less rushed visit when the clinician stopped typing."
+    }
+  ]
+}

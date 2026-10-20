@@ -1,0 +1,160 @@
+{
+  "decisions": [
+    {
+      "code_id": "tech",
+      "present": false,
+      "quote": "",
+      "rationale": "The substantive comments about the technology fit the more specific accuracy, usability, and integration codes."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": true,
+      "quote": "I wasn't sure a tool trained on, I don't know, suburban visits would capture what matters in mine.",
+      "rationale": "The participant questions whether the drafts will faithfully capture the content relevant to this patient population."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": true,
+      "quote": "It's good at the medical parts: symptoms, medications, the plan. It's weaker on the social context. If someone tells me they're sleeping in their car this week, that's the most important thing in the visit, and the draft might mention it in one line at the bottom, or leave it out entirely. So I add it back. The note ends up more clinical than the visit was.",
+      "rationale": "The participant assesses draft fidelity, identifying accurate medical content but omissions and underrepresentation of important social context."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": true,
+      "quote": "I turned it off and she continued, but I could see the trust had dipped for a minute.",
+      "rationale": "The participant describes stopping the tool during a visit to allow the conversation to continue."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": true,
+      "quote": "Often, actually. Maybe a third of my visits. Anything involving substance use, intimate partner violence, or child protection, I just don't use it.",
+      "rationale": "The participant describes how frequently the tool is not used and the visit circumstances that determine its use."
+    },
+    {
+      "code_id": "tech_integration",
+      "present": true,
+      "quote": "Our clinic uses a different record system from the one the vendor built their connection for, so we copy and paste everything. It also doesn't know our templates, so the structure of the draft doesn't match the structure our charts are supposed to follow. I spend time rearranging sections.",
+      "rationale": "The passage describes lack of a compatible record-system connection, manual transfer, and mismatched templates and note structure."
+    },
+    {
+      "code_id": "people",
+      "present": false,
+      "quote": "",
+      "rationale": "Effects on clinicians and staff are captured by the specific workload, professional judgement, and interaction codes."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "So I add it back.",
+      "rationale": "The participant describes corrective editing required to restore omitted social information."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "I spend time rearranging sections.",
+      "rationale": "The participant explicitly identifies time spent restructuring draft notes."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "For straightforward visits, yes, maybe ten minutes each. For complex visits, it's close to neutral, because of all the editing and adding back context. Overall it's positive but less dramatic than the brochure suggested.",
+      "rationale": "The participant reports time savings for straightforward visits and editing burdens that offset savings for complex visits."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "I wasn't sure a tool trained on, I don't know, suburban visits would capture what matters in mine.",
+      "rationale": "The participant expresses limited confidence that the tool's drafts will reflect clinically important information."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "I worry that if people stop editing carefully, the record will slowly lose that information, and then planning and funding decisions that rely on the record will miss it too.",
+      "rationale": "The participant warns about insufficient checking of drafts and the downstream consequences of relying on incomplete records."
+    },
+    {
+      "code_id": "people_trust",
+      "present": true,
+      "quote": "Our policy is basically \"use your professional judgement,\" which I appreciate, but it puts it back on us.",
+      "rationale": "The participant describes responsibility being placed on clinicians' professional judgement."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": true,
+      "quote": "With some patients, it's lovely, I can just listen. With others, especially people who've had bad experiences with institutions, the idea that something is listening changes the conversation.",
+      "rationale": "The tool can improve the clinician's attention but can also alter conversation with patients."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": true,
+      "quote": "One woman stopped mid-sentence and asked, \"Is that thing getting this?\" She was about to tell me about her partner. I turned it off and she continued, but I could see the trust had dipped for a minute.",
+      "rationale": "The participant describes interrupted disclosure and a temporary loss of rapport associated with the tool."
+    },
+    {
+      "code_id": "org",
+      "present": false,
+      "quote": "",
+      "rationale": "The organisational evidence fits the specific leadership, training, and privacy and governance codes."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "The regional health authority offered it to a handful of community clinics as part of a pilot. Our executive director signed us up, and then there was a staff meeting where we were told it was coming. It wasn't a long conversation. I think some people felt it was decided for us.",
+      "rationale": "The passage describes the pilot, executive adoption decision, and limited staff involvement."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "Ask the people who'll use it, before signing up. And ask our patients, through our community advisory group. We have a group of patients who advise the clinic, and they were never consulted. I think they'd have had good ideas about consent, and about when it shouldn't be used at all.",
+      "rationale": "The participant calls for staff and patient involvement in adoption decisions and identifies the failure to consult the patient advisory group."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "We got a short document from the health authority. It answered the basic questions, but when I asked about legal requests for records, or about errors in the note being used in court, nobody had an answer for me.",
+      "rationale": "Written guidance provided basic support, but follow-up questions about legal issues went unanswered."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "We had one session from the health authority, online. It covered how to start and stop it. Nobody covered the things I actually needed, like how to edit efficiently, or how to explain it to patients with limited English. Another NP and I made our own cheat sheet and shared it around.",
+      "rationale": "The passage describes limited onboarding, unmet training needs, and locally developed guidance."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "Partly for the patient's comfort, partly because I'm not confident enough about where that audio goes, even with what we've been told.",
+      "rationale": "Uncertainty about the handling and destination of recorded audio affects use."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "That it's deleted after the note is created. We got a short document from the health authority. It answered the basic questions, but when I asked about legal requests for records, or about errors in the note being used in court, nobody had an answer for me. Our policy is basically \"use your professional judgement,\" which I appreciate, but it puts it back on us.",
+      "rationale": "The passage addresses audio deletion, institutional guidance, unresolved legal questions, and allocation of responsibility."
+    },
+    {
+      "code_id": "patients",
+      "present": false,
+      "quote": "",
+      "rationale": "The evidence about patients' reactions fits the specific consent and comfort code rather than requiring the parent code."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "One woman stopped mid-sentence and asked, \"Is that thing getting this?\" She was about to tell me about her partner. I turned it off and she continued, but I could see the trust had dipped for a minute.",
+      "rationale": "A patient's concern about being recorded interrupts disclosure and leads the clinician to stop the tool."
+    },
+    {
+      "code_id": "patients_consent",
+      "present": true,
+      "quote": "Anything involving substance use, intimate partner violence, or child protection, I just don't use it. Partly for the patient's comfort, partly because I'm not confident enough about where that audio goes, even with what we've been told.",
+      "rationale": "The participant explicitly identifies patient comfort as a reason to avoid recording sensitive visits."
+    },
+    {
+      "code_id": "patients_experience",
+      "present": false,
+      "quote": "",
+      "rationale": "The document reports recording discomfort and clinician-observed interaction changes, but not patients' perceptions of the quality of their care."
+    }
+  ]
+}

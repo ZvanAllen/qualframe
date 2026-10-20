@@ -1,0 +1,46 @@
+{
+  "decisions": [
+    {
+      "code_id": "org",
+      "present": false,
+      "quote": "",
+      "rationale": "The organisational evidence fits the more specific child codes, so no passage requires the general parent code."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "I was in the first group at Riverside, so I've seen it go from a bit of a novelty to something I use in most visits.",
+      "rationale": "Participation in the clinic's first group provides evidence of a staged initial adoption."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "When our medical director said we could try a tool that drafts the note from the conversation, I said yes before she finished the sentence.",
+      "rationale": "The medical director offered the opportunity to try the tool, demonstrating leadership involvement in adoption."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "I tell them what our clinic told us: the recording is processed and then deleted, and the note stays in our record like any other note. I believe that's accurate, but I'm repeating what I was told. I couldn't explain the technical details if someone pushed me.",
+      "rationale": "The clinic supplied guidance on explaining recording and storage practices, but the participant identifies limits in their understanding."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "And make sure someone at your clinic can answer the privacy questions properly, because patients will ask you, not the vendor.",
+      "rationale": "The participant recommends having local expertise available to support staff in answering privacy questions."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "I explain that it listens to help write my note, that the audio isn't kept, and that they can say no.",
+      "rationale": "The explanation describes recording retention and permission practices rather than patients' reactions to recording."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "I tell them what our clinic told us: the recording is processed and then deleted, and the note stays in our record like any other note. I believe that's accurate, but I'm repeating what I was told. I couldn't explain the technical details if someone pushed me.",
+      "rationale": "This explicitly reports clinic guidance on processing and deleting recordings and retaining notes in the clinical record."
+    }
+  ]
+}

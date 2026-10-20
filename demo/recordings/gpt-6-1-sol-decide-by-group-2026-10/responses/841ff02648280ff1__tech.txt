@@ -1,0 +1,40 @@
+{
+  "decisions": [
+    {
+      "code_id": "tech",
+      "present": false,
+      "quote": "",
+      "rationale": "Technology-related evidence concerns starting, stopping, or operating the tool and fits Ease of use; other comments concern patient information, consent, training, or workload rather than general technology characteristics."
+    },
+    {
+      "code_id": "tech_accuracy",
+      "present": false,
+      "quote": "",
+      "rationale": "The participant does not discuss whether drafted notes accurately reflect visits or contain errors or omissions."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": true,
+      "quote": "I'd say, \"You can ask the doctor to turn it off,\" which was true but felt like I was passing the buck.",
+      "rationale": "The passage explicitly describes the ability to turn the tool off, which the inclusion guidance covers."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": true,
+      "quote": "If the flag is there, the doctor just doesn't turn it on and nobody has to make a fuss.",
+      "rationale": "The appointment flag shapes whether the doctor starts the tool during a visit, directly addressing turning it on or off within the visit workflow."
+    },
+    {
+      "code_id": "tech_usability",
+      "present": true,
+      "quote": "When the phone app doesn't work, the doctor sometimes comes out to the desk to ask for a charger or for help, and I'm not tech support.",
+      "rationale": "App failures and requests for charging or operational assistance describe difficulties running the tool and maintaining its device."
+    },
+    {
+      "code_id": "tech_integration",
+      "present": false,
+      "quote": "",
+      "rationale": "The participant does not describe transferring drafted notes into the electronic medical record or matching its formatting, templates, or structured fields."
+    }
+  ]
+}

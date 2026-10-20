@@ -1,0 +1,118 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "I manage operations for the team, so I ended up coordinating most of the rollout: the contract, the devices, the training sessions, the consent forms. Our medical director made the decision, and I made it happen.",
+      "code_id": "org_leadership",
+      "rationale": "Identifies who made the adoption decision and who was responsible for implementing it."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "It started with burnout. We'd lost two physicians in eighteen months, and in both exit conversations documentation came up.",
+      "code_id": "org_leadership",
+      "rationale": "Explains the organisational impetus for the adoption decision: physician departures associated with documentation burden."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "Our medical director had heard about these tools at a conference and asked me to find out what it would take. She was very clear that it would be voluntary and that we'd start small.",
+      "code_id": "org_leadership",
+      "rationale": "Describes leadership initiating the adoption process and setting its voluntary, small-scale approach."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "Partly budget, partly caution. We licensed eight seats for a three-month pilot. The idea was that if it went badly, we'd have learned something cheaply.",
+      "code_id": "org_leadership",
+      "rationale": "Describes the pilot's scale and duration and the budget and risk considerations behind it."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "And having a few enthusiastic people go first made a big difference. When the doubters see a colleague leaving on time, that does more than any presentation from me.",
+      "code_id": "org_leadership",
+      "rationale": "Describes early adopters acting as champions whose example encouraged wider acceptance."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "The vendor ran one webinar, which was fine for the basics but quite generic. What actually worked was our own lunch-and-learn, where Dr. Okafor showed her real workflow on a test patient. People asked practical questions, like what to do when the phone dies mid-visit.",
+      "code_id": "org_training",
+      "rationale": "Contrasts generic vendor onboarding with locally tailored training addressing practical workflow and troubleshooting questions."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "After that we set up a channel where people post problems and someone usually answers within the hour.",
+      "code_id": "org_training",
+      "rationale": "Describes an ongoing channel for rapid troubleshooting and support."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "Mostly me and two of the physician champions. It's informal. I worry about that, honestly.",
+      "code_id": "org_training",
+      "rationale": "Identifies who provides ongoing help and characterises the support arrangement as informal."
+    },
+    {
+      "meaning_unit": "mu-9",
+      "quote": "If either champion leaves, a lot of the know-how leaves with them. We haven't written much down.",
+      "code_id": "org_training",
+      "rationale": "Highlights the vulnerability of locally held support knowledge and the lack of written guidance."
+    },
+    {
+      "meaning_unit": "mu-10",
+      "quote": "Our privacy officer had a long list of questions for the vendor: where the audio is processed, whether it's stored, whether it's used to train their models, which country the servers are in. It took six weeks to get written answers. Some of the first answers were vague, and we went back twice.",
+      "code_id": "org_privacy",
+      "rationale": "Describes institutional scrutiny of the vendor's processing, storage, data use and server location, including efforts to obtain written assurances."
+    },
+    {
+      "meaning_unit": "mu-11",
+      "quote": "A written agreement that audio is deleted after the note is generated, that our data isn't used for training, and that processing happens in Canada.",
+      "code_id": "org_privacy",
+      "rationale": "Specifies contractual safeguards governing audio retention, secondary data use and processing location."
+    },
+    {
+      "meaning_unit": "mu-12",
+      "quote": "We also built a one-page patient information sheet and a verbal consent script. The clinicians document consent in the chart each time.",
+      "code_id": "org_privacy",
+      "rationale": "Describes institutional consent materials and the routine requirement to document consent."
+    },
+    {
+      "meaning_unit": "mu-13",
+      "quote": "But the front desk staff noticed patients sometimes ask them about it before they see the doctor, and they weren't prepared for those questions at first. We had to bring them into the training afterwards, which in hindsight we should have done from the start.",
+      "code_id": "org_training",
+      "rationale": "Identifies a gap in staff preparation and the subsequent extension of training to front desk staff."
+    },
+    {
+      "meaning_unit": "mu-14",
+      "quote": "The licence isn't cheap, and it's per clinician per month. For the pilot we used a small innovation fund.",
+      "code_id": "org_leadership",
+      "rationale": "Describes licensing costs and the funding source used for the pilot."
+    },
+    {
+      "meaning_unit": "mu-15",
+      "quote": "To expand, I had to make a case to our board, and the hardest part was putting a number on benefits. Time saved is real, but it doesn't show up as revenue. I ended up framing it around retention: what it costs us to recruit a physician versus what the tool costs.",
+      "code_id": "org_leadership",
+      "rationale": "Describes the business case for board approval and how retention benefits were weighed against the tool's costs."
+    },
+    {
+      "meaning_unit": "mu-16",
+      "quote": "They approved expansion to the whole team, with a review in a year.",
+      "code_id": "org_leadership",
+      "rationale": "Reports the board's expansion decision and its review condition."
+    },
+    {
+      "meaning_unit": "mu-17",
+      "quote": "One board member asked a pointed question about what happens if the vendor is bought or goes out of business. We didn't have a great answer. We've since added an exit clause about getting our data back, but there's real dependency there.",
+      "code_id": "org_privacy",
+      "rationale": "Describes vendor continuity risks and a contractual exit provision governing recovery of clinic data."
+    },
+    {
+      "meaning_unit": "mu-18",
+      "quote": "Involve the front desk and nursing staff earlier.",
+      "code_id": "org_leadership",
+      "rationale": "Recommends earlier involvement of additional staff groups in the adoption process."
+    },
+    {
+      "meaning_unit": "mu-19",
+      "quote": "Write down the workflow and troubleshooting steps instead of relying on two champions.",
+      "code_id": "org_training",
+      "rationale": "Recommends written local workflow and troubleshooting guidance to reduce reliance on individual support providers."
+    }
+  ]
+}

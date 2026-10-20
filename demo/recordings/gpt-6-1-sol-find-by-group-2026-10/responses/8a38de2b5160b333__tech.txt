@@ -1,0 +1,1 @@
+{"codings":[{"meaning_unit":"mu-1","quote":"Some people wanted to know if they could read the note afterwards to check it was right.","code_id":"tech_accuracy","rationale":"The participant reports a desire to verify that the generated note accurately reflects the visit. This concerns note accuracy, without asserting that any actual errors occurred."}]}

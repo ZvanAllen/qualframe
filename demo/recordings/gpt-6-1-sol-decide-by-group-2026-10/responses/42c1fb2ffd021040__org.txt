@@ -1,0 +1,52 @@
+{
+  "decisions": [
+    {
+      "code_id": "org",
+      "present": false,
+      "quote": "",
+      "rationale": "The organisational evidence fits the more specific child codes, so no additional parent-level coding is needed."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+      "rationale": "The program director supports a local decision restricting adoption by first-year residents."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "I did, at a staff meeting and in writing to our executive director. To her credit she took it seriously and asked the health authority for clearer answers about data use.",
+      "rationale": "The executive director responds to staff concerns and seeks clarification from the health authority, demonstrating leadership involvement."
+    },
+    {
+      "code_id": "org_leadership",
+      "present": true,
+      "quote": "But the decision to join the pilot had already been made above our heads, so it felt like we were fixing the plane while flying it.",
+      "rationale": "The pilot adoption decision was made above frontline staff, indicating limited staff involvement in decision-making."
+    },
+    {
+      "code_id": "org_training",
+      "present": true,
+      "quote": "I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+      "rationale": "This is locally developed guidance governing residents' use of the documentation assistant during training."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "Our regulatory college is clear that the physician is responsible for the content of the record, no matter who or what drafted it.",
+      "rationale": "The regulatory college establishes professional responsibility for records drafted using the assistant."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "One patient asked me directly whether the company would use her conversation to improve its product, and I couldn't give her a confident answer at the time.",
+      "rationale": "The passage identifies uncertainty about the vendor's permitted secondary use of conversation data, rather than merely a patient's comfort with recording."
+    },
+    {
+      "code_id": "org_privacy",
+      "present": true,
+      "quote": "To her credit she took it seriously and asked the health authority for clearer answers about data use. We got a better document a month later.",
+      "rationale": "The organisation sought and obtained clearer documentation from the health authority about data use."
+    }
+  ]
+}

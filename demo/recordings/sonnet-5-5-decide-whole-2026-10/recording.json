@@ -1,0 +1,118 @@
+{
+  "id": "sonnet-5-5-decide-whole-2026-10",
+  "label": "Claude Sonnet 5.5: decide, whole",
+  "kind": "model",
+  "description": "Responses recorded from Claude Sonnet 5.5: decide, whole over the fictional demo transcripts.",
+  "dataset": "ai-scribe",
+  "recorded_at_utc": "2026-10-20T15:34:10.148475+00:00",
+  "status": "completed",
+  "complete": true,
+  "requests": 6,
+  "completed_requests": 6,
+  "expected_requests": 6,
+  "total_requests": 6,
+  "coding_style": "decide_each_code",
+  "codebook_division": "full_codebook",
+  "partition_strategy": "full_codebook",
+  "provider_settings": {
+    "name": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "max_tokens": 16000,
+    "api_mode": "chat_completions",
+    "prices_usd_per_million": {
+      "input": 2.0,
+      "output": 10.0,
+      "checked_on": "2026-10-10"
+    }
+  },
+  "method_policy": {
+    "analysis_family": "directed_content_analysis",
+    "evidence_location": "unique_exact_quote",
+    "segmentation": {
+      "strategy": "model_proposed",
+      "editable": true,
+      "allow_overlapping_units": false
+    },
+    "context": {
+      "unit": "sentences",
+      "before": 1,
+      "after": 1
+    },
+    "coding": {
+      "decision_style": "decide_each_code",
+      "cardinality": "multi_label",
+      "allow_overlapping_spans": true,
+      "max_codes_per_unit": null
+    },
+    "partitioning": {
+      "strategy": "full_codebook",
+      "custom_groups": {}
+    },
+    "calibration": {
+      "complete_review_required": true,
+      "reference_status": "human_adjudicated"
+    }
+  },
+  "returned_models": [
+    "claude-sonnet-5-5"
+  ],
+  "configuration_fingerprint": "3b4d606fcb00c6f69347297ab1ad9aa0dbcc8192cc6725e4679926a3c63d7ee1",
+  "reported_usage": {
+    "input_tokens": 28973,
+    "output_tokens": 12717
+  },
+  "usage_breakdown": {
+    "input_tokens": 28973,
+    "cached_input_tokens": 0,
+    "cache_write_tokens": 0,
+    "output_tokens": 12717,
+    "reasoning_tokens": 0
+  },
+  "response_status": [
+    "completed"
+  ],
+  "actual_cost_usd": 0.185116,
+  "estimated_cost_usd": 0.185116,
+  "cost_source": "provider_usage_ledger",
+  "cost_is_estimated": false,
+  "elapsed_request_seconds": 88.234,
+  "qa_failure_count": 9,
+  "no_decision_count": 9,
+  "response_sha256": {
+    "42c1fb2ffd021040__all_codes": "4257d89e75d8c8ba02c08fb84ffe83c5dbf617d4e39c9e892a3c7f2644ca1b8a",
+    "68b3fa4c375a0d6f__all_codes": "dc44195d6c3ef5861a296206fe8b502295e6f770544ebd20736293901fbcac91",
+    "71b8d9f7753d39f2__all_codes": "f197fc2e116f31c9d702c45de7ce9bd42d730a0be4ef9aba93362a2463286a6c",
+    "841ff02648280ff1__all_codes": "39675d848b362de5a1ae3f0fee68a305249824092c5a1dada13dd92cf4c28d8c",
+    "8a38de2b5160b333__all_codes": "5fded0ef174d3311bf38161c5f81131b54e843715fc122f4e4a3f3af8aa9418a",
+    "b22b584b1c80fdbc__all_codes": "defc14d2be700d7fdd5be984503d8d367ab6b9ae8ee401360b93381623864a22"
+  },
+  "prompt_sha256": "b8ccff9b08176231bea17d0419278239b2a85c7bf55db623e19326c58fe481d8",
+  "prompt_file": "prompts/directed/v4/decide_each_code.md",
+  "codebook_sha256": "d94a88fdc7bc4cbd12a1c048859f1b99411a3cc83af0f38672eac358d92a3a7c",
+  "transcripts": [
+    {
+      "file": "P01 family physician.txt",
+      "sha256": "b22b584b1c80fdbc598e4a2b892973b8888efd4b774bb5be1294cf2ededcc26f"
+    },
+    {
+      "file": "P02 clinic manager.txt",
+      "sha256": "71b8d9f7753d39f2d91c8b7883dbd43b169100bb324758c7cd07b294a6860db5"
+    },
+    {
+      "file": "P03 medical office assistant.txt",
+      "sha256": "841ff02648280ff15d03c06e5d4c7b76d7f1711cba872ec63e1c6b0c78f26d68"
+    },
+    {
+      "file": "P04 nurse practitioner.txt",
+      "sha256": "68b3fa4c375a0d6f3ac36b5077cc7c6372de4745fabc84c2b46c0c8145144236"
+    },
+    {
+      "file": "P05 family physician.txt",
+      "sha256": "42c1fb2ffd021040a124b7602767b68c405a1efcc0126f2f0bee9eb6c1f446f4"
+    },
+    {
+      "file": "P06 patient partner.txt",
+      "sha256": "8a38de2b5160b3332fe55b03a047be03e0449764c8dd5f085d3dc3f5d08f4ccc"
+    }
+  ]
+}

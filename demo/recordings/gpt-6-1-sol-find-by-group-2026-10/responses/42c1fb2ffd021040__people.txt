@@ -1,0 +1,52 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "But one note said I'd examined a patient's abdomen when I hadn't. That's a falsified record if I sign it without noticing. The software doesn't get tired, but it also doesn't know when it's guessing.",
+      "code_id": "people_trust",
+      "rationale": "The participant connects an inaccurate draft with responsibility for signing a false record and questions the tool's ability to recognise uncertainty."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "To check a note properly, I have to remember the visit in detail and compare it line by line. That took me about as long as writing a short note myself. So for me the time savings didn't materialise.",
+      "code_id": "people_workload",
+      "rationale": "Checking drafts requires detailed comparison and takes as long as writing notes, eliminating the anticipated time savings."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "But I also think some of them are reading less carefully than they think they are. That's not a criticism of them, it's human nature. If something is right ninety percent of the time, your attention drifts.",
+      "code_id": "people_trust",
+      "rationale": "The participant describes over-reliance on generally accurate drafts leading to less attentive review."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "Our regulatory college is clear that the physician is responsible for the content of the record, no matter who or what drafted it.",
+      "code_id": "people_trust",
+      "rationale": "The passage explicitly identifies the physician's accountability for the record regardless of how it was drafted."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "Writing a note is how residents learn to organise their thinking: what's the problem, what's the evidence, what's the plan. If the machine writes the note, what happens to that skill? I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+      "code_id": "people_trust",
+      "rationale": "The participant worries that automated note writing could impair residents' development of clinical reasoning and restricts its use during training."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "A proper connection to our record system so I'm not copying and pasting.",
+      "code_id": "people_workload",
+      "rationale": "The participant identifies manual copying and pasting as documentation work that integration could remove."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "Evidence from independent evaluations, not just the vendor's numbers, about error rates. And a clear way to see which parts of the note came from the conversation and which parts the software inferred. If it highlighted what it wasn't sure about, I'd trust it more, not less.",
+      "code_id": "people_trust",
+      "rationale": "Independent accuracy evidence and visibility into inferred or uncertain content are described as conditions for greater confidence in drafts."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "I'm not against the technology. I'm against using it without knowing how good it is. If someone showed me that it was as accurate as a good human scribe, I'd use it tomorrow.",
+      "code_id": "people_trust",
+      "rationale": "Willingness to use the tool depends on demonstrated accuracy sufficient to establish confidence in its output."
+    }
+  ]
+}

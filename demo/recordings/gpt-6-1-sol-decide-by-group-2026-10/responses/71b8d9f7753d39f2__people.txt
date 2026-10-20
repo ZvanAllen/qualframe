@@ -1,0 +1,70 @@
+{
+  "decisions": [
+    {
+      "code_id": "people",
+      "present": true,
+      "quote": "It started with burnout. We'd lost two physicians in eighteen months, and in both exit conversations documentation came up.",
+      "rationale": "Documentation-related burnout and physician departures describe staff wellbeing and retention concerns motivating adoption, rather than a specific change in documentation time."
+    },
+    {
+      "code_id": "people",
+      "present": true,
+      "quote": "What actually worked was our own lunch-and-learn, where Dr. Okafor showed her real workflow on a test patient. People asked practical questions, like what to do when the phone dies mid-visit. After that we set up a channel where people post problems and someone usually answers within the hour.",
+      "rationale": "Staff needed practical training and ongoing peer support to use the tool."
+    },
+    {
+      "code_id": "people",
+      "present": true,
+      "quote": "Mostly me and two of the physician champions. It's informal. I worry about that, honestly. If either champion leaves, a lot of the know-how leaves with them. We haven't written much down.",
+      "rationale": "Tool-related staff expertise and support depend on individual champions, creating a vulnerability if those staff leave."
+    },
+    {
+      "code_id": "people",
+      "present": true,
+      "quote": "But the front desk staff noticed patients sometimes ask them about it before they see the doctor, and they weren't prepared for those questions at first. We had to bring them into the training afterwards, which in hindsight we should have done from the start.",
+      "rationale": "The tool created new informational demands on front desk staff and exposed a gap in their preparation."
+    },
+    {
+      "code_id": "people",
+      "present": true,
+      "quote": "Involve the front desk and nursing staff earlier. Write down the workflow and troubleshooting steps instead of relying on two champions.",
+      "rationale": "The participant identifies unmet needs for staff involvement and accessible workflow knowledge."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "When the doubters see a colleague leaving on time, that does more than any presentation from me.",
+      "rationale": "Leaving on time is presented as a visible benefit of using the documentation assistant."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "Mostly. It's a click.",
+      "rationale": "In context, the participant describes the effort required to document consent at each encounter as a manageable additional click."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "Time saved is real, but it doesn't show up as revenue.",
+      "rationale": "The participant explicitly reports time savings from the tool."
+    },
+    {
+      "code_id": "people_workload",
+      "present": true,
+      "quote": "And push the vendor harder, earlier, on how the drafts get into the health record, because the copying back and forth is the number one complaint I hear.",
+      "rationale": "Transferring drafts into the health record creates additional documentation effort and is a prominent staff complaint."
+    },
+    {
+      "code_id": "people_trust",
+      "present": false,
+      "quote": "",
+      "rationale": "The document does not discuss draft accuracy, responsibility for signed notes, reliance on AI judgement, or effects on clinical reasoning or learning."
+    },
+    {
+      "code_id": "people_relationship",
+      "present": false,
+      "quote": "",
+      "rationale": "The document does not describe changes in clinician–patient attention, eye contact, conversation, or rapport during visits."
+    }
+  ]
+}

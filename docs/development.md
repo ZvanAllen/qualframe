@@ -43,11 +43,17 @@ Pages are server-rendered HTML strings. Keep it that way unless an interaction c
 The demo study replays recorded responses so it works offline. To record a real model over the six fictional demo transcripts (about $0.15 to $0.25 with a mid-priced model):
 
 ```bash
-python scripts/record_demo.py --name claude-sonnet-5-5-2026-10 --label "Claude Sonnet 5.5" \
+python scripts/record_demo.py --name sonnet-find-whole-new --label "Claude Sonnet 5.5" \
     --preset anthropic-sonnet-5-5 --yes
 ```
 
-A preset from `config/model_presets.yaml` supplies the model, settings and prices; keys come from the environment or a `.env` file in the repository folder. Spending is capped at $1 by default (`--limit-usd`). Then set `PRIMARY_RECORDING` or `COMPARISON_RECORDINGS` in `src/qualframe/demo_study.py`. Each `recording.json` stores the provider settings, prompt hash, token usage and estimated cost.
+A preset from `config/model_presets.yaml` supplies the model, settings and prices. Supply provider keys through environment variables; the recording script does not read a credential file. Spending is capped at $1 by default (`--limit-usd`). Then set `PRIMARY_RECORDING` or `COMPARISON_RECORDINGS` in `src/qualframe/demo_study.py` if the new recording should appear in the default demo.
+
+Use `--coding-style find_passages` or `--coding-style decide_each_code`, and `--codebook-division full_codebook` or `--codebook-division top_level_categories`, to record a particular method configuration. `--max-tokens` explicitly overrides a preset's output limit.
+
+For a set of recordings, supply the same `--state-dir` and `--limit-usd` to every invocation. They share one study and one cumulative spending limit. The state directory preserves completed requests and their usage. A failed recording must be inspected before resuming with `--resume`; unresolved or incomplete provider responses are not automatically resent. Keep this state outside `demo/recordings/`, for example under `artifacts/recording-state`, so it is not packaged.
+
+New recordings store the coding style, codebook division, executed prompt hash, provider settings, usage and original cost in `recording.json`. Offline replay makes no provider requests and does not incur that original cost again. The [worked QualBench example](examples/qualbench-2x2.md) shows how recorded cells can be compared offline.
 
 ## Checks before a release
 

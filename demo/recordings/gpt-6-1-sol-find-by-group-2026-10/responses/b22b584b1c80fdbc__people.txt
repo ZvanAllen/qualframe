@@ -1,0 +1,100 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "Honestly, the charting. I was finishing notes at nine or ten at night, three or four nights a week. My partner started calling it my second shift.",
+      "code_id": "people_workload",
+      "rationale": "Describes the after-hours documentation burden that motivated adoption."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "On a good week I'm done with my notes before I leave the building. I'd say I've gained back something like forty-five minutes a day, maybe an hour on a heavy clinic day. That's real. That's dinner with my kids.",
+      "code_id": "people_workload",
+      "rationale": "Reports daily time savings and reduced evening charting, freeing time for family."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "A bad week is when the drafts need a lot of fixing.",
+      "code_id": "people_workload",
+      "rationale": "Identifies the editing burden associated with poor drafts."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "It's not that it makes things up all the time, but when it does, it's convincing. Last month it wrote that a patient had denied chest pain, and we never discussed chest pain at all. That kind of thing worries me more than a missing detail, because it reads like something I asked.",
+      "code_id": "people_trust",
+      "rationale": "Describes concern about convincing fabricated content and its implications for confidence in the draft."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "I read every note before I sign it. That's non-negotiable for me.",
+      "code_id": "people_trust",
+      "rationale": "Establishes mandatory review before signing as a safeguard against relying on unverified drafts."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "I read every note before I sign it. That's non-negotiable for me.",
+      "code_id": "people_workload",
+      "rationale": "Identifies checking every draft as a required part of documentation work."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "But I'll admit that on a busy afternoon my reading gets faster than it should. The risk is that you start to trust it because it's usually right.",
+      "code_id": "people_trust",
+      "rationale": "Explicitly describes less careful review and the risk of over-reliance on usually accurate drafts."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "It's my name on the note. If something is wrong in the record, it's not the software's licence on the line, it's mine. So I treat it like a draft from a student. A good student, but a student.",
+      "code_id": "people_trust",
+      "rationale": "Locates professional accountability with the clinician and describes treating the draft as work requiring supervision."
+    },
+    {
+      "meaning_unit": "mu-8",
+      "quote": "I've also noticed I'm less sure what I would have written myself. The draft frames the visit for you, and then you edit around its framing.",
+      "code_id": "people_trust",
+      "rationale": "Describes how the draft anchors the clinician's interpretation and reduces certainty about independent documentation judgement."
+    },
+    {
+      "meaning_unit": "mu-9",
+      "quote": "Writing the note used to be part of how I thought through the case. Now I'm reviewing someone else's thinking about my case.",
+      "code_id": "people_trust",
+      "rationale": "Identifies a change in clinical reasoning from independently writing the note to reviewing a supplied interpretation."
+    },
+    {
+      "meaning_unit": "mu-10",
+      "quote": "For simple visits that's fine. For the complicated ones, the frail older patient with six problems, I sometimes turn it off and write the assessment myself.",
+      "code_id": "people_trust",
+      "rationale": "Describes selectively preserving independent clinical judgement by writing assessments without the tool for complex cases."
+    },
+    {
+      "meaning_unit": "mu-11",
+      "quote": "I look at people more. I used to type while they talked, and I'd catch myself saying \"mm-hmm\" to the screen. Now my hands are in my lap and I'm actually watching their face.",
+      "code_id": "people_relationship",
+      "rationale": "Describes increased visual attention to patients and reduced screen-focused interaction during visits."
+    },
+    {
+      "meaning_unit": "mu-12",
+      "quote": "The draft appears in a separate window, and I copy sections into the record. The formatting sometimes breaks, bullet points turn into one long paragraph, and the medication list doesn't land in the medication field, so I retype it.",
+      "code_id": "people_workload",
+      "rationale": "Describes additional manual documentation work caused by copying, broken formatting, and retyping medication information."
+    },
+    {
+      "meaning_unit": "mu-13",
+      "quote": "I've started saying the plan out loud at the end of the visit, which actually helps the patient too, because they hear the plan summarised.",
+      "code_id": "people_relationship",
+      "rationale": "Describes a tool-related change in conversation that gives patients an audible summary of the care plan."
+    },
+    {
+      "meaning_unit": "mu-14",
+      "quote": "Read every note. Turn it off when it doesn't fit the visit.",
+      "code_id": "people_trust",
+      "rationale": "Recommends verifying drafts and exercising judgement about when the tool is appropriate rather than relying on it unconditionally."
+    },
+    {
+      "meaning_unit": "mu-15",
+      "quote": "Only that the time savings are real, and I don't want the worries to drown that out. I'm a better doctor at four in the afternoon than I was a year ago because I'm not dreading the evening.",
+      "code_id": "people_workload",
+      "rationale": "Connects time savings and reduced anticipation of evening work with improved functioning late in the clinic day."
+    }
+  ]
+}

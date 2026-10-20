@@ -1,0 +1,119 @@
+{
+  "id": "gpt-6-1-sol-decide-whole-2026-10",
+  "label": "GPT-6.1 Sol: decide, whole",
+  "kind": "model",
+  "description": "Responses recorded from GPT-6.1 Sol: decide, whole over the fictional demo transcripts.",
+  "dataset": "ai-scribe",
+  "recorded_at_utc": "2026-10-20T15:37:53.765359+00:00",
+  "status": "completed",
+  "complete": true,
+  "requests": 6,
+  "completed_requests": 6,
+  "expected_requests": 6,
+  "total_requests": 6,
+  "coding_style": "decide_each_code",
+  "codebook_division": "full_codebook",
+  "partition_strategy": "full_codebook",
+  "provider_settings": {
+    "name": "openai",
+    "model": "gpt-6.1-sol",
+    "max_tokens": 16000,
+    "api_mode": "responses",
+    "reasoning_effort": "low",
+    "prices_usd_per_million": {
+      "input": 2.0,
+      "output": 10.0,
+      "checked_on": "2026-10-10"
+    }
+  },
+  "method_policy": {
+    "analysis_family": "directed_content_analysis",
+    "evidence_location": "unique_exact_quote",
+    "segmentation": {
+      "strategy": "model_proposed",
+      "editable": true,
+      "allow_overlapping_units": false
+    },
+    "context": {
+      "unit": "sentences",
+      "before": 1,
+      "after": 1
+    },
+    "coding": {
+      "decision_style": "decide_each_code",
+      "cardinality": "multi_label",
+      "allow_overlapping_spans": true,
+      "max_codes_per_unit": null
+    },
+    "partitioning": {
+      "strategy": "full_codebook",
+      "custom_groups": {}
+    },
+    "calibration": {
+      "complete_review_required": true,
+      "reference_status": "human_adjudicated"
+    }
+  },
+  "returned_models": [
+    "gpt-6.1-sol"
+  ],
+  "configuration_fingerprint": "9453434a9eadd5225240087197ab82d5f80b931a15130339595b82e662ec20a9",
+  "reported_usage": {
+    "input_tokens": 18142,
+    "output_tokens": 13443
+  },
+  "usage_breakdown": {
+    "input_tokens": 18142,
+    "cached_input_tokens": 0,
+    "cache_write_tokens": 0,
+    "output_tokens": 13051,
+    "reasoning_tokens": 392
+  },
+  "response_status": [
+    "completed"
+  ],
+  "actual_cost_usd": 0.170714,
+  "estimated_cost_usd": 0.170714,
+  "cost_source": "provider_usage_ledger",
+  "cost_is_estimated": false,
+  "elapsed_request_seconds": 221.516,
+  "qa_failure_count": 0,
+  "no_decision_count": 0,
+  "response_sha256": {
+    "42c1fb2ffd021040__all_codes": "7a0f9d77217b39b18d263898c921dfea87d9b189a44e7998353f6cde0bc7bf95",
+    "68b3fa4c375a0d6f__all_codes": "8b8d47502a3d8dcddf6892454dabc3b75343cb8279d3c678e36f0a4ee235bf8b",
+    "71b8d9f7753d39f2__all_codes": "31dead5c347880a333f2a9ac7e4a130ac6bd4d49b5b1778e000eef2c6757dc6f",
+    "841ff02648280ff1__all_codes": "c600bfcd53f4e3fa5a547f7686d456092ad0925f982a30addb59391b8d38669b",
+    "8a38de2b5160b333__all_codes": "4ca398602445d0f46845a3138cde911f36f09093deca14aecc9b23875a861ebb",
+    "b22b584b1c80fdbc__all_codes": "1e8e33ed2d881accf921c47d4a8874a377c369e10c4230b6df1c2e280c2211aa"
+  },
+  "prompt_sha256": "b8ccff9b08176231bea17d0419278239b2a85c7bf55db623e19326c58fe481d8",
+  "prompt_file": "prompts/directed/v4/decide_each_code.md",
+  "codebook_sha256": "d94a88fdc7bc4cbd12a1c048859f1b99411a3cc83af0f38672eac358d92a3a7c",
+  "transcripts": [
+    {
+      "file": "P01 family physician.txt",
+      "sha256": "b22b584b1c80fdbc598e4a2b892973b8888efd4b774bb5be1294cf2ededcc26f"
+    },
+    {
+      "file": "P02 clinic manager.txt",
+      "sha256": "71b8d9f7753d39f2d91c8b7883dbd43b169100bb324758c7cd07b294a6860db5"
+    },
+    {
+      "file": "P03 medical office assistant.txt",
+      "sha256": "841ff02648280ff15d03c06e5d4c7b76d7f1711cba872ec63e1c6b0c78f26d68"
+    },
+    {
+      "file": "P04 nurse practitioner.txt",
+      "sha256": "68b3fa4c375a0d6f3ac36b5077cc7c6372de4745fabc84c2b46c0c8145144236"
+    },
+    {
+      "file": "P05 family physician.txt",
+      "sha256": "42c1fb2ffd021040a124b7602767b68c405a1efcc0126f2f0bee9eb6c1f446f4"
+    },
+    {
+      "file": "P06 patient partner.txt",
+      "sha256": "8a38de2b5160b3332fe55b03a047be03e0449764c8dd5f085d3dc3f5d08f4ccc"
+    }
+  ]
+}

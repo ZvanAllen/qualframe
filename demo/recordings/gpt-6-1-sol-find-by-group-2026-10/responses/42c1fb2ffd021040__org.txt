@@ -1,0 +1,40 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "Our regulatory college is clear that the physician is responsible for the content of the record, no matter who or what drafted it.",
+      "code_id": "org_privacy",
+      "rationale": "Identifies an institutional rule assigning legal and professional responsibility for the record to the physician regardless of who drafted it."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+      "code_id": "org_training",
+      "rationale": "Describes locally developed guidance restricting residents' use of the assistant during their first year."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "I've asked our residents not to use it during their first year with us, and our program director supports that for now.",
+      "code_id": "org_leadership",
+      "rationale": "Explicitly identifies program leadership support for a decision limiting adoption among first-year residents."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "I did, at a staff meeting and in writing to our executive director. To her credit she took it seriously and asked the health authority for clearer answers about data use. We got a better document a month later.",
+      "code_id": "org_leadership",
+      "rationale": "Describes how concerns were raised within the organisation and how the executive director responded by seeking clarification from the health authority."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "I did, at a staff meeting and in writing to our executive director. To her credit she took it seriously and asked the health authority for clearer answers about data use. We got a better document a month later.",
+      "code_id": "org_privacy",
+      "rationale": "Describes an organisational effort to clarify data-use governance, resulting in improved documentation from the health authority."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "But the decision to join the pilot had already been made above our heads, so it felt like we were fixing the plane while flying it.",
+      "code_id": "org_leadership",
+      "rationale": "Describes a top-down decision to join the pilot, with the participant perceiving that frontline staff were excluded from the decision."
+    }
+  ]
+}

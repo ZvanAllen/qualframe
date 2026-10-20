@@ -1,0 +1,22 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "The next time, I asked more questions, and she explained it properly, that the recording is deleted and only the note is kept.",
+      "code_id": "org_privacy",
+      "rationale": "The participant reports an explanation of recording deletion and note retention, providing evidence about data-handling arrangements rather than only a personal reaction to recording."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "Not formally, which is the strange part. We meet every two months, and nobody brought it to us before it started. We heard about it from patients asking questions in the waiting room.",
+      "code_id": "org_leadership",
+      "rationale": "The participant describes the patient advisory group's lack of consultation before implementation and how members learned about the tool informally. This directly concerns who was involved in adoption decisions."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "We just want to be part of the decision, not something that happens to us.",
+      "code_id": "org_leadership",
+      "rationale": "The participant explicitly calls for patient involvement in decisions about adopting new tools, fitting the code's focus on consultation and participation in decision-making."
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "I wasn't sure a tool trained on, I don't know, suburban visits would capture what matters in mine.",
+      "code_id": "people_trust",
+      "rationale": "The participant questions whether the tool can produce documentation that captures clinically important aspects of their patients' visits."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "If someone tells me they're sleeping in their car this week, that's the most important thing in the visit, and the draft might mention it in one line at the bottom, or leave it out entirely. So I add it back.",
+      "code_id": "people_trust",
+      "rationale": "The participant identifies an omission that limits confidence in the draft's ability to reflect clinical priorities and requires professional correction."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "If someone tells me they're sleeping in their car this week, that's the most important thing in the visit, and the draft might mention it in one line at the bottom, or leave it out entirely. So I add it back.",
+      "code_id": "people_workload",
+      "rationale": "The participant describes additional editing needed to restore important context omitted from the draft."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "I worry that if people stop editing carefully, the record will slowly lose that information, and then planning and funding decisions that rely on the record will miss it too.",
+      "code_id": "people_trust",
+      "rationale": "The participant explicitly links insufficient checking of drafts to deterioration in the record, expressing concern about over-reliance and professional review."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "With some patients, it's lovely, I can just listen.",
+      "code_id": "people_relationship",
+      "rationale": "The tool allows the clinician to focus on listening during some patient encounters."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "With others, especially people who've had bad experiences with institutions, the idea that something is listening changes the conversation. One woman stopped mid-sentence and asked, \"Is that thing getting this?\" She was about to tell me about her partner. I turned it off and she continued, but I could see the trust had dipped for a minute.",
+      "code_id": "people_relationship",
+      "rationale": "The participant describes an interruption to disclosure and a temporary loss of rapport during the visit, followed by resumption of the conversation when the tool was turned off."
+    },
+    {
+      "meaning_unit": "mu-6",
+      "quote": "It also doesn't know our templates, so the structure of the draft doesn't match the structure our charts are supposed to follow. I spend time rearranging sections.",
+      "code_id": "people_workload",
+      "rationale": "The mismatch between draft structure and clinic templates creates additional documentation work."
+    },
+    {
+      "meaning_unit": "mu-7",
+      "quote": "For straightforward visits, yes, maybe ten minutes each. For complex visits, it's close to neutral, because of all the editing and adding back context. Overall it's positive but less dramatic than the brochure suggested.",
+      "code_id": "people_workload",
+      "rationale": "The participant compares time saved on straightforward visits with editing burdens that largely offset savings on complex visits."
+    }
+  ]
+}

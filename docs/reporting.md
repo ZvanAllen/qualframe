@@ -47,3 +47,7 @@ Replace the version with the one you used (the Methods record page shows it). Gi
 - Avoid describing agreement between runs as accuracy or reliability against a human standard.
 - If you used the optional summary drafts, say so, and that they were edited and checked against the cited passages.
 - Note any transcripts excluded from results and why.
+
+## A worked comparison
+
+The [fictional 2 x 2 QualBench example](examples/qualbench-2x2.md) shows how to report code prevalence, simple baselines, agreement measures and intervals, paired differences, passage agreement, quotation location and recording costs. Its saved responses can be replayed offline; its illustrative reference is not a human gold standard.

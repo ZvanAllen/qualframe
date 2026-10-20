@@ -1,0 +1,34 @@
+{
+  "codings": [
+    {
+      "meaning_unit": "mu-1",
+      "quote": "It started with burnout. We'd lost two physicians in eighteen months, and in both exit conversations documentation came up.",
+      "code_id": "people_workload",
+      "rationale": "The participant links documentation burden with clinician burnout and departure, describing its effects on staff."
+    },
+    {
+      "meaning_unit": "mu-2",
+      "quote": "When the doubters see a colleague leaving on time, that does more than any presentation from me.",
+      "code_id": "people_workload",
+      "rationale": "Leaving on time is presented as an observable benefit of using the assistant, indicating an effect on the length of the working day."
+    },
+    {
+      "meaning_unit": "mu-3",
+      "quote": "But the front desk staff noticed patients sometimes ask them about it before they see the doctor, and they weren't prepared for those questions at first. We had to bring them into the training afterwards, which in hindsight we should have done from the start.",
+      "code_id": "people",
+      "rationale": "The tool creates a need for front desk staff to answer patient questions and receive additional training. This effect on staff working around the tool does not fit a more specific child code."
+    },
+    {
+      "meaning_unit": "mu-4",
+      "quote": "Time saved is real, but it doesn't show up as revenue.",
+      "code_id": "people_workload",
+      "rationale": "The participant explicitly identifies time savings from the documentation assistant, while distinguishing them from financial returns."
+    },
+    {
+      "meaning_unit": "mu-5",
+      "quote": "And push the vendor harder, earlier, on how the drafts get into the health record, because the copying back and forth is the number one complaint I hear.",
+      "code_id": "people_workload",
+      "rationale": "Copying drafts into the health record is described as a prominent source of documentation effort and staff complaints."
+    }
+  ]
+}
