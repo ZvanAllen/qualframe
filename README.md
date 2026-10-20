@@ -1,6 +1,6 @@
 # QualFrame
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23300233.svg)](https://doi.org/10.5281/zenodo.23300233)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23300232.svg)](https://doi.org/10.5281/zenodo.23300232)
 
 **AI-assisted directed content analysis you can check.**
 
@@ -81,7 +81,7 @@ QualFrame grew out of the AI-assisted CFIR analysis in the Adaptive Mentorship N
 
 If you use QualFrame in your research, please cite the version you used:
 
-> van Allen, Z. (2026). *QualFrame: AI-assisted directed content analysis you can check* (Version 0.11.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23300233
+> van Allen, Z. (2026). *QualFrame: AI-assisted directed content analysis you can check* (Version 0.11.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23442027
 
 ```bibtex
 @software{vanallen_qualframe_2026,
@@ -90,12 +90,12 @@ If you use QualFrame in your research, please cite the version you used:
   version = {0.11.0},
   year    = {2026},
   publisher = {Zenodo},
-  doi     = {10.5281/zenodo.23300233},
-  url     = {https://doi.org/10.5281/zenodo.23300233}
+  doi     = {10.5281/zenodo.23442027},
+  url     = {https://doi.org/10.5281/zenodo.23442027}
 }
 ```
 
-Releases are archived on [Zenodo](https://doi.org/10.5281/zenodo.23300233) and the Zenodo record lists the DOI of each version; GitHub's **Cite this repository** button (from [CITATION.cff](CITATION.cff)) gives the same citation in other formats. Please also cite the framework your codebook comes from.
+Releases are archived on [Zenodo](https://doi.org/10.5281/zenodo.23300232) and the Zenodo record lists the DOI of each version; GitHub's **Cite this repository** button (from [CITATION.cff](CITATION.cff)) gives the same citation in other formats. Please also cite the framework your codebook comes from.
 
 ## Contributing
 
